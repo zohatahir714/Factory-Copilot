@@ -54,12 +54,20 @@ async function confirm(actionId) {
   return res.json();
 }
 
-/* Flow 1 — stock query (PRD Demo 1) */
+/* Flow 1 — stock query (PRD Demo 1). Expected stock is read live from the
+ * REST API so the test stays correct regardless of prior test mutations. */
 console.log("\n=== Flow 1: stock query ===");
+const stockRes = await fetch(`${BASE}/api/products/Cotton%20Yarn%2040s`);
+const stockJson = await stockRes.json();
+const expectedStock = stockJson?.data?.current_stock;
 const e1 = await chat("Kitna cotton yarn bacha hai?");
 const t1 = text(e1);
 check("no error event", !firstOf(e1, "error"), firstOf(e1, "error")?.message ?? "");
-check("mentions 320", /320/.test(t1), t1.slice(0, 140));
+check(
+  "reply matches live stock",
+  Number.isFinite(expectedStock) && t1.includes(String(expectedStock)),
+  `expected ${expectedStock} — reply: ${t1.slice(0, 140)}`
+);
 
 /* Flow 2 — PO with confirmation card (PRD Demo 2 + §14 gate) */
 console.log("\n=== Flow 2: PO -> confirmation card -> confirm ===");

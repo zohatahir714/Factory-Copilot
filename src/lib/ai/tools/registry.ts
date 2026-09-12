@@ -15,19 +15,19 @@ import {
   RecordExpenseSchema,
   SearchComplianceDocsSchema,
 } from "./schemas";
-import {
-  findProduct,
-  mockDb,
-  nextIds,
-  productSuggestions,
-  type MockProduct,
-} from "./mock-data";
+import * as productsSvc from "@/lib/services/products";
+import * as partiesSvc from "@/lib/services/parties";
+import * as purchaseSvc from "@/lib/services/purchase";
+import * as salesSvc from "@/lib/services/sales";
+import * as cashbookSvc from "@/lib/services/cashbook";
+import * as reportsSvc from "@/lib/services/reports";
+import { db } from "@/lib/services/store";
 
 /**
  * TOOL REGISTRY — the validated, allow-listed bridge between the model and the
- * business layer. Implementations currently call the MOCK dataset; per the
- * replacement contract in mock-data.ts, each run() switches to a real service
- * call without changing schemas or envelopes.
+ * BUSINESS SERVICE LAYER (src/lib/services/*). Tools contain no business logic
+ * themselves: they map the model's arguments onto service calls and return the
+ * standard envelope. The same services back the REST APIs and forms.
  *
  * Execution modes (PRD §14 confirmation policy):
  *  - "preview": mutating tools validate + compute a draft (real totals, real
@@ -63,8 +63,6 @@ export interface ToolDefinition {
 
 /* ---------------------------------- helpers --------------------------------- */
 
-const money = (n: number) => `Rs. ${Math.round(n).toLocaleString("en-PK")}`;
-
 /** JSON Schema for Groq tool definitions (Zod v4 native converter). */
 function toParameters(schema: z.ZodTypeAny): Record<string, unknown> {
   const json = z.toJSONSchema(schema, { target: "draft-7" }) as Record<string, unknown>;
@@ -72,34 +70,19 @@ function toParameters(schema: z.ZodTypeAny): Record<string, unknown> {
   return json;
 }
 
-/** Tax rate lookup: product-category decision table (Sidra's service later). */
-function taxRateForProduct(p: MockProduct): number {
-  const decision = mockDb.taxDecisions.find((d) => d.category === p.category);
-  return decision?.tax_rate ?? 0;
-}
-
-export function summaryData() {
-  const today = new Date().toISOString().slice(0, 10);
-  const salesToday = mockDb.sales
-    .filter((s) => s.created_at.slice(0, 10) === today)
-    .reduce((sum, s) => sum + s.total_amount, 0);
-  const cash = mockDb.cashbook.reduce(
-    (sum, e) => sum + (e.type === "income" ? e.amount : -e.amount),
-    0
-  );
-  const lowStock = mockDb.products
-    .filter((p) => p.current_stock <= p.reorder_threshold)
-    .map((p) => ({ product: p.name, stock: p.current_stock, unit: p.unit, reorder_threshold: p.reorder_threshold }));
-  const pendingPOs = mockDb.purchaseOrders
-    .filter((po) => po.status === "pending")
-    .map((po) => {
-      const supplier = mockDb.suppliers.find((s) => s.id === po.supplier_id);
-      return { po_id: po.id, supplier: supplier?.name ?? po.supplier_id, total: po.total_amount, created_at: po.created_at };
-    });
-  const receivables = mockDb.sales
-    .filter((s) => s.payment_status === "unpaid")
-    .reduce((sum, s) => sum + s.total_amount, 0);
-  return { salesToday, cash, lowStock, pendingPOs, receivables };
+/** Wrap a service call with Zod validation and error mapping. */
+function fromService(name: string, schema: z.ZodTypeAny, service: (input: unknown) => ToolResponse, args: unknown): ToolResponse {
+  try {
+    schema.parse(args ?? {});
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      const first = err.issues[0];
+      const path = first.path.join(".") || "input";
+      return fail(name, "VALIDATION_ERROR", `${path}: ${first.message}`);
+    }
+    throw err;
+  }
+  return service(args);
 }
 
 /* ------------------------------ P0 tool definitions ------------------------------ */
@@ -113,21 +96,7 @@ const tools: ToolDefinition[] = [
     mutates: false,
     zodSchema: CheckInventorySchema,
     parameters: toParameters(CheckInventorySchema),
-    run: async (args) => {
-      const { product } = CheckInventorySchema.parse(args);
-      const p = findProduct(product);
-      if (!p) {
-        return fail("check_inventory", "PRODUCT_NOT_FOUND", `Product not found: "${product}"`, productSuggestions(product));
-      }
-      return ok("check_inventory", {
-        product: p.name,
-        sku: p.sku,
-        current_stock: p.current_stock,
-        unit: p.unit,
-        reorder_threshold: p.reorder_threshold,
-        low_stock_warning: p.current_stock <= p.reorder_threshold,
-      });
-    },
+    run: async (args) => fromService("check_inventory", CheckInventorySchema, productsSvc.lookupProduct, args),
   },
   {
     name: "create_product",
@@ -138,35 +107,16 @@ const tools: ToolDefinition[] = [
     parameters: toParameters(CreateProductSchema),
     run: async (args, _ctx, mode) => {
       const input = CreateProductSchema.parse(args);
-      if (findProduct(input.name) || mockDb.products.some((p) => p.sku.toLowerCase() === input.sku.toLowerCase())) {
+      const duplicate =
+        db.products.some((p) => p.sku.toLowerCase() === input.sku.toLowerCase()) ||
+        db.products.some((p) => p.name.toLowerCase() === input.name.toLowerCase());
+      if (duplicate) {
         return fail("create_product", "VALIDATION_ERROR", `Product or SKU already exists: ${input.name} / ${input.sku}`);
       }
       if (mode === "preview") {
-        return ok("create_product", {
-          pending_confirmation: true,
-          summary: `Create product "${input.name}" (SKU ${input.sku}, unit ${input.unit})`,
-          draft: input,
-        });
+        return withPendingPreview("create_product", `Create product "${input.name}" (SKU ${input.sku}, unit ${input.unit})`, input);
       }
-      const product: MockProduct = {
-        id: `p-${mockDb.products.length + 1}`,
-        sku: input.sku,
-        name: input.name,
-        category: input.category ?? "general",
-        unit: input.unit,
-        cost_price: input.cost_price ?? 0,
-        selling_price: input.selling_price ?? 0,
-        reorder_threshold: input.reorder_threshold ?? 0,
-        current_stock: 0,
-      };
-      mockDb.products.push(product);
-      return ok("create_product", {
-        product_id: product.id,
-        name: product.name,
-        sku: product.sku,
-        unit: product.unit,
-        stock: product.current_stock,
-      });
+      return productsSvc.createProduct(args);
     },
   },
 
@@ -180,24 +130,13 @@ const tools: ToolDefinition[] = [
     parameters: toParameters(CreateSupplierSchema),
     run: async (args, _ctx, mode) => {
       const input = CreateSupplierSchema.parse(args);
-      if (mockDb.suppliers.some((s) => s.name.toLowerCase() === input.name.toLowerCase())) {
-        return fail("create_supplier", "VALIDATION_ERROR", `Supplier already exists: ${input.name}`);
-      }
       if (mode === "preview") {
-        return ok("create_supplier", {
-          pending_confirmation: true,
-          summary: `Create supplier "${input.name}"${input.city ? ` (${input.city})` : ""}`,
-          draft: input,
-        });
+        if (db.suppliers.some((s) => s.name.toLowerCase() === input.name.toLowerCase())) {
+          return fail("create_supplier", "VALIDATION_ERROR", `Supplier already exists: ${input.name}`);
+        }
+        return withPendingPreview("create_supplier", `Create supplier "${input.name}"${input.city ? ` (${input.city})` : ""}`, input);
       }
-      const supplier = {
-        id: `s-${mockDb.suppliers.length + 1}`,
-        name: input.name,
-        city: input.city ?? "",
-        lead_time_days: input.lead_time_days ?? 5,
-      };
-      mockDb.suppliers.push(supplier);
-      return ok("create_supplier", { supplier_id: supplier.id, name: supplier.name });
+      return partiesSvc.createSupplier(args);
     },
   },
   {
@@ -208,53 +147,28 @@ const tools: ToolDefinition[] = [
     zodSchema: CreatePurchaseOrderSchema,
     parameters: toParameters(CreatePurchaseOrderSchema),
     run: async (args, _ctx, mode) => {
-      const input = CreatePurchaseOrderSchema.parse(args);
-      const supplier = mockDb.suppliers.find(
-        (s) => s.name.toLowerCase().includes(input.supplier.toLowerCase()) || input.supplier.toLowerCase().includes(s.name.toLowerCase())
-      );
-      if (!supplier) {
-        return fail("create_purchase_order", "SUPPLIER_NOT_FOUND", `Supplier not found: "${input.supplier}"`, mockDb.suppliers.map((s) => s.name));
-      }
-      const items: { product_id: string; name: string; quantity: number; unit_price: number; tax_amount: number }[] = [];
-      let total = 0;
-      for (const item of input.items) {
-        const p = findProduct(item.product);
-        if (!p) {
-          return fail("create_purchase_order", "PRODUCT_NOT_FOUND", `Product not found: "${item.product}"`, productSuggestions(item.product));
-        }
-        const unitPrice = item.unit_price ?? p.cost_price;
-        const taxAmount = Math.round(unitPrice * item.quantity * taxRateForProduct(p));
-        items.push({ product_id: p.id, name: p.name, quantity: item.quantity, unit_price: unitPrice, tax_amount: taxAmount });
-        total += unitPrice * item.quantity + taxAmount;
-      }
-      const lines = items.map((i) => ({ product: i.name, quantity: i.quantity, unit_price: i.unit_price, tax_amount: i.tax_amount }));
       if (mode === "preview") {
-        return ok("create_purchase_order", {
-          pending_confirmation: true,
-          summary: `Create PO for ${items.map((i) => `${i.quantity} ${i.name}`).join(", ")} from ${supplier.name} for ${money(total)}?`,
-          supplier: supplier.name,
-          items: lines,
-          total,
-          total_display: money(total),
-        });
+        // Dry-run createPO: it validates and prices, but the service commits.
+        // To keep the store untouched, snapshot/rollback around the call.
+        const snapshot = serializeDb();
+        try {
+          const created = purchaseSvc.createPO(args);
+          if (!created.success) return created;
+          const d = created.data as { po_id: string; supplier: string; total: number; total_display: string; items: unknown[] };
+          const input = CreatePurchaseOrderSchema.parse(args);
+          return ok("create_purchase_order", {
+            pending_confirmation: true,
+            summary: `Create PO for ${input.items.map((i) => `${i.quantity} ${(d.items as { product: string }[])[input.items.indexOf(i)]?.product ?? i.product}`).join(", ")} from ${d.supplier} for ${d.total_display}?`,
+            supplier: d.supplier,
+            items: d.items,
+            total: d.total,
+            total_display: d.total_display,
+          });
+        } finally {
+          restoreDb(snapshot);
+        }
       }
-      const po = {
-        id: nextIds.po(),
-        supplier_id: supplier.id,
-        status: "pending" as const,
-        items,
-        total_amount: total,
-        created_at: new Date().toISOString(),
-      };
-      mockDb.purchaseOrders.push(po);
-      return ok("create_purchase_order", {
-        po_id: po.id,
-        supplier: supplier.name,
-        items: lines,
-        total: po.total_amount,
-        total_display: money(po.total_amount),
-        status: po.status,
-      });
+      return purchaseSvc.createPO(args);
     },
   },
   {
@@ -265,8 +179,10 @@ const tools: ToolDefinition[] = [
     zodSchema: GetPendingOrdersSchema,
     parameters: toParameters(GetPendingOrdersSchema),
     run: async () => {
-      const orders = summaryData().pendingPOs;
-      return ok("get_pending_orders", { count: orders.length, orders });
+      const res = purchaseSvc.listPOs({ status: "pending" });
+      if (!res.success) return res;
+      const d = res.data as { orders: { po_id: string; supplier: string; total: number; created_at: string }[] };
+      return ok("get_pending_orders", { count: d.orders.length, orders: d.orders });
     },
   },
   {
@@ -276,44 +192,7 @@ const tools: ToolDefinition[] = [
     mutates: true,
     zodSchema: ReceiveGoodsSchema,
     parameters: toParameters(ReceiveGoodsSchema),
-    run: async (args, _ctx, mode) => {
-      const { po_id } = ReceiveGoodsSchema.parse(args);
-      const po = mockDb.purchaseOrders.find((o) => o.id.toLowerCase() === po_id.toLowerCase());
-      if (!po) {
-        return fail("receive_goods", "PO_NOT_FOUND", `Purchase order not found: "${po_id}"`, mockDb.purchaseOrders.filter((o) => o.status === "pending").map((o) => o.id));
-      }
-      if (po.status === "received") {
-        return fail("receive_goods", "PO_ALREADY_RECEIVED", `Purchase order ${po.id} was already received`);
-      }
-      const supplier = mockDb.suppliers.find((s) => s.id === po.supplier_id);
-      const projected = po.items.map((item) => {
-        const p = mockDb.products.find((prod) => prod.id === item.product_id);
-        return {
-          product: p?.name ?? item.product_id,
-          quantity_received: item.quantity,
-          current_stock: p?.current_stock ?? 0,
-          new_stock: (p?.current_stock ?? 0) + item.quantity,
-        };
-      });
-      if (mode === "preview") {
-        return ok("receive_goods", {
-          pending_confirmation: true,
-          summary: `Receive goods for ${po.id} from ${supplier?.name ?? po.supplier_id} (${projected.map((r) => `${r.product} → ${r.new_stock}`).join(", ")})?`,
-          po_id: po.id,
-          items: projected,
-        });
-      }
-      po.status = "received";
-      for (const item of po.items) {
-        const p = mockDb.products.find((prod) => prod.id === item.product_id);
-        if (p) p.current_stock += item.quantity;
-      }
-      const received = po.items.map((item) => {
-        const p = mockDb.products.find((prod) => prod.id === item.product_id);
-        return { product: p?.name ?? item.product_id, quantity_received: item.quantity, new_stock: p?.current_stock ?? 0 };
-      });
-      return ok("receive_goods", { po_id: po.id, status: po.status, items: received });
-    },
+    run: async (args, _ctx, mode) => (mode === "preview" ? purchaseSvc.previewReceive(args) : purchaseSvc.receiveGoods(args)),
   },
 
   // ---------------- ACCOUNTING ----------------
@@ -326,19 +205,13 @@ const tools: ToolDefinition[] = [
     parameters: toParameters(CreateCustomerSchema),
     run: async (args, _ctx, mode) => {
       const input = CreateCustomerSchema.parse(args);
-      if (mockDb.customers.some((c) => c.name.toLowerCase() === input.name.toLowerCase())) {
-        return fail("create_customer", "VALIDATION_ERROR", `Customer already exists: ${input.name}`);
-      }
       if (mode === "preview") {
-        return ok("create_customer", {
-          pending_confirmation: true,
-          summary: `Create customer "${input.name}"${input.city ? ` (${input.city})` : ""}`,
-          draft: input,
-        });
+        if (db.customers.some((c) => c.name.toLowerCase() === input.name.toLowerCase())) {
+          return fail("create_customer", "VALIDATION_ERROR", `Customer already exists: ${input.name}`);
+        }
+        return withPendingPreview("create_customer", `Create customer "${input.name}"${input.city ? ` (${input.city})` : ""}`, input);
       }
-      const customer = { id: `c-${mockDb.customers.length + 1}`, name: input.name, city: input.city ?? "" };
-      mockDb.customers.push(customer);
-      return ok("create_customer", { customer_id: customer.id, name: customer.name });
+      return partiesSvc.createCustomer(args);
     },
   },
   {
@@ -348,87 +221,7 @@ const tools: ToolDefinition[] = [
     mutates: true,
     zodSchema: RecordSaleSchema,
     parameters: toParameters(RecordSaleSchema),
-    run: async (args, _ctx, mode) => {
-      const input = RecordSaleSchema.parse(args);
-      const customer = mockDb.customers.find(
-        (c) => c.name.toLowerCase().includes(input.customer.toLowerCase()) || input.customer.toLowerCase().includes(c.name.toLowerCase())
-      );
-      if (!customer) {
-        return fail("record_sale", "CUSTOMER_NOT_FOUND", `Customer not found: "${input.customer}"`, mockDb.customers.map((c) => c.name));
-      }
-      const items: { product_id: string; name: string; quantity: number; unit_price: number; tax_rate: number; tax_amount: number; line_total: number }[] = [];
-      let subtotal = 0;
-      let taxTotal = 0;
-      // Pass 1: validate everything before any mutation (PRD Rule 7).
-      for (const item of input.items) {
-        const p = findProduct(item.product);
-        if (!p) {
-          return fail("record_sale", "PRODUCT_NOT_FOUND", `Product not found: "${item.product}"`, productSuggestions(item.product));
-        }
-        if (p.current_stock < item.quantity) {
-          return fail("record_sale", "INSUFFICIENT_STOCK", `Only ${p.current_stock} ${p.unit} of ${p.name} available (requested ${item.quantity})`);
-        }
-        const unitPrice = item.unit_price ?? p.selling_price;
-        const taxRate = taxRateForProduct(p);
-        const taxAmount = Math.round(unitPrice * item.quantity * taxRate);
-        items.push({ product_id: p.id, name: p.name, quantity: item.quantity, unit_price: unitPrice, tax_rate: taxRate, tax_amount: taxAmount, line_total: unitPrice * item.quantity + taxAmount });
-        subtotal += unitPrice * item.quantity;
-        taxTotal += taxAmount;
-      }
-      const total = subtotal + taxTotal;
-      const lines = items.map((i) => ({ product: i.name, quantity: i.quantity, unit_price: i.unit_price, tax_amount: i.tax_amount }));
-      const remaining = items.map((i) => {
-        const p = mockDb.products.find((prod) => prod.id === i.product_id);
-        return { product: i.name, remaining: (p?.current_stock ?? 0) - i.quantity };
-      });
-      if (mode === "preview") {
-        return ok("record_sale", {
-          pending_confirmation: true,
-          summary: `Record sale of ${items.map((i) => `${i.quantity} ${i.name}`).join(", ")} to ${customer.name} for ${money(total)} (${input.payment_status})?`,
-          customer: customer.name,
-          items: lines,
-          subtotal,
-          tax_amount: taxTotal,
-          total,
-          total_display: money(total),
-          payment_status: input.payment_status,
-          stock_after: remaining,
-        });
-      }
-      // Pass 2: commit mutations.
-      for (const item of items) {
-        const p = mockDb.products.find((prod) => prod.id === item.product_id);
-        if (p) p.current_stock -= item.quantity;
-      }
-      const invoice = {
-        id: nextIds.invoice(),
-        customer_id: customer.id,
-        items,
-        subtotal,
-        tax_amount: taxTotal,
-        total_amount: total,
-        payment_status: input.payment_status,
-        created_at: new Date().toISOString(),
-      };
-      mockDb.sales.push(invoice);
-      if (input.payment_status === "paid") {
-        mockDb.cashbook.push({ id: nextIds.cash(), type: "income", amount: invoice.total_amount, category: "sales", description: `Sale to ${customer.name} (${invoice.id})`, created_at: invoice.created_at });
-      }
-      return ok("record_sale", {
-        invoice_id: invoice.id,
-        customer: customer.name,
-        items: lines,
-        subtotal,
-        tax_amount: taxTotal,
-        total: invoice.total_amount,
-        total_display: money(invoice.total_amount),
-        payment_status: invoice.payment_status,
-        remaining_stock: items.map((i) => {
-          const p = mockDb.products.find((prod) => prod.id === i.product_id);
-          return { product: i.name, remaining: p?.current_stock ?? 0 };
-        }),
-      });
-    },
+    run: async (args, _ctx, mode) => salesSvc.recordSale(args, { dryRun: mode === "preview" }),
   },
   {
     name: "record_expense",
@@ -437,27 +230,7 @@ const tools: ToolDefinition[] = [
     mutates: true,
     zodSchema: RecordExpenseSchema,
     parameters: toParameters(RecordExpenseSchema),
-    run: async (args, _ctx, mode) => {
-      const input = RecordExpenseSchema.parse(args);
-      if (mode === "preview") {
-        return ok("record_expense", {
-          pending_confirmation: true,
-          summary: `Record expense of ${money(input.amount)} (${input.category})?`,
-          draft: input,
-        });
-      }
-      const entry = {
-        id: nextIds.cash(),
-        type: "expense" as const,
-        amount: input.amount,
-        category: input.category,
-        description: input.description ?? input.category,
-        created_at: new Date().toISOString(),
-      };
-      mockDb.cashbook.push(entry);
-      const cash = summaryData().cash;
-      return ok("record_expense", { entry_id: entry.id, amount: entry.amount, category: entry.category, new_cash_position: cash, cash_display: money(cash) });
-    },
+    run: async (args, _ctx, mode) => cashbookSvc.recordExpense(args, { dryRun: mode === "preview" }),
   },
   {
     name: "get_cash_balance",
@@ -466,10 +239,7 @@ const tools: ToolDefinition[] = [
     mutates: false,
     zodSchema: GetCashBalanceSchema,
     parameters: toParameters(GetCashBalanceSchema),
-    run: async () => {
-      const cash = summaryData().cash;
-      return ok("get_cash_balance", { cash_position: cash, display: money(cash), as_of: new Date().toISOString() });
-    },
+    run: async () => cashbookSvc.getCashPosition(),
   },
   {
     name: "get_business_summary",
@@ -478,21 +248,7 @@ const tools: ToolDefinition[] = [
     mutates: false,
     zodSchema: GetBusinessSummarySchema,
     parameters: toParameters(GetBusinessSummarySchema),
-    run: async () => {
-      const s = summaryData();
-      return ok("get_business_summary", {
-        sales_today: s.salesToday,
-        sales_today_display: money(s.salesToday),
-        cash_position: s.cash,
-        cash_display: money(s.cash),
-        low_stock: s.lowStock,
-        pending_pos: s.pendingPOs,
-        pending_po_count: s.pendingPOs.length,
-        outstanding_receivables: s.receivables,
-        receivables_display: money(s.receivables),
-        recommended_action: s.lowStock.length > 0 ? `Reorder ${s.lowStock.map((l) => l.product).join(", ")}` : "No action needed",
-      });
-    },
+    run: async () => reportsSvc.businessSummary(),
   },
 
   // ---------------- COMPLIANCE ----------------
@@ -503,24 +259,7 @@ const tools: ToolDefinition[] = [
     mutates: false,
     zodSchema: GenerateTaxReportSchema,
     parameters: toParameters(GenerateTaxReportSchema),
-    run: async (args) => {
-      const { month } = GenerateTaxReportSchema.parse(args);
-      const inMonth = (iso: string) => iso.slice(0, 7) === month;
-      const outputTax = mockDb.sales.filter((s) => inMonth(s.created_at)).reduce((sum, s) => sum + s.tax_amount, 0);
-      const inputTax = mockDb.purchaseOrders
-        .filter((po) => po.status === "received" && inMonth(po.created_at))
-        .reduce((sum, po) => sum + Math.round(po.items.reduce((t, i) => t + i.unit_price * i.quantity, 0) * 0.18), 0);
-      const byCategory = mockDb.taxDecisions.map((d) => ({ category: d.category, tax_rate: d.tax_rate, tax_type: d.tax_type, source_document: d.source_document, effective_date: d.effective_date }));
-      return ok("generate_tax_report", {
-        month,
-        output_tax: outputTax,
-        input_tax: inputTax,
-        net_payable: outputTax - inputTax,
-        net_payable_display: money(outputTax - inputTax),
-        by_category: byCategory,
-        note: "Rates sourced from indexed tax decisions — verify with accountant/FBR before filing.",
-      });
-    },
+    run: async (args) => reportsSvc.taxReport(args),
   },
   {
     name: "search_compliance_docs",
@@ -533,7 +272,7 @@ const tools: ToolDefinition[] = [
       const { question } = SearchComplianceDocsSchema.parse(args);
       // Placeholder retrieval until Sidra's trigram RAG lands (MASTER_PLAN §9).
       const q = question.toLowerCase();
-      const decisions = mockDb.taxDecisions.filter((d) => q.includes(d.category) || q.includes("gst") || q.includes("tax"));
+      const decisions = db.taxDecisions.filter((d) => q.includes(d.category) || q.includes("gst") || q.includes("tax"));
       if (decisions.length === 0) {
         return ok("search_compliance_docs", {
           chunks: [],
@@ -548,6 +287,39 @@ const tools: ToolDefinition[] = [
     },
   },
 ];
+
+/* ------------------------------ preview helpers ------------------------------ */
+
+/** Wrap committed service data as a pending-confirmation preview payload. */
+function withPendingPreview(tool: string, summary: string, data: unknown): ToolResponse {
+  return ok(tool, { pending_confirmation: true, summary, draft: data });
+}
+
+/** JSON snapshot of the store for dry-run rollback. */
+function serializeDb(): string {
+  return JSON.stringify({
+    products: db.products,
+    suppliers: db.suppliers,
+    customers: db.customers,
+    purchaseOrders: db.purchaseOrders,
+    sales: db.sales,
+    cashbook: db.cashbook,
+    movements: db.movements,
+    seq: db.seq,
+  });
+}
+
+function restoreDb(snapshot: string): void {
+  const s = JSON.parse(snapshot) as typeof db;
+  db.products = s.products;
+  db.suppliers = s.suppliers;
+  db.customers = s.customers;
+  db.purchaseOrders = s.purchaseOrders;
+  db.sales = s.sales;
+  db.cashbook = s.cashbook;
+  db.movements = s.movements;
+  db.seq = s.seq;
+}
 
 /* ------------------------------ allow-lists & API ------------------------------ */
 

@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { VoiceButton } from "@/components/VoiceButton";
 
 /**
- * /chat — the main product screen (PRD §17.1, milestone H4–10 version).
- * Streams /api/chat (SSE), renders status, tokens, tool results and the
- * PRD §14 confirmation card (Confirm / Edit / Cancel).
- * Voice input lands in H24–32 (VoiceButton); text is the same pipeline.
+ * /chat — the Copilot screen (PRD §17.1). Streams /api/chat (SSE), renders
+ * status, tokens, tool results and the §14 confirmation card. Voice input via
+ * VoiceButton lands in the same pipeline — voice is just another input method.
+ * The software screens (dashboard, products, POs…) live in the (app) group.
  */
 
 interface PendingActionEvent {
@@ -193,7 +194,7 @@ export default function ChatPage() {
           <strong>AI Business Copilot</strong>
           <div style={{ color: "var(--muted)", fontSize: 13 }}>Demo Textiles · Owner</div>
         </div>
-        <span style={{ color: "var(--muted)", fontSize: 12 }}>text · voice soon</span>
+        <span style={{ color: "var(--muted)", fontSize: 12 }}>text · voice</span>
       </header>
 
       <div ref={threadRef} style={{ flex: 1, overflowY: "auto", padding: "16px 4px", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -238,6 +239,7 @@ export default function ChatPage() {
         <button type="submit" disabled={busy || !input.trim()} style={sendStyle}>
           Send
         </button>
+        <VoiceButton onSend={(t) => send(t)} disabled={busy} />
       </form>
     </main>
   );
