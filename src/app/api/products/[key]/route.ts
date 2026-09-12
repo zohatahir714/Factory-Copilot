@@ -11,7 +11,7 @@ const ParamSchema = z.object({ key: z.string().min(1) });
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ key: string }> }) {
   const { key } = ParamSchema.parse((await params));
-  const res = lookupProduct({ product: key });
+  const res = await lookupProduct({ product: key });
   if (!res.success && res.error?.code === "PRODUCT_NOT_FOUND") {
     return Response.json(res, { status: 404 });
   }

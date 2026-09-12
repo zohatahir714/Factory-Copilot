@@ -13,7 +13,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const body = BodySchema.safeParse(await _req.json().catch(() => ({})));
   const dryRun = body.success ? body.data.dry_run === true : false;
 
-  const res = dryRun ? previewReceive({ po_id: id }) : receiveGoods({ po_id: id });
+  const res = await (dryRun ? previewReceive({ po_id: id }) : receiveGoods({ po_id: id }));
   if (res.error?.code === "PO_NOT_FOUND") return Response.json(res, { status: 404 });
   return Response.json(res, { status: res.success ? 200 : 400 });
 }

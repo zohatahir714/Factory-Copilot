@@ -6,7 +6,7 @@ import { businessSummary, taxReport } from "@/lib/services/reports";
  * today's sales, cash, inventory value, low stock, pending POs, receivables.
  */
 export async function GET() {
-  const res = businessSummary();
+  const res = await businessSummary();
   return Response.json(res, { status: res.success ? 200 : 500 });
 }
 

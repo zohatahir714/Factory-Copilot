@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { fail, ok, type ToolResponse } from "@/lib/responses";
-import { db, findCustomer, findSupplier } from "./store";
+import { getStore } from "./store";
 
 /** PARTIES SERVICE — suppliers and customers. */
 
@@ -19,43 +19,34 @@ export const CreateCustomerInput = z.object({
 });
 export const ListPartiesInput = z.object({ q: z.string().optional() });
 
-export function listSuppliers(input: unknown): ToolResponse {
+export async function listSuppliers(input: unknown): Promise<ToolResponse> {
   const { q } = ListPartiesInput.parse(input ?? {});
-  const items = q ? db.suppliers.filter((s) => s.name.toLowerCase().includes(q.toLowerCase())) : db.suppliers;
+  const store = getStore();
+  let items = await store.listSuppliers();
+  if (q) items = items.filter((s) => s.name.toLowerCase().includes(q.toLowerCase()));
   return ok("list_suppliers", { count: items.length, suppliers: items });
 }
 
-export function createSupplier(input: unknown): ToolResponse {
+export async function createSupplier(input: unknown): Promise<ToolResponse> {
   const data = CreateSupplierInput.parse(input);
-  if (findSupplier(data.name)) return fail("create_supplier", "VALIDATION_ERROR", `Supplier already exists: ${data.name}`);
-  const supplier = {
-    id: `s-${db.suppliers.length + 1}`,
-    name: data.name,
-    city: data.city ?? "",
-    ...(data.phone ? { phone: data.phone } : {}),
-    ...(data.email ? { email: data.email } : {}),
-    lead_time_days: data.lead_time_days ?? 5,
-  };
-  db.suppliers.push(supplier);
+  const store = getStore();
+  if (await store.findSupplier(data.name)) return fail("create_supplier", "VALIDATION_ERROR", `Supplier already exists: ${data.name}`);
+  const supplier = await store.insertSupplier(data);
   return ok("create_supplier", { id: supplier.id, name: supplier.name });
 }
 
-export function listCustomers(input: unknown): ToolResponse {
+export async function listCustomers(input: unknown): Promise<ToolResponse> {
   const { q } = ListPartiesInput.parse(input ?? {});
-  const items = q ? db.customers.filter((c) => c.name.toLowerCase().includes(q.toLowerCase())) : db.customers;
+  const store = getStore();
+  let items = await store.listCustomers();
+  if (q) items = items.filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
   return ok("list_customers", { count: items.length, customers: items });
 }
 
-export function createCustomer(input: unknown): ToolResponse {
+export async function createCustomer(input: unknown): Promise<ToolResponse> {
   const data = CreateCustomerInput.parse(input);
-  if (findCustomer(data.name)) return fail("create_customer", "VALIDATION_ERROR", `Customer already exists: ${data.name}`);
-  const customer = {
-    id: `c-${db.customers.length + 1}`,
-    name: data.name,
-    city: data.city ?? "",
-    ...(data.phone ? { phone: data.phone } : {}),
-    ...(data.email ? { email: data.email } : {}),
-  };
-  db.customers.push(customer);
+  const store = getStore();
+  if (await store.findCustomer(data.name)) return fail("create_customer", "VALIDATION_ERROR", `Customer already exists: ${data.name}`);
+  const customer = await store.insertCustomer(data);
   return ok("create_customer", { id: customer.id, name: customer.name });
 }

@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const input: Record<string, unknown> = {};
   if (limit) input.limit = Number(limit);
   if (paymentStatus === "paid" || paymentStatus === "unpaid") input.payment_status = paymentStatus;
-  const res = listSales(input);
+  const res = await listSales(input);
   return Response.json(res, { status: res.success ? 200 : 400 });
 }
 
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.ok) return parsed.res;
   try {
     const dryRun = (parsed.body as { dry_run?: boolean } | null)?.dry_run === true;
-    const res = recordSale(parsed.body, { dryRun });
+    const res = await recordSale(parsed.body, { dryRun });
     return Response.json(res, { status: res.success ? (dryRun ? 200 : 201) : 400 });
   } catch (err) {
     return zodFail("record_sale", err as import("zod").ZodError);

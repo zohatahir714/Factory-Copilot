@@ -1,33 +1,31 @@
 import { z } from "zod";
 import { fail, ok, type ToolResponse } from "@/lib/responses";
 import {
-  CheckInventorySchema,
   CreateCustomerSchema,
-  CreateProductSchema,
-  CreatePurchaseOrderSchema,
-  CreateSupplierSchema,
-  GenerateTaxReportSchema,
-  GetBusinessSummarySchema,
-  GetCashBalanceSchema,
-  GetPendingOrdersSchema,
   RecordSaleSchema,
-  ReceiveGoodsSchema,
   RecordExpenseSchema,
+  GetCashBalanceSchema,
+  GetBusinessSummarySchema,
+  GenerateTaxReportSchema,
   SearchComplianceDocsSchema,
 } from "./schemas";
-import * as productsSvc from "@/lib/services/products";
 import * as partiesSvc from "@/lib/services/parties";
-import * as purchaseSvc from "@/lib/services/purchase";
 import * as salesSvc from "@/lib/services/sales";
 import * as cashbookSvc from "@/lib/services/cashbook";
 import * as reportsSvc from "@/lib/services/reports";
-import { db } from "@/lib/services/store";
+import { getStore } from "@/lib/services/store";
+import { fromService, toParameters, withPendingPreview, type AgentDomain, type ExecutionMode, type ToolContext, type ToolDefinition } from "./kit";
+import { inventoryTools } from "./inventory";
+import { purchaseTools } from "./purchase";
 
 /**
  * TOOL REGISTRY — the validated, allow-listed bridge between the model and the
  * BUSINESS SERVICE LAYER (src/lib/services/*). Tools contain no business logic
  * themselves: they map the model's arguments onto service calls and return the
  * standard envelope. The same services back the REST APIs and forms.
+ *
+ * Domain tools live in their owners' files (brief-zoha: inventory.ts/purchase.ts
+ * by Zoha; accounting/compliance tool files follow from Sidra/the owner).
  *
  * Execution modes (PRD §14 confirmation policy):
  *  - "preview": mutating tools validate + compute a draft (real totals, real
@@ -43,159 +41,9 @@ import { db } from "@/lib/services/store";
  *  - the model can never inject SQL — tools own all data access.
  */
 
-export type AgentDomain = "supervisor" | "inventory" | "purchase" | "accounting" | "compliance";
-export type ExecutionMode = "preview" | "commit";
+/* ------------------------------ accounting + compliance ------------------------------ */
 
-export interface ToolContext {
-  organizationId: string;
-  userId: string;
-}
-
-export interface ToolDefinition {
-  name: string;
-  description: string;
-  domain: Exclude<AgentDomain, "supervisor">;
-  mutates: boolean;
-  zodSchema: z.ZodTypeAny;
-  parameters: Record<string, unknown>; // JSON Schema sent to Groq
-  run: (args: unknown, ctx: ToolContext, mode: ExecutionMode) => Promise<ToolResponse>;
-}
-
-/* ---------------------------------- helpers --------------------------------- */
-
-/** JSON Schema for Groq tool definitions (Zod v4 native converter). */
-function toParameters(schema: z.ZodTypeAny): Record<string, unknown> {
-  const json = z.toJSONSchema(schema, { target: "draft-7" }) as Record<string, unknown>;
-  delete json.$schema;
-  return json;
-}
-
-/** Wrap a service call with Zod validation and error mapping. */
-function fromService(name: string, schema: z.ZodTypeAny, service: (input: unknown) => ToolResponse, args: unknown): ToolResponse {
-  try {
-    schema.parse(args ?? {});
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      const first = err.issues[0];
-      const path = first.path.join(".") || "input";
-      return fail(name, "VALIDATION_ERROR", `${path}: ${first.message}`);
-    }
-    throw err;
-  }
-  return service(args);
-}
-
-/* ------------------------------ P0 tool definitions ------------------------------ */
-
-const tools: ToolDefinition[] = [
-  // ---------------- INVENTORY ----------------
-  {
-    name: "check_inventory",
-    description: "Check available stock for a product by name or SKU. Read-only.",
-    domain: "inventory",
-    mutates: false,
-    zodSchema: CheckInventorySchema,
-    parameters: toParameters(CheckInventorySchema),
-    run: async (args) => fromService("check_inventory", CheckInventorySchema, productsSvc.lookupProduct, args),
-  },
-  {
-    name: "create_product",
-    description: "Create a new product. Write action — returns a preview; commits only after user confirmation.",
-    domain: "inventory",
-    mutates: true,
-    zodSchema: CreateProductSchema,
-    parameters: toParameters(CreateProductSchema),
-    run: async (args, _ctx, mode) => {
-      const input = CreateProductSchema.parse(args);
-      const duplicate =
-        db.products.some((p) => p.sku.toLowerCase() === input.sku.toLowerCase()) ||
-        db.products.some((p) => p.name.toLowerCase() === input.name.toLowerCase());
-      if (duplicate) {
-        return fail("create_product", "VALIDATION_ERROR", `Product or SKU already exists: ${input.name} / ${input.sku}`);
-      }
-      if (mode === "preview") {
-        return withPendingPreview("create_product", `Create product "${input.name}" (SKU ${input.sku}, unit ${input.unit})`, input);
-      }
-      return productsSvc.createProduct(args);
-    },
-  },
-
-  // ---------------- PURCHASE ----------------
-  {
-    name: "create_supplier",
-    description: "Create a new supplier. Write action — returns a preview; commits only after user confirmation.",
-    domain: "purchase",
-    mutates: true,
-    zodSchema: CreateSupplierSchema,
-    parameters: toParameters(CreateSupplierSchema),
-    run: async (args, _ctx, mode) => {
-      const input = CreateSupplierSchema.parse(args);
-      if (mode === "preview") {
-        if (db.suppliers.some((s) => s.name.toLowerCase() === input.name.toLowerCase())) {
-          return fail("create_supplier", "VALIDATION_ERROR", `Supplier already exists: ${input.name}`);
-        }
-        return withPendingPreview("create_supplier", `Create supplier "${input.name}"${input.city ? ` (${input.city})` : ""}`, input);
-      }
-      return partiesSvc.createSupplier(args);
-    },
-  },
-  {
-    name: "create_purchase_order",
-    description: "Create a purchase order for a supplier. Write action — returns a priced preview (supplier, items, tax, total); commits only after user confirmation.",
-    domain: "purchase",
-    mutates: true,
-    zodSchema: CreatePurchaseOrderSchema,
-    parameters: toParameters(CreatePurchaseOrderSchema),
-    run: async (args, _ctx, mode) => {
-      if (mode === "preview") {
-        // Dry-run createPO: it validates and prices, but the service commits.
-        // To keep the store untouched, snapshot/rollback around the call.
-        const snapshot = serializeDb();
-        try {
-          const created = purchaseSvc.createPO(args);
-          if (!created.success) return created;
-          const d = created.data as { po_id: string; supplier: string; total: number; total_display: string; items: unknown[] };
-          const input = CreatePurchaseOrderSchema.parse(args);
-          return ok("create_purchase_order", {
-            pending_confirmation: true,
-            summary: `Create PO for ${input.items.map((i) => `${i.quantity} ${(d.items as { product: string }[])[input.items.indexOf(i)]?.product ?? i.product}`).join(", ")} from ${d.supplier} for ${d.total_display}?`,
-            supplier: d.supplier,
-            items: d.items,
-            total: d.total,
-            total_display: d.total_display,
-          });
-        } finally {
-          restoreDb(snapshot);
-        }
-      }
-      return purchaseSvc.createPO(args);
-    },
-  },
-  {
-    name: "get_pending_orders",
-    description: "List pending purchase orders with supplier, total and age. Read-only.",
-    domain: "purchase",
-    mutates: false,
-    zodSchema: GetPendingOrdersSchema,
-    parameters: toParameters(GetPendingOrdersSchema),
-    run: async () => {
-      const res = purchaseSvc.listPOs({ status: "pending" });
-      if (!res.success) return res;
-      const d = res.data as { orders: { po_id: string; supplier: string; total: number; created_at: string }[] };
-      return ok("get_pending_orders", { count: d.orders.length, orders: d.orders });
-    },
-  },
-  {
-    name: "receive_goods",
-    description: "Receive goods against a purchase order: stock increases per PO items. Write action — returns a preview of stock changes; commits only after user confirmation.",
-    domain: "purchase",
-    mutates: true,
-    zodSchema: ReceiveGoodsSchema,
-    parameters: toParameters(ReceiveGoodsSchema),
-    run: async (args, _ctx, mode) => (mode === "preview" ? purchaseSvc.previewReceive(args) : purchaseSvc.receiveGoods(args)),
-  },
-
-  // ---------------- ACCOUNTING ----------------
+const accountingComplianceTools: ToolDefinition[] = [
   {
     name: "create_customer",
     description: "Create a new customer. Write action — returns a preview; commits only after user confirmation.",
@@ -206,7 +54,7 @@ const tools: ToolDefinition[] = [
     run: async (args, _ctx, mode) => {
       const input = CreateCustomerSchema.parse(args);
       if (mode === "preview") {
-        if (db.customers.some((c) => c.name.toLowerCase() === input.name.toLowerCase())) {
+        if (await getStore().findCustomer(input.name)) {
           return fail("create_customer", "VALIDATION_ERROR", `Customer already exists: ${input.name}`);
         }
         return withPendingPreview("create_customer", `Create customer "${input.name}"${input.city ? ` (${input.city})` : ""}`, input);
@@ -250,8 +98,6 @@ const tools: ToolDefinition[] = [
     parameters: toParameters(GetBusinessSummarySchema),
     run: async () => reportsSvc.businessSummary(),
   },
-
-  // ---------------- COMPLIANCE ----------------
   {
     name: "generate_tax_report",
     description: "Monthly GST-style report: output tax from sales, input tax from received purchases, net payable. Read-only.",
@@ -272,7 +118,7 @@ const tools: ToolDefinition[] = [
       const { question } = SearchComplianceDocsSchema.parse(args);
       // Placeholder retrieval until Sidra's trigram RAG lands (MASTER_PLAN §9).
       const q = question.toLowerCase();
-      const decisions = db.taxDecisions.filter((d) => q.includes(d.category) || q.includes("gst") || q.includes("tax"));
+      const decisions = (await getStore().listTaxDecisions()).filter((d) => q.includes(d.category) || q.includes("gst") || q.includes("tax"));
       if (decisions.length === 0) {
         return ok("search_compliance_docs", {
           chunks: [],
@@ -288,40 +134,9 @@ const tools: ToolDefinition[] = [
   },
 ];
 
-/* ------------------------------ preview helpers ------------------------------ */
+/* ------------------------------ registry ------------------------------ */
 
-/** Wrap committed service data as a pending-confirmation preview payload. */
-function withPendingPreview(tool: string, summary: string, data: unknown): ToolResponse {
-  return ok(tool, { pending_confirmation: true, summary, draft: data });
-}
-
-/** JSON snapshot of the store for dry-run rollback. */
-function serializeDb(): string {
-  return JSON.stringify({
-    products: db.products,
-    suppliers: db.suppliers,
-    customers: db.customers,
-    purchaseOrders: db.purchaseOrders,
-    sales: db.sales,
-    cashbook: db.cashbook,
-    movements: db.movements,
-    seq: db.seq,
-  });
-}
-
-function restoreDb(snapshot: string): void {
-  const s = JSON.parse(snapshot) as typeof db;
-  db.products = s.products;
-  db.suppliers = s.suppliers;
-  db.customers = s.customers;
-  db.purchaseOrders = s.purchaseOrders;
-  db.sales = s.sales;
-  db.cashbook = s.cashbook;
-  db.movements = s.movements;
-  db.seq = s.seq;
-}
-
-/* ------------------------------ allow-lists & API ------------------------------ */
+const tools: ToolDefinition[] = [...inventoryTools, ...purchaseTools, ...accountingComplianceTools];
 
 /** Per-agent tool allow-list (PRD §40: enforced, not advisory). */
 export const TOOL_ALLOW_LIST: Record<AgentDomain, string[]> = {
@@ -333,10 +148,7 @@ export const TOOL_ALLOW_LIST: Record<AgentDomain, string[]> = {
 };
 
 /** Tool definitions in Groq/OpenAI tool-calling format. */
-export function toolDefinitionsForModel(): {
-  type: "function";
-  function: { name: string; description: string; parameters: Record<string, unknown> };
-}[] {
+export function toolDefinitionsForModel() {
   return tools.map((t) => ({
     type: "function" as const,
     function: { name: t.name, description: t.description, parameters: t.parameters },
@@ -384,3 +196,5 @@ export async function executeTool(
     return fail(name, "DB_ERROR", "Tool execution failed");
   }
 }
+
+export type { AgentDomain, ExecutionMode, ToolContext, ToolDefinition } from "./kit";
