@@ -1,0 +1,38 @@
+:root {
+  --bg: #0b0f14;
+  --panel: #121821;
+  --panel-2: #182130;
+  --border: #24304a;
+  --text: #e8eef7;
+  --muted: #8fa0b8;
+  --accent: #4f8cff;
+  --accent-strong: #2f6fe0;
+  --ok: #3ecf8e;
+  --warn: #f5a623;
+  --err: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font: inherit;
+}
