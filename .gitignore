@@ -43,3 +43,6 @@ yarn-error.log*
 
 # Compliance knowledge PDFs stay local until deliberately committed
 knowledge/*.pdf
+
+# Env templates are kept local-only by owner decision (values shared via DM)
+.env.example
