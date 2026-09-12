@@ -123,11 +123,34 @@ export const nextIds = {
   cash: () => `e-${++cashSeq}`,
 };
 
+const STOP_TOKENS = new Set(["kitna", "kitne", "kya", "hai", "bacha", "the", "a", "an", "of", "for", "do", "our", "some", "any"]);
+
+/**
+ * Fuzzy product resolution: exact SKU/name first, then token overlap
+ * ("cotton yarn" → "Cotton Yarn 40s", "blue dye" → "Reactive Dye Blue").
+ * The real service (Zoha: products.findByNameOrSku) must match this behavior.
+ */
 export function findProduct(nameOrSku: string): MockProduct | undefined {
   const q = nameOrSku.trim().toLowerCase();
-  return mockDb.products.find(
+  const exact = mockDb.products.find(
     (p) => p.sku.toLowerCase() === q || p.name.toLowerCase() === q
   );
+  if (exact) return exact;
+
+  const tokens = q.split(/[^a-z0-9]+/).filter((t) => t.length >= 3 && !STOP_TOKENS.has(t));
+  if (tokens.length === 0) return undefined;
+
+  let best: { p: MockProduct; score: number } | undefined;
+  for (const p of mockDb.products) {
+    const nameTokens = `${p.name} ${p.category}`.toLowerCase().split(/[^a-z0-9]+/);
+    let score = 0;
+    for (const t of tokens) {
+      if (nameTokens.some((n) => n === t || n.startsWith(t) || t.startsWith(n))) score += 1;
+    }
+    // every query token must hit somewhere in name/category
+    if (score === tokens.length && (!best || score > best.score)) best = { p, score };
+  }
+  return best?.p;
 }
 
 /** Fuzzy fallback: substring match in either direction, for did-you-mean. */

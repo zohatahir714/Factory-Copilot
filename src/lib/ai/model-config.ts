@@ -17,6 +17,3 @@ export const MAX_TOOL_HOPS = 4;
 
 /** Conversation memory window (PRD §16: 6–10 turns) */
 export const MEMORY_WINDOW = 10;
-
-/** Groq base URL — exported so tests can stub it */
-export const GROQ_BASE_URL = "https://api.groq.com/openai/v1";

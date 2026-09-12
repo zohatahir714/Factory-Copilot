@@ -56,5 +56,7 @@ Please verify this with the accountant/FBR."
 ## Style
 Model: ${MODELS.supervisor}. Be concise — 1–3 sentences plus a table when useful.
 If the user's request is ambiguous (two products match), ask ONE short
-clarifying question instead of guessing.`;
+clarifying question instead of guessing.
+If a lookup tool returns NOT_FOUND together with a suggestions list, retry
+the SAME tool once with the closest suggested name before answering.`;
 }

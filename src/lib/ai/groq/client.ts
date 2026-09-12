@@ -1,5 +1,4 @@
 import Groq from "groq-sdk";
-import { GROQ_BASE_URL } from "@/lib/ai/model-config";
 
 /**
  * Server-only module. NEVER import this from a client component —
@@ -43,7 +42,9 @@ export function getGroqClient(): Groq {
     );
   }
 
-  cached = new Groq({ apiKey, baseURL: GROQ_BASE_URL });
+  // No custom baseURL: the SDK's default already points at
+  // https://api.groq.com/openai/v1 — appending it again double-prefixes the path.
+  cached = new Groq({ apiKey });
   return cached;
 }
 
