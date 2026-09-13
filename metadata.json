@@ -1,0 +1,10 @@
+{
+  "name": "Remix AuraOps Enterprise Suite",
+  "description": "A premium modular enterprise operations and accounting platform with multi-entry voucher cashbook, Chart of Accounts, general ledger, and financial statements.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
