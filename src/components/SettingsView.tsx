@@ -120,7 +120,7 @@ export const SettingsView: React.FC = () => {
   };
 
   // AI & Groq State
-  const [selectedModel, setSelectedModel] = useState(aiSettings.selectedModel || 'llama-3.3-70b-versatile');
+  const [selectedModel, setSelectedModel] = useState(aiSettings.selectedModel || '');
   const [testResult, setTestResult] = useState<GroqTestResult | null>(null);
   const [testingGroq, setTestingGroq] = useState(false);
 
@@ -1096,9 +1096,11 @@ export const SettingsView: React.FC = () => {
                   onChange={e => setSelectedModel(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-900"
                 >
-                  <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Recommended)</option>
-                  <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (Ultra Fast)</option>
-                  <option value="mixtral-8x7b-32768">Mixtral 8x7B 32k</option>
+                  <option value="">Server Default — GPT-OSS 120B (Recommended)</option>
+                  <option value="openai/gpt-oss-120b">GPT-OSS 120B (Highest Reasoning)</option>
+                  <option value="openai/gpt-oss-20b">GPT-OSS 20B (Ultra Fast)</option>
+                  <option value="qwen/qwen3.8-27b">Qwen 3.8 27B</option>
+                  <option value="groq/compound">Groq Compound (Agentic)</option>
                 </select>
               </div>
 

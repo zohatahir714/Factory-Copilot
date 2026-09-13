@@ -48,15 +48,17 @@ export default async function handler(req: any, res: any) {
 
     const data = await upstream.json()
     const availableModels: string[] = (data?.data || []).map((m: any) => m.id).filter((id: any) => typeof id === 'string')
-    const hasLlama33 = availableModels.some(m => m.includes('llama-3.3') || m.includes('llama3'))
+    const hasChatModel = availableModels.some(m => m === 'openai/gpt-oss-120b')
 
     return json(res, 200, {
-      success: true,
+      success: hasChatModel,
       configured: true,
-      model: hasLlama33 ? 'llama-3.3-70b-versatile' : availableModels[0] || 'llama3-8b-8192',
+      model: hasChatModel ? 'openai/gpt-oss-120b' : (availableModels[0] || 'unknown'),
       modelCount: availableModels.length,
       latencyMs,
-      message: `Connected via server proxy (${availableModels.length} models active). Key never leaves the server.`
+      message: hasChatModel
+        ? `Connected via server proxy (${availableModels.length} models active). Key never leaves the server.`
+        : 'Key accepted, but the default chat model is not available on this Groq account.'
     })
   } catch {
     return json(res, 502, {

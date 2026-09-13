@@ -64,11 +64,13 @@ export async function testGroqConnection(): Promise<GroqTestResult> {
 }
 
 /**
- * Executes a chat completion through the server proxy (Llama 3.3 70B).
+ * Executes a chat completion through the server proxy. The proxy maps
+ * legacy Llama slugs to the current default, so persisted settings keep
+ * working; new callers should omit `model` to use the server default.
  */
 export async function queryGroqChat(
   messages: GroqChatMessage[],
-  model: string = 'llama-3.3-70b-versatile',
+  model: string = '',
   systemPrompt?: string
 ): Promise<string> {
   const formattedMessages: GroqChatMessage[] = [];
@@ -81,7 +83,7 @@ export async function queryGroqChat(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: model || 'llama-3.3-70b-versatile',
+      model: model || undefined,
       messages: formattedMessages
     })
   });

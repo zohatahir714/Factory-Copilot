@@ -20,15 +20,31 @@ const GROQ_BASE = 'https://api.groq.com/openai/v1';
 const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
 
 // --- minimal .env loader (KEY=VALUE lines) ---------------------------------
-for (const line of fs.existsSync('.env') ? fs.readFileSync('.env', 'utf8').split('\n') : []) {
+for (const line of ['.env', '.env.local'].flatMap(f => fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n') : [])) {
   const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
   if (m && process.env[m[1]] === undefined) {
     process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
   }
 }
 
-const GROQ_API_KEY = (process.env.GROQ_API_KEY || '').trim();
-const ALLOWED_MODELS = new Set(['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768']);
+//
+// Model catalog mirrors api/groq/chat.ts: legacy Llama/Mixtral slugs were
+// retired from Groq's free tier (Sept 2026 rotation), so the default is
+// gpt-oss-120b and legacy slugs are aliased for old persisted settings.
+const DEFAULT_MODEL = 'openai/gpt-oss-120b';
+const ALLOWED_MODELS = new Set([
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'groq/compound',
+  'groq/compound-mini',
+  'qwen/qwen3.8-27b',
+  'allam-2-7b'
+]);
+const MODEL_ALIASES = {
+  'llama-3.3-70b-versatile': DEFAULT_MODEL,
+  'llama-3.1-8b-instant': 'openai/gpt-oss-20b',
+  'mixtral-8x7b-32768': DEFAULT_MODEL
+};
 const WHISPER_PROMPT =
   'Pakistani industrial manufacturing ERP, cotton yarn, reactive dye, purchase order, sales invoice, 18% GST, FBR compliance, Urdu Roman and English commands';
 
@@ -72,13 +88,16 @@ async function groqStatus(res) {
     }
     const d = await r.json();
     const models = (d.data || []).map(m => m.id);
+    const hasChatModel = models.some(m => m === DEFAULT_MODEL);
     return json(res, 200, {
-      success: true,
+      success: hasChatModel,
       configured: true,
-      model: models.find(m => m.includes('llama-3.3')) || models[0] || 'llama3-8b-8192',
+      model: hasChatModel ? DEFAULT_MODEL : (models[0] || 'unknown'),
       modelCount: models.length,
       latencyMs,
-      message: `Connected via local server proxy (${models.length} models active).`
+      message: hasChatModel
+        ? `Connected via local server proxy (${models.length} models active).`
+        : 'Key accepted, but the default chat model is not available on this Groq account.'
     });
   } catch {
     return json(res, 502, { success: false, configured: true, message: 'Could not reach Groq from the server.' });
@@ -101,7 +120,8 @@ async function groqChat(req, res) {
   if (!messages || !messages.length || messages.some(m => !m?.role || typeof m?.content !== 'string')) {
     return json(res, 400, { error: 'Invalid messages payload.' });
   }
-  const model = ALLOWED_MODELS.has(body.model) ? body.model : 'llama-3.3-70b-versatile';
+  const requestedModel = typeof body?.model === 'string' && body.model ? body.model : DEFAULT_MODEL;
+  const model = ALLOWED_MODELS.has(requestedModel) ? requestedModel : (MODEL_ALIASES[requestedModel] || DEFAULT_MODEL);
   try {
     const r = await fetch(`${GROQ_BASE}/chat/completions`, {
       method: 'POST',
@@ -166,7 +186,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`  [api] Groq proxy emulator on http://localhost:${PORT} (key ${GROQ_API_KEY ? 'loaded' : 'NOT SET — AI features will report 503'})`);
+  console.log(`  [api] Groq proxy emulator on http://localhost:${PORT} (key ${((process.env.GROQ_API_KEY || '').trim()) ? 'loaded' : 'NOT SET — AI features will report 503'})`);
 
   // Launch Vite with the same flags as the old dev script.
   // No shell:true — process.execPath may contain spaces ("C:\Program Files\...").

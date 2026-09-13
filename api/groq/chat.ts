@@ -23,14 +23,30 @@ export const config = {
 
 const GROQ_CHAT_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
-/** Models the client is allowed to request. */
+/**
+ * Model catalog (Sept 2026 Groq rotation): the legacy Llama-3.3/3.1/Mixtral
+ * free-tier slugs were retired, so the proxy now serves gpt-oss-120b by
+ * default and transparently aliases every legacy slug clients may still
+ * send from persisted settings. Only models on this list are ever requested
+ * upstream — client model choice cannot be used for abuse.
+ */
+const DEFAULT_MODEL = 'openai/gpt-oss-120b'
+
 const ALLOWED_MODELS = new Set([
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'mixtral-8x7b-32768'
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'groq/compound',
+  'groq/compound-mini',
+  'qwen/qwen3.8-27b',
+  'allam-2-7b'
 ])
 
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile'
+/** Legacy slugs → current equivalents (settings saved before the rotation). */
+const MODEL_ALIASES: Record<string, string> = {
+  'llama-3.3-70b-versatile': DEFAULT_MODEL,
+  'llama-3.1-8b-instant': 'openai/gpt-oss-20b',
+  'mixtral-8x7b-32768': DEFAULT_MODEL
+}
 const MAX_MESSAGES = 24
 const MAX_MESSAGE_CHARS = 12000
 const MAX_TOTAL_CHARS = 40000
@@ -97,7 +113,9 @@ export default async function handler(req: any, res: any) {
   }
 
   const requestedModel = typeof body?.model === 'string' ? body.model : DEFAULT_MODEL
-  const model = ALLOWED_MODELS.has(requestedModel) ? requestedModel : DEFAULT_MODEL
+  const model = ALLOWED_MODELS.has(requestedModel)
+    ? requestedModel
+    : (MODEL_ALIASES[requestedModel] || DEFAULT_MODEL)
 
   try {
     const upstream = await fetch(GROQ_CHAT_URL, {

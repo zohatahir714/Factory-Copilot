@@ -367,7 +367,7 @@ const DEFAULT_BRANDING: BrandingSettings = {
 };
 
 const DEFAULT_AI_SETTINGS: AISettings = {
-  selectedModel: 'llama-3.3-70b-versatile',
+  selectedModel: '',
   whisperModel: 'whisper-large-v3',
   systemLanguage: 'both'
 };
@@ -1361,7 +1361,7 @@ User's query was: "${content}"
 Provide a brief, crisp professional executive summary (1-3 sentences) in natural bilingual Urdu/English clarifying the operational and FBR compliance outcome.`
             }
           ],
-          aiSettings.selectedModel || 'llama-3.3-70b-versatile'
+          aiSettings.selectedModel || ''
         );
 
         if (groqResponse && groqResponse.trim()) {
