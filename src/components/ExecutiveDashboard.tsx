@@ -4,7 +4,6 @@ import { toolGetBusinessSummary } from '../lib/businessTools';
 import { MonthlyTrendsChart } from './MonthlyTrendsChart';
 import {
   TrendingUp,
-  ShieldCheck,
   Wallet,
   Package,
   ShoppingCart,
@@ -13,7 +12,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Calendar,
-  Scale,
   Mic,
   Plus,
   Clock,
@@ -202,55 +200,6 @@ export const ExecutiveDashboard: React.FC = () => {
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Record New Sale (18% GST)</span>
-          </button>
-        </div>
-
-        {/* Card 2: FBR Compliance & Iris Score */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setActiveTab('compliance')}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setActiveTab('compliance')}
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 cursor-pointer group relative overflow-hidden flex flex-col justify-between"
-          title="Click to open FBR Tax Regulations & RAG Assistant"
-        >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                FBR RAG Compliance Score
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-                  View Module <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">
-                {complianceSources.length} Sources
-              </span>
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full">
-                RAG Grounded
-              </span>
-            </div>
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-              <span>Annexure-C E-Filing:</span>
-              <span className="font-bold text-slate-700 dark:text-slate-300">Ready — {totalGstCollected > 0 ? 'Reconciled' : 'Awaiting First Entry'}</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              openModal('compliance');
-            }}
-            className="mt-3 w-full py-1.5 px-3 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white text-purple-800 dark:text-purple-300 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-          >
-            <Scale className="w-3.5 h-3.5" />
-            <span>Verify Section 153 / SRO Rules</span>
           </button>
         </div>
 
