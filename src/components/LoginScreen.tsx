@@ -25,7 +25,7 @@ import {
 type AuthMode = 'signin' | 'forgot_password';
 
 export const LoginScreen: React.FC = () => {
-  const { branding, login, setAuthUser, darkMode, toggleDarkMode, addToast } = useApp();
+  const { branding, login, setAuthUser, darkMode, toggleDarkMode, addToast, sessionExpired } = useApp();
 
   // Auth Mode: Sign In or Forgot Password
   const [authMode, setAuthMode] = useState<AuthMode>('signin');
@@ -197,6 +197,17 @@ export const LoginScreen: React.FC = () => {
             <div className="flex-1">
               <span className="font-semibold block">Notice</span>
               <span>{successMsg}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Idle-session expiry notice (PRD §8) */}
+        {sessionExpired && (
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-800 rounded-xl flex items-start gap-2.5 text-xs text-amber-700 dark:text-amber-200 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <span className="font-semibold block">Session expired</span>
+              <span>You were signed out after 15 minutes of inactivity. Please sign in again.</span>
             </div>
           </div>
         )}

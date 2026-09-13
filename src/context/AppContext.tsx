@@ -175,6 +175,14 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// ============================================================================
+// SESSION IDLE TIMEOUT (PRD §8 Security Model)
+// A signed-in user is signed out after this much inactivity and lands back on
+// the login screen with an expiry notice. Real user interaction resets the
+// idle clock. Supabase Auth remains the owner of the underlying session.
+// ============================================================================
+export const SESSION_IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+
 interface AppContextType {
   // Navigation
   activeTab: AppTab;
@@ -193,6 +201,7 @@ interface AppContextType {
   login: (email: string, password?: string) => boolean;
   logout: () => void;
   setAuthUser: (user: AuthUser) => void;
+  sessionExpired: boolean;
 
   // User Accounts Management (Super Admin Exclusive)
   userAccounts: UserAccount[];
@@ -401,6 +410,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const isAuthenticated = currentUser !== null;
 
+  // Idle-session state: true after the timeout force-signs the user out,
+  // consumed by LoginScreen to show the "Session expired" notice.
+  const [sessionExpired, setSessionExpired] = useState<boolean>(false);
+  const lastActivityRef = React.useRef<number>(Date.now());
+
   // Default Root & Super Admin accounts
   const DEFAULT_SUPER_ADMINS: UserAccount[] = [
     {
@@ -588,11 +602,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const setAuthUser = (user: AuthUser) => {
+    setSessionExpired(false);
     setCurrentUser(user);
     localStorage.setItem('copilot_auth_user', JSON.stringify(user));
   };
 
   const login = (email: string, password?: string): boolean => {
+    setSessionExpired(false);
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPassword = (password || '').trim();
 
@@ -658,11 +674,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logout = () => {
+    setSessionExpired(false);
     setCurrentUser(null);
     localStorage.removeItem('copilot_auth_user');
     supabaseSignOut().catch(() => {});
     addToast('info', 'Logged Out', 'Your session has been ended safely.');
   };
+
+  // Idle session timeout watcher (PRD §8): sign the user out after
+  // SESSION_IDLE_TIMEOUT_MS with no real interaction. Pointer, key, wheel,
+  // and touch activity reset the idle clock. Supabase Auth stays the session
+  // owner — this only ends the app-level session.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const bumpActivity = () => { lastActivityRef.current = Date.now(); };
+    const activityEvents: (keyof WindowEventMap)[] = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
+    activityEvents.forEach(e => window.addEventListener(e, bumpActivity, { passive: true }));
+
+    const idleCheck = window.setInterval(() => {
+      if (Date.now() - lastActivityRef.current >= SESSION_IDLE_TIMEOUT_MS) {
+        setSessionExpired(true);
+        setCurrentUser(null);
+        localStorage.removeItem('copilot_auth_user');
+        supabaseSignOut().catch(() => {});
+      }
+    }, 2 * 1000);
+
+    return () => {
+      activityEvents.forEach(e => window.removeEventListener(e, bumpActivity));
+      window.clearInterval(idleCheck);
+    };
+  }, [isAuthenticated]);
 
   // Sync Supabase Auth Session on Mount
   useEffect(() => {
@@ -1735,6 +1778,7 @@ Provide a brief, crisp professional executive summary (1-3 sentences) in natural
         login,
         logout,
         setAuthUser,
+        sessionExpired,
         userAccounts,
         createUserAccount,
         updateUserAccount,

@@ -71,6 +71,8 @@ function readBody(req, limitBytes) {
   });
 }
 
+const GROQ_API_KEY = (process.env.GROQ_API_KEY || '').trim();
+
 async function groqStatus(res) {
   if (!GROQ_API_KEY) {
     return json(res, 503, {
