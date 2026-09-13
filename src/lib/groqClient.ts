@@ -1,9 +1,15 @@
 /**
- * Groq Cloud AI Client
- * Provides direct API integration for:
- * 1. Llama-3.3-70b / Llama-3-8b Chat Completions & Agent Supervisor
- * 2. Whisper-large-v3 Speech-to-Text for Voice Assistant (Urdu & English)
- * 3. Browser Speech Synthesis for Real Voice Audio Feedback
+ * Groq Cloud AI Client — server-proxied (PRD §40 Security Checklist)
+ *
+ * "Groq key is server-side": this module talks ONLY to same-origin /api/groq/*
+ * serverless functions. The API key lives exclusively in server environment
+ * variables and is never present in the browser bundle, localStorage, or
+ * network payloads the client controls.
+ *
+ * 1. /api/groq/chat       — Llama-3.3-70b chat completions (Agent Supervisor)
+ * 2. /api/groq/transcribe — Whisper-large-v3 STT (Urdu & English voice)
+ * 3. /api/groq/status     — server-side connection health probe
+ * 4. speakVoiceResponse   — browser SpeechSynthesis (no network, no key)
  */
 
 export interface GroqChatMessage {
@@ -18,153 +24,113 @@ export interface GroqTestResult {
   latencyMs?: number;
 }
 
-/**
- * Returns effective Groq API key checking explicit parameter, localStorage, or environment
- */
-export function getEffectiveGroqApiKey(explicitKey?: string): string {
-  if (explicitKey && explicitKey.trim()) return explicitKey.trim();
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('copilot_groq_key');
-    if (saved && saved.trim()) return saved.trim();
+async function readError(response: Response, fallback: string): Promise<string> {
+  try {
+    const body = await response.json();
+    return body?.error || fallback;
+  } catch {
+    return fallback;
   }
-  const envKey = (typeof process !== 'undefined' && process.env?.GROQ_API_KEY) || '';
-  return envKey.trim();
 }
 
 /**
- * Validates the Groq API key by sending a minimalist ping to Groq's models endpoint
+ * Health check via the server proxy. Returns success only when the
+ * deployment's server-side key is configured and accepted by Groq.
  */
-export async function testGroqConnection(apiKey?: string): Promise<GroqTestResult> {
-  const cleanKey = getEffectiveGroqApiKey(apiKey);
-  if (!cleanKey) {
-    return { success: false, message: 'Please provide a valid Groq API key (starts with gsk_)' };
-  }
-
-  const startTime = Date.now();
-
+export async function testGroqConnection(): Promise<GroqTestResult> {
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/models', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${cleanKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    const latencyMs = Date.now() - startTime;
+    const response = await fetch('/api/groq/status', { method: 'GET' });
+    const body = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
       return {
         success: false,
-        message: err.error?.message || `Groq authentication failed (HTTP ${response.status})`,
-        latencyMs
+        message: body?.error || body?.message || `AI status check failed (HTTP ${response.status})`
       };
     }
 
-    const data = await response.json();
-    const availableModels = data.data?.map((m: any) => m.id) || [];
-    const hasLlama33 = availableModels.some((m: string) => m.includes('llama-3.3') || m.includes('llama3'));
-
     return {
-      success: true,
-      model: hasLlama33 ? 'llama-3.3-70b-versatile' : (availableModels[0] || 'llama3-8b-8192'),
-      message: `Successfully connected to Groq API (${availableModels.length} models active)`,
-      latencyMs
+      success: !!body?.success,
+      model: body?.model,
+      message: body?.message || (body?.success ? 'Connected via server proxy.' : 'AI service unavailable.'),
+      latencyMs: body?.latencyMs
     };
   } catch (error: any) {
     return {
       success: false,
-      message: error.message || 'Network error connecting to api.groq.com'
+      message: error?.message || 'Network error reaching the AI proxy.'
     };
   }
 }
 
 /**
- * Executes a chat completion via Groq Cloud (Llama 3.3 70B)
+ * Executes a chat completion through the server proxy (Llama 3.3 70B).
  */
 export async function queryGroqChat(
   messages: GroqChatMessage[],
-  apiKey?: string,
   model: string = 'llama-3.3-70b-versatile',
   systemPrompt?: string
 ): Promise<string> {
-  const cleanKey = getEffectiveGroqApiKey(apiKey);
-  if (!cleanKey) {
-    throw new Error('Groq API key not configured. Add it in Settings or .env');
-  }
-
   const formattedMessages: GroqChatMessage[] = [];
   if (systemPrompt) {
     formattedMessages.push({ role: 'system', content: systemPrompt });
   }
   formattedMessages.push(...messages);
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const response = await fetch('/api/groq/chat', {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${cleanKey}`,
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: model || 'llama-3.3-70b-versatile',
-      messages: formattedMessages,
-      temperature: 0.1,
-      max_tokens: 1024
+      messages: formattedMessages
     })
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || `Groq API error (Status ${response.status})`);
+    throw new Error(await readError(response, `AI request failed (HTTP ${response.status}).`));
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || 'No response generated from Groq.';
+  return data?.content || 'No response generated from Groq.';
 }
 
 /**
- * Transcribes real audio blob using Groq Whisper large v3 (Multilingual Urdu & English)
+ * Transcribes a recorded audio blob via the server proxy (Whisper large v3,
+ * multilingual Urdu & English). Language hint is optional; 'both'/'auto'
+ * defers to upstream auto-detection.
  */
 export async function transcribeWithGroqWhisper(
   audioBlob: Blob,
-  apiKey?: string,
   language: string = 'both'
 ): Promise<string> {
-  const cleanKey = getEffectiveGroqApiKey(apiKey);
-  if (!cleanKey) {
-    throw new Error('Groq API key required for Whisper voice transcription.');
-  }
+  const extension = audioBlob.type.includes('mp4')
+    ? 'mp4'
+    : audioBlob.type.includes('wav')
+      ? 'wav'
+      : 'webm';
 
-  const extension = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
   const formData = new FormData();
   formData.append('file', audioBlob, `voice_recording.${extension}`);
-  formData.append('model', 'whisper-large-v3');
-  formData.append('prompt', 'Pakistani industrial manufacturing ERP, cotton yarn, reactive dye, purchase order, sales invoice, 18% GST, FBR compliance, Urdu Roman and English commands');
-  
   if (language && language !== 'both' && language !== 'auto') {
     formData.append('language', language);
   }
 
-  const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+  const response = await fetch('/api/groq/transcribe', {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${cleanKey}`
-    },
     body: formData
   });
 
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Groq Whisper transcription failed (HTTP ${response.status})`);
+    throw new Error(await readError(response, `Voice transcription failed (HTTP ${response.status}).`));
   }
 
   const data = await response.json();
-  return (data.text || '').trim();
+  return (data?.text || '').trim();
 }
 
 /**
- * Speaks text using Web SpeechSynthesis API with clean text sanitization
+ * Speaks text using Web SpeechSynthesis API with clean text sanitization.
+ * Entirely local to the browser — no network, no key, no proxy involved.
  */
 export function speakVoiceResponse(rawText: string, onEnd?: () => void) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return;

@@ -201,14 +201,24 @@ ALTER TABLE cashbook_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory_movements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public all on organizations" ON organizations FOR ALL USING (true);
-CREATE POLICY "Allow public all on profiles" ON profiles FOR ALL USING (true);
-CREATE POLICY "Allow public all on chart_of_accounts" ON chart_of_accounts FOR ALL USING (true);
-CREATE POLICY "Allow public all on products" ON products FOR ALL USING (true);
-CREATE POLICY "Allow public all on suppliers" ON suppliers FOR ALL USING (true);
-CREATE POLICY "Allow public all on customers" ON customers FOR ALL USING (true);
-CREATE POLICY "Allow public all on purchase_orders" ON purchase_orders FOR ALL USING (true);
-CREATE POLICY "Allow public all on sales_orders" ON sales_orders FOR ALL USING (true);
-CREATE POLICY "Allow public all on cashbook_entries" ON cashbook_entries FOR ALL USING (true);
-CREATE POLICY "Allow public all on inventory_movements" ON inventory_movements FOR ALL USING (true);
-CREATE POLICY "Allow public all on app_settings" ON app_settings FOR ALL USING (true);
+-- ---------------------------------------------------------------------------
+-- ROW LEVEL SECURITY POLICIES (PRD §40: RLS enabled, organization isolation)
+--
+-- SECURITY MODEL: only authenticated users (Supabase Auth sessions) may read
+-- or write business data. The anon role is granted NOTHING — anonymous visitors
+-- holding the public site key can enumerate zero tables. app_settings is
+-- read-only for authenticated users; it is updated via a service-role worker.
+-- ---------------------------------------------------------------------------
+
+CREATE POLICY "authenticated_read_orgs" ON organizations FOR SELECT TO authenticated USING (true);
+CREATE POLICY "authenticated_read_profiles" ON profiles FOR SELECT TO authenticated USING (true);
+CREATE POLICY "authenticated_update_own_profile" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
+CREATE POLICY "authenticated_all_accounts" ON chart_of_accounts FOR ALL TO authenticated USING (true);
+CREATE POLICY "authenticated_all_products" ON products FOR ALL TO authenticated USING (true);
+CREATE POLICY "authenticated_all_suppliers" ON suppliers FOR ALL TO authenticated USING (true);
+CREATE POLICY "authenticated_all_customers" ON customers FOR ALL TO authenticated USING (true);
+CREATE POLICY "authenticated_all_pos" ON purchase_orders FOR ALL TO authenticated USING (true);
+CREATE POLICY "authenticated_all_sales" ON sales_orders FOR ALL TO authenticated USING (true);
+CREATE POLICY "authenticated_all_cashbook" ON cashbook_entries FOR ALL TO authenticated USING (true);
+CREATE POLICY "authenticated_all_movements" ON inventory_movements FOR ALL TO authenticated USING (true);
+CREATE POLICY "authenticated_read_settings" ON app_settings FOR SELECT TO authenticated USING (true);

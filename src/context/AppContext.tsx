@@ -60,7 +60,6 @@ import { executeSupervisorTurn } from '../lib/agentSupervisor';
 import {
   queryGroqChat,
   transcribeWithGroqWhisper,
-  getEffectiveGroqApiKey,
   speakVoiceResponse
 } from '../lib/groqClient';
 import {
@@ -158,9 +157,11 @@ export const getRolePermissions = (role: UserRole): RolePermissions => {
   }
 };
 
-// Clean wipe check for production state with zero demo seed data
+// Clean wipe check for production state with zero demo seed data.
+// v7: also purges any Groq API key previously stored in the browser —
+// keys are server-side only now (PRD §40).
 if (typeof window !== 'undefined') {
-  if (localStorage.getItem('copilot_clean_v6') !== 'true') {
+  if (localStorage.getItem('copilot_clean_v7') !== 'true') {
     localStorage.removeItem('copilot_products');
     localStorage.removeItem('copilot_pos');
     localStorage.removeItem('copilot_sales');
@@ -169,7 +170,8 @@ if (typeof window !== 'undefined') {
     localStorage.removeItem('copilot_customers');
     localStorage.removeItem('copilot_suppliers');
     localStorage.removeItem('copilot_auth_user');
-    localStorage.setItem('copilot_clean_v6', 'true');
+    localStorage.removeItem('copilot_groq_key');
+    localStorage.setItem('copilot_clean_v7', 'true');
   }
 }
 
@@ -365,7 +367,6 @@ const DEFAULT_BRANDING: BrandingSettings = {
 };
 
 const DEFAULT_AI_SETTINGS: AISettings = {
-  groqApiKey: getEffectiveGroqApiKey(),
   selectedModel: 'llama-3.3-70b-versatile',
   whisperModel: 'whisper-large-v3',
   systemLanguage: 'both'
@@ -775,12 +776,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAiSettings(prev => {
       const updated = { ...prev, ...newSettings };
       localStorage.setItem('copilot_ai_settings', JSON.stringify(updated));
-      if (updated.groqApiKey) {
-        localStorage.setItem('copilot_groq_key', updated.groqApiKey.trim());
-      }
       return updated;
     });
-    addToast('success', 'Groq AI Settings Saved', 'API keys and models configured for instant inference.');
+    addToast('success', 'AI Settings Saved', 'Model preferences stored. The API key remains server-side.');
   };
 
   // Unified Inspection, Editing, and Deletion Modals
@@ -1349,36 +1347,30 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
 
     try {
       // Execute the deterministic Supervisor first
-      const turnResult = await executeSupervisorTurn(
-        content,
-        getDBState(),
-        method,
-        aiSettings.groqApiKey
-      );
+      const turnResult = await executeSupervisorTurn(content, getDBState(), method);
 
-      // If user provided a custom Groq API key, we can augment with Groq's model
-      if (aiSettings.groqApiKey && aiSettings.groqApiKey.trim()) {
-        try {
-          const groqResponse = await queryGroqChat(
-            [
-              {
-                role: 'user',
-                content: `You are an AI Industrial Copilot for a Pakistani textile SME. The deterministic rule engine resolved the following business output:
+      // Augment the deterministic result with the server-proxied LLM summary.
+      try {
+        const groqResponse = await queryGroqChat(
+          [
+            {
+              role: 'user',
+              content: `You are an AI Industrial Copilot for a Pakistani textile SME. The deterministic rule engine resolved the following business output:
 "${turnResult.message.content}"
 User's query was: "${content}"
 Provide a brief, crisp professional executive summary (1-3 sentences) in natural bilingual Urdu/English clarifying the operational and FBR compliance outcome.`
-              }
-            ],
-            aiSettings.groqApiKey,
-            aiSettings.selectedModel || 'llama-3.3-70b-versatile'
-          );
+            }
+          ],
+          aiSettings.selectedModel || 'llama-3.3-70b-versatile'
+        );
 
-          if (groqResponse && groqResponse.trim()) {
-            turnResult.message.content = `${groqResponse}\n\n---\n${turnResult.message.content}`;
-          }
-        } catch (groqErr) {
-          console.warn('Groq augmentation skipped:', groqErr);
+        if (groqResponse && groqResponse.trim()) {
+          turnResult.message.content = `${groqResponse}\n\n---\n${turnResult.message.content}`;
         }
+      } catch (groqErr) {
+        // Expected when GROQ_API_KEY is not configured on the deployment —
+        // the deterministic result alone is authoritative.
+        console.info('LLM augmentation unavailable:', groqErr instanceof Error ? groqErr.message : groqErr);
       }
 
       if (turnResult.directDatabaseUpdate) {
@@ -1610,14 +1602,11 @@ Provide a brief, crisp professional executive summary (1-3 sentences) in natural
           type: recorder.mimeType || 'audio/webm'
         });
 
-        const effectiveKey = getEffectiveGroqApiKey(aiSettings.groqApiKey);
-
-        if (effectiveKey && audioBlob.size > 100) {
+        if (audioBlob.size > 100) {
           try {
             addToast('info', 'Groq Whisper', 'Transcribing real voice audio via Whisper Large v3...');
             const transcript = await transcribeWithGroqWhisper(
               audioBlob,
-              effectiveKey,
               aiSettings.systemLanguage || 'both'
             );
 
@@ -1633,8 +1622,8 @@ Provide a brief, crisp professional executive summary (1-3 sentences) in natural
           }
         } else {
           setIsTranscribing(false);
-          if (!effectiveKey && !recordingTranscript.trim()) {
-            addToast('info', 'Groq Key Needed', 'Add your Groq API key in Settings to use Whisper Speech-to-Text.');
+          if (audioBlob.size <= 100 && !recordingTranscript.trim()) {
+            addToast('info', 'Recording Too Short', 'No audible speech captured for transcription.');
           }
         }
       };

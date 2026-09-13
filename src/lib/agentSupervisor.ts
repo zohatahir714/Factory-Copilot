@@ -35,7 +35,6 @@ import {
   executeCreateCustomer
 } from './businessTools';
 import { queryComplianceRAG } from './ragCompliance';
-import { queryGroqChat } from './groqClient';
 
 export interface SupervisorProcessResult {
   message: ChatMessage;
@@ -399,8 +398,7 @@ export function analyzeUserIntent(input: string, state?: DatabaseState): AgentHa
 export async function executeSupervisorTurn(
   input: string,
   state: DatabaseState,
-  inputMethod: 'text' | 'voice' = 'text',
-  groqApiKey?: string
+  inputMethod: 'text' | 'voice' = 'text'
 ): Promise<SupervisorProcessResult> {
   const contract = analyzeUserIntent(input, state);
   const now = new Date().toISOString();

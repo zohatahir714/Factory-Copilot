@@ -336,7 +336,6 @@ export interface BrandingSettings {
 }
 
 export interface AISettings {
-  groqApiKey: string;
   selectedModel: string;
   whisperModel: string;
   systemLanguage: 'en' | 'ur' | 'both';

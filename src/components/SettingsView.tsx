@@ -120,8 +120,6 @@ export const SettingsView: React.FC = () => {
   };
 
   // AI & Groq State
-  const [groqKeyInput, setGroqKeyInput] = useState(aiSettings.groqApiKey);
-  const [showKey, setShowKey] = useState(false);
   const [selectedModel, setSelectedModel] = useState(aiSettings.selectedModel || 'llama-3.3-70b-versatile');
   const [testResult, setTestResult] = useState<GroqTestResult | null>(null);
   const [testingGroq, setTestingGroq] = useState(false);
@@ -130,11 +128,8 @@ export const SettingsView: React.FC = () => {
     setTestingGroq(true);
     setTestResult(null);
     try {
-      const result = await testGroqConnection(groqKeyInput);
+      const result = await testGroqConnection();
       setTestResult(result);
-      if (result.success) {
-        updateAISettings({ groqApiKey: groqKeyInput.trim(), selectedModel });
-      }
     } finally {
       setTestingGroq(false);
     }
@@ -142,7 +137,7 @@ export const SettingsView: React.FC = () => {
 
   const handleSaveAI = (e: React.FormEvent) => {
     e.preventDefault();
-    updateAISettings({ groqApiKey: groqKeyInput.trim(), selectedModel });
+    updateAISettings({ selectedModel });
   };
 
   // Database & Supabase State
@@ -444,7 +439,8 @@ export const SettingsView: React.FC = () => {
               </div>
             )}
 
-            {/* Supabase Configuration Form */}
+            {/* Supabase Configuration Form — Super Admin only (PRD §40) */}
+            {isSuperAdmin ? (
             <form onSubmit={handleSaveDatabaseConfig} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -505,6 +501,15 @@ export const SettingsView: React.FC = () => {
                 </button>
               </div>
             </form>
+            ) : (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5 text-xs text-amber-900">
+                <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block">Super Admin Access Required</span>
+                  Database credentials can only be configured by a Super Administrator. For production deployments, set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as environment variables in your hosting provider's project settings.
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Migration SQL Schema Section */}
@@ -1070,42 +1075,19 @@ export const SettingsView: React.FC = () => {
               <span>Groq AI & Voice Transcription Engine</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Configure your Groq API key for Llama 3.3 70B business intelligence and Whisper Urdu/English voice processing.
+              Llama 3.3 70B business intelligence and Whisper Urdu/English voice processing run through this deployment's server-side AI proxy.
             </p>
           </div>
 
-          <form onSubmit={handleSaveAI} className="space-y-4 text-xs">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="font-semibold text-slate-700">Groq API Key (gsk_...)</label>
-                <a
-                  href="https://console.groq.com/keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 font-semibold"
-                >
-                  <span>Get Free Groq API Key</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-              <div className="relative">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={groqKeyInput}
-                  onChange={e => setGroqKeyInput(e.target.value)}
-                  placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  className="w-full pl-3.5 pr-20 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono text-slate-900"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
-                >
-                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-2.5">
+            <Server className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-blue-900">
+              <span className="font-bold block">Server-Side Key Security</span>
+              The Groq API key is configured as an environment variable (GROQ_API_KEY) on the server and is never exposed to the browser — it cannot be read from DevTools, localStorage, or network traffic. Manage the key in your hosting provider's project settings.
             </div>
+          </div>
 
+          <form onSubmit={handleSaveAI} className="space-y-4 text-xs">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Supervisor LLM Model</label>
@@ -1136,12 +1118,12 @@ export const SettingsView: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="font-bold text-slate-800 block">Connection Health Check</span>
-                  <span className="text-[11px] text-slate-500">Pings api.groq.com to verify API key validity</span>
+                  <span className="text-[11px] text-slate-500">Verifies the server-side AI proxy and key configuration</span>
                 </div>
                 <button
                   type="button"
                   onClick={handleTestGroq}
-                  disabled={testingGroq || !groqKeyInput.trim()}
+                  disabled={testingGroq}
                   className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white rounded-lg font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${testingGroq ? 'animate-spin' : ''}`} />
@@ -1180,7 +1162,7 @@ export const SettingsView: React.FC = () => {
                 className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
               >
                 <Save className="w-4 h-4" />
-                <span>Save Groq Configuration</span>
+                <span>Save Model Configuration</span>
               </button>
             </div>
           </form>
