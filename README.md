@@ -4,6 +4,11 @@
 
 **AI-Native ERP & Statutory FBR Tax Engine for Pakistani Manufacturing SMEs**
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-factory--copilot--r6xy.vercel.app-2ea44f?style=for-the-badge&logo=vercel)](https://factory-copilot-r6xy.vercel.app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-8A2BE2?style=for-the-badge)](./LICENSE)
+[![React 19](https://img.shields.io/badge/React-19-149ECA?style=for-the-badge&logo=react)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org)
+
 React 19 · Vite · TypeScript · Supabase PostgreSQL · Groq (server-side) · Vercel
 
 </div>
