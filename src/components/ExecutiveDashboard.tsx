@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { toolGetBusinessSummary } from '../lib/businessTools';
 import { MonthlyTrendsChart } from './MonthlyTrendsChart';
@@ -10,19 +10,57 @@ import {
   Receipt,
   AlertTriangle,
   ArrowUpRight,
-  ArrowDownRight,
-  Calendar,
   Mic,
-  Plus,
-  Clock,
   ChevronRight,
   FileCheck2,
-  Building2,
   DollarSign,
   Eye,
-  Settings,
-  RefreshCw
+  RefreshCw,
+  Bot
 } from 'lucide-react';
+
+/* Perpetual micro-interaction (design-taste §9 · Command Input): the copilot card
+   cycles real example prompts with a blinking caret. Isolated mini-component so
+   the timer never re-renders the dashboard; disabled for reduced-motion users. */
+const COPILOT_PROMPTS = [
+  '"Yarn ka stock kitna hai?"',
+  '"Create a PO for 200 kg yarn"',
+  '"What is the Section 153 tax rate?"'
+];
+
+const CopilotTypewriter: React.FC = () => {
+  const [idx, setIdx] = useState(0);
+  const [len, setLen] = useState(0);
+  const [dir, setDir] = useState<1 | -1>(1);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setLen(COPILOT_PROMPTS[0].length);
+      return;
+    }
+    const full = COPILOT_PROMPTS[idx].length;
+    const t = setTimeout(() => {
+      if (dir === 1) {
+        if (len < full) setLen(l => l + 1);
+        else setDir(-1);
+      } else {
+        if (len > 0) setLen(l => l - 1);
+        else {
+          setDir(1);
+          setIdx(i => (i + 1) % COPILOT_PROMPTS.length);
+        }
+      }
+    }, dir === 1 ? (len < full ? 45 : 1600) : 22);
+    return () => clearTimeout(t);
+  }, [idx, len, dir]);
+
+  return (
+    <span className="font-mono text-xs text-slate-700 dark:text-slate-300">
+      {COPILOT_PROMPTS[idx].slice(0, len)}
+      <span className="ml-0.5 inline-block h-3.5 w-[2px] translate-y-[2px] bg-indigo-500 animate-pulse" />
+    </span>
+  );
+};
 
 export const ExecutiveDashboard: React.FC = () => {
   const {
@@ -63,7 +101,6 @@ export const ExecutiveDashboard: React.FC = () => {
 
   const totalInflow = cashbook.filter(c => c.type === 'inflow').reduce((sum, c) => sum + c.amount, 0);
   const totalOutflow = cashbook.filter(c => c.type === 'outflow').reduce((sum, c) => sum + c.amount, 0);
-  const netCash = totalInflow - totalOutflow;
 
   const totalGstCollected = salesOrders.reduce((sum, s) => sum + (s.taxAmount || 0), 0);
   const totalSalesRevenue = salesOrders.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
@@ -84,52 +121,49 @@ export const ExecutiveDashboard: React.FC = () => {
     syncDatabase();
     setTimeout(() => {
       setIsSyncing(false);
-      addToast('success', 'Data Synchronized', 'Visualized trend charts and ledger state refreshed from database.');
+      addToast('success', 'Data Synchronized', 'Trend charts and ledger state refreshed from database.');
     }, 750);
   };
 
   return (
     <div className="space-y-6 pb-12 animate-fadeIn text-slate-900 dark:text-white">
-      {/* Top Banner / Aligned Header Actions & Time Filters */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors">
+      {/* Workspace header: identity + controls on one line */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <h2 className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Executive Manufacturing & Compliance Command
+              Executive Overview
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-[11px] font-bold">
-              RAG Grounded
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
+              FBR Annexure-C Ready
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            {branding.companyName} • Deterministic 18% GST & FBR Iris E-Filing
+            {branding.companyName} · Double-entry ledger · 18% GST · FBR Iris e-filing
           </p>
         </div>
 
-        {/* Timeframe selector pills & quick actions */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Sync Data Button with spinning animation */}
           <button
             type="button"
             onClick={handleSyncData}
             disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-60"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-60"
             title="Refresh trend charts & reload database state"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-blue-600 dark:text-blue-400 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Syncing...' : 'Sync Data'}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Syncing…' : 'Sync data'}</span>
           </button>
 
-          {/* Timeframe filter pills */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold border border-slate-200/60 dark:border-slate-700">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 p-1 rounded-xl text-xs font-semibold">
             {(['today', 'week', 'month', 'fy'] as const).map((filter) => (
               <button
                 key={filter}
                 onClick={() => setTimeFilter(filter)}
-                className={`px-3 py-1 rounded-lg capitalize transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg capitalize transition-colors cursor-pointer ${
                   timeFilter === filter
-                    ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-400 shadow-xs font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
                 {filter === 'fy' ? 'FY 24-25' : filter}
@@ -137,279 +171,231 @@ export const ExecutiveDashboard: React.FC = () => {
             ))}
           </div>
 
-          {/* Quick Voice Trigger */}
           <button
             onClick={() => openModal('voice')}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
           >
             <Mic className="w-3.5 h-3.5" />
-            <span>Voice Command</span>
+            <span>Voice command</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Bento Grid: 6 Critical Operational Cards (Clickable & Enhanced) */}
+      {/* KPI grid: five operational entry points + the AI Copilot card.
+          Interaction is indigo (one accent); color elsewhere is status only. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Card 1: Revenue & Tax Invoices */}
+
+        {/* 01 · Revenue & GST invoices → Sales module */}
         <div
           role="button"
           tabIndex={0}
           onClick={() => setActiveTab('sales')}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setActiveTab('sales')}
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 cursor-pointer group relative overflow-hidden flex flex-col justify-between"
-          title="Click to open Sales & 18% GST Ledger"
+          className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-lg hover:shadow-indigo-100/70 dark:hover:shadow-none hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 cursor-pointer"
+          title="Open Sales & 18% GST Ledger"
         >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Total Revenue & Invoices
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-                  View Module <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">
-                Rs. {totalSalesRevenue.toLocaleString()}
-              </span>
-              {salesOrders.length > 0 && (
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center">
-                  <ArrowUpRight className="w-3.5 h-3.5" /> {salesOrders.length} {salesOrders.length === 1 ? 'Invoice' : 'Invoices'}
-                </span>
-              )}
-            </div>
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-              <span>{salesOrders.length} Invoices Issued</span>
-              <span className="text-purple-700 dark:text-purple-400 font-semibold font-mono">
-                GST: Rs. {totalGstCollected.toLocaleString()}
-              </span>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">01</span>
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-200">
+              <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              openModal('sale');
-            }}
-            className="mt-3 w-full py-1.5 px-3 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white text-blue-700 dark:text-blue-400 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Record New Sale (18% GST)</span>
-          </button>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Revenue & Invoices
+          </p>
+          <div className="mt-1.5 flex items-baseline gap-2">
+            <span className="text-[26px] leading-none font-bold font-mono tracking-tight text-slate-900 dark:text-white">
+              Rs. {totalSalesRevenue.toLocaleString()}
+            </span>
+            {salesOrders.length > 0 && (
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 flex items-center">
+                <ArrowUpRight className="w-3 h-3" /> {salesOrders.length}
+              </span>
+            )}
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+            <span className="font-mono text-slate-500 dark:text-slate-400">
+              GST Rs. {totalGstCollected.toLocaleString()}
+            </span>
+            <span className="flex items-center gap-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 opacity-60 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">
+              View module <ChevronRight className="w-3 h-3" />
+            </span>
+          </div>
         </div>
 
-        {/* Card 3: Cashbook Reserves & Liquidity */}
+        {/* 02 · Cash & bank reserves → Cashbook module */}
         <div
           role="button"
           tabIndex={0}
           onClick={() => setActiveTab('cashbook')}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setActiveTab('cashbook')}
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 cursor-pointer group relative overflow-hidden flex flex-col justify-between"
-          title="Click to open Cashbook & Treasury Ledger"
+          className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-lg hover:shadow-indigo-100/70 dark:hover:shadow-none hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 cursor-pointer"
+          title="Open Cashbook & Treasury Ledger"
         >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Net Cash & Bank Reserves
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-                  View Module <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                  <Wallet className="w-4 h-4" />
-                </div>
-              </div>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">02</span>
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-200">
+              <Wallet className="w-4 h-4" />
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">
-                Rs. {totalLiquidity.toLocaleString()}
-              </span>
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Total Reserves</span>
-            </div>
-            {/* Live Dual Treasury Breakdown: Cash in Hand & Bank Balance */}
-            <div className="mt-2.5 grid grid-cols-2 gap-2">
-              <div className="p-2 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Cash in Hand</p>
-                <p className="text-xs font-mono font-extrabold text-emerald-800 dark:text-emerald-300 mt-0.5">
+          </div>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Cash & Bank Reserves
+          </p>
+          <div className="mt-1.5 flex items-baseline gap-2">
+            <span className="text-[26px] leading-none font-bold font-mono tracking-tight text-slate-900 dark:text-white">
+              Rs. {totalLiquidity.toLocaleString()}
+            </span>
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/30">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700/80 dark:text-emerald-400/80">Cash in hand</p>
+                <p className="text-xs font-mono font-semibold text-emerald-800 dark:text-emerald-300 mt-0.5">
                   Rs. {cashInHand.toLocaleString()}
                 </p>
               </div>
-              <div className="p-2 rounded-xl bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">Bank Balance</p>
-                <p className="text-xs font-mono font-extrabold text-blue-800 dark:text-blue-300 mt-0.5">
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/70">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Bank balance</p>
+                <p className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 mt-0.5">
                   Rs. {bankBalance.toLocaleString()}
                 </p>
               </div>
             </div>
-            <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-mono">
-              <span className="text-emerald-700 dark:text-emerald-400 font-semibold">In: Rs. {totalInflow.toLocaleString()}</span>
-              <span className="text-red-600 dark:text-red-400 font-semibold">Out: Rs. {totalOutflow.toLocaleString()}</span>
+            <div className="mt-2 flex items-center justify-between text-[11px] font-mono">
+              <span className="text-emerald-600 dark:text-emerald-400">In Rs. {totalInflow.toLocaleString()}</span>
+              <span className="text-slate-400 dark:text-slate-500">Out Rs. {totalOutflow.toLocaleString()}</span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              openModal('expense');
-            }}
-            className="mt-3 w-full py-1.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Post Voucher (CRV/CPV/JV)</span>
-          </button>
         </div>
 
-        {/* Card 4: Factory Inventory Health */}
+        {/* 03 · Raw materials valuation → Inventory module */}
         <div
           role="button"
           tabIndex={0}
           onClick={() => setActiveTab('inventory')}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setActiveTab('inventory')}
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 cursor-pointer group relative overflow-hidden flex flex-col justify-between"
-          title="Click to open Raw Materials & Inventory Ledger"
+          className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-lg hover:shadow-indigo-100/70 dark:hover:shadow-none hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 cursor-pointer"
+          title="Open Raw Materials & Inventory Ledger"
         >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Raw Materials Valuation
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-                  View Module <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                  <Package className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">
-                Rs. {summary.totalInventoryValuePKR.toLocaleString()}
-              </span>
-              <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{products.length} SKUs</span>
-            </div>
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-              <span className="text-slate-600 dark:text-slate-400">Critical Reorder Alert:</span>
-              <span className={`font-bold font-mono px-2 py-0.5 rounded-full ${criticalItems.length > 0 ? 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400'}`}>
-                {criticalItems.length} Items Low
-              </span>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">03</span>
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-200">
+              <Package className="w-4 h-4" />
             </div>
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              openModal('product');
-            }}
-            className="mt-3 w-full py-1.5 px-3 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-600 hover:text-white dark:hover:bg-amber-600 dark:hover:text-white text-amber-800 dark:text-amber-300 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Raw Material / SKU</span>
-          </button>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Raw Materials Valuation
+          </p>
+          <div className="mt-1.5 flex items-baseline gap-2">
+            <span className="text-[26px] leading-none font-bold font-mono tracking-tight text-slate-900 dark:text-white">
+              Rs. {summary.totalInventoryValuePKR.toLocaleString()}
+            </span>
+            <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">{products.length} SKUs</span>
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+            <span className="text-slate-500 dark:text-slate-400">Reorder alerts</span>
+            {criticalItems.length > 0 ? (
+              <span className="font-mono font-semibold px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400">
+                {criticalItems.length} low
+              </span>
+            ) : (
+              <span className="font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                All optimal
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Card 5: Procurement & Active POs */}
+        {/* 04 · Procurement commitments → Purchase Orders module */}
         <div
           role="button"
           tabIndex={0}
           onClick={() => setActiveTab('purchase')}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setActiveTab('purchase')}
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs hover:border-indigo-500 dark:hover:border-indigo-500 hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 cursor-pointer group relative overflow-hidden flex flex-col justify-between"
-          title="Click to open Purchase Orders & Mill Procurement"
+          className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-lg hover:shadow-indigo-100/70 dark:hover:shadow-none hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 cursor-pointer"
+          title="Open Purchase Orders & Mill Procurement"
         >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Procurement & Vendor POs
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-                  View Module <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                  <ShoppingCart className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">
-                Rs. {committedPOValue.toLocaleString()}
-              </span>
-              <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-full">
-                {pendingPOs.length} Pending Delivery
-              </span>
-            </div>
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-              <span>Suppliers Active:</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">{suppliers.length} Mills</span>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">04</span>
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-200">
+              <ShoppingCart className="w-4 h-4" />
             </div>
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              openModal('purchase');
-            }}
-            className="mt-3 w-full py-1.5 px-3 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Issue Purchase Order</span>
-          </button>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Procurement Committed
+          </p>
+          <div className="mt-1.5 flex items-baseline gap-2">
+            <span className="text-[26px] leading-none font-bold font-mono tracking-tight text-slate-900 dark:text-white">
+              Rs. {committedPOValue.toLocaleString()}
+            </span>
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+            <span className="text-slate-500 dark:text-slate-400">
+              {pendingPOs.length} pending · {suppliers.length} suppliers
+            </span>
+            <span className="flex items-center gap-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 opacity-60 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">
+              View module <ChevronRight className="w-3 h-3" />
+            </span>
+          </div>
         </div>
 
-        {/* Card 6: Customer Receivables & Working Capital */}
+        {/* 05 · Receivables → Customers module */}
         <div
           role="button"
           tabIndex={0}
           onClick={() => setActiveTab('customers')}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setActiveTab('customers')}
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs hover:border-sky-500 dark:hover:border-sky-500 hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 cursor-pointer group relative overflow-hidden flex flex-col justify-between"
-          title="Click to open Customers Directory & Receivables"
+          className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-lg hover:shadow-indigo-100/70 dark:hover:shadow-none hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 cursor-pointer"
+          title="Open Customers Directory & Receivables"
         >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Accounts Receivable
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-                  View Module <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-colors">
-                  <DollarSign className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">
-                Rs. {totalReceivables.toLocaleString()}
-              </span>
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center">
-                Awaiting Collection
-              </span>
-            </div>
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-              <span>Primary Debtors:</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">{customers.length} Registered Clients</span>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">05</span>
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-200">
+              <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              openModal('customer');
-            }}
-            className="mt-3 w-full py-1.5 px-3 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-600 hover:text-white dark:hover:bg-sky-600 dark:hover:text-white text-sky-800 dark:text-sky-300 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Register New Client</span>
-          </button>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Accounts Receivable
+          </p>
+          <div className="mt-1.5 flex items-baseline gap-2">
+            <span className="text-[26px] leading-none font-bold font-mono tracking-tight text-slate-900 dark:text-white">
+              Rs. {totalReceivables.toLocaleString()}
+            </span>
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+            <span className="text-slate-500 dark:text-slate-400">{customers.length} registered clients</span>
+            <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400/90">Awaiting collection</span>
+          </div>
+        </div>
+
+        {/* 06 · AI Copilot — the product's differentiator, above the fold.
+            Tinted card distinguishes the AI surface from the five data surfaces. */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setActiveTab('copilot')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setActiveTab('copilot')}
+          className="group bg-indigo-50/60 dark:bg-indigo-950/20 rounded-2xl border border-indigo-200/70 dark:border-indigo-800/50 p-5 hover:border-indigo-300 dark:hover:border-indigo-500/70 hover:shadow-lg hover:shadow-indigo-100/70 dark:hover:shadow-none hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col"
+          title="Open the grounded AI Copilot"
+        >
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] font-semibold text-indigo-300 dark:text-indigo-600">06</span>
+            <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border border-indigo-200/70 dark:border-indigo-800/50 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-colors duration-200">
+              <Bot className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-indigo-500/80 dark:text-indigo-400/80">
+            AI Copilot · RAG Grounded
+          </p>
+          <div className="mt-2 flex-1 flex items-center">
+            <CopilotTypewriter />
+          </div>
+          <div className="mt-3 pt-3 border-t border-indigo-200/50 dark:border-indigo-800/40 flex items-center justify-between text-xs">
+            <span className="text-indigo-500/70 dark:text-indigo-400/70">Cited answers, never invented</span>
+            <span className="flex items-center gap-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 opacity-60 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">
+              Ask now <ChevronRight className="w-3 h-3" />
+            </span>
+          </div>
         </div>
       </div>
 
@@ -426,7 +412,7 @@ export const ExecutiveDashboard: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs transition-colors">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center">
                 <AlertTriangle className="w-4 h-4" />
               </div>
               <div>
@@ -436,7 +422,7 @@ export const ExecutiveDashboard: React.FC = () => {
             </div>
             <button
               onClick={() => setActiveTab('inventory')}
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer"
+              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 cursor-pointer"
             >
               Full Inventory →
             </button>
@@ -466,7 +452,7 @@ export const ExecutiveDashboard: React.FC = () => {
                     </button>
                     <button
                       onClick={() => openModal('purchase')}
-                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white rounded-lg font-semibold text-xs shadow-xs transition-all cursor-pointer"
                     >
                       Reorder PO
                     </button>
@@ -485,7 +471,7 @@ export const ExecutiveDashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 rounded font-mono font-bold text-[10px]">
+                  <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded font-mono font-semibold text-[10px]">
                     Optimal
                   </span>
                   <button
@@ -505,7 +491,7 @@ export const ExecutiveDashboard: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs transition-colors">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center">
                 <ShoppingCart className="w-4 h-4" />
               </div>
               <div>
@@ -515,7 +501,7 @@ export const ExecutiveDashboard: React.FC = () => {
             </div>
             <button
               onClick={() => setActiveTab('purchase')}
-              className="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300 cursor-pointer"
+              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 cursor-pointer"
             >
               All POs →
             </button>
@@ -528,11 +514,11 @@ export const ExecutiveDashboard: React.FC = () => {
               </div>
             ) : (
               pendingPOs.map(po => (
-                <div key={po.id} className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-xl flex items-center justify-between text-xs">
+                <div key={po.id} className="p-3 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/60 rounded-xl flex items-center justify-between text-xs">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-bold text-slate-900 dark:text-white">{po.poNumber}</span>
-                      <span className="font-semibold text-amber-900 dark:text-amber-300">{po.supplierName}</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">{po.supplierName}</span>
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
                       Committed: Rs. {po.totalAmount.toLocaleString()} • {po.items[0]?.quantity} {po.items[0]?.unit} {po.items[0]?.productName}
@@ -548,7 +534,7 @@ export const ExecutiveDashboard: React.FC = () => {
                     </button>
                     <button
                       onClick={() => quickReceivePO(po.poNumber)}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-lg font-semibold text-xs shadow-xs transition-all cursor-pointer"
                       title="Click to record goods arrival and restock warehouse"
                     >
                       Receive Goods
@@ -565,7 +551,7 @@ export const ExecutiveDashboard: React.FC = () => {
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs transition-colors">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center">
               <Receipt className="w-4 h-4" />
             </div>
             <div>
@@ -575,7 +561,7 @@ export const ExecutiveDashboard: React.FC = () => {
           </div>
           <button
             onClick={() => setActiveTab('sales')}
-            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer"
+            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 cursor-pointer"
           >
             View All Sales →
           </button>
@@ -584,7 +570,7 @@ export const ExecutiveDashboard: React.FC = () => {
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
                 <th className="py-2.5 px-3">Invoice #</th>
                 <th className="py-2.5 px-3">Customer</th>
                 <th className="py-2.5 px-3">Material Supplied</th>
@@ -606,14 +592,14 @@ export const ExecutiveDashboard: React.FC = () => {
                   <td className="py-2.5 px-3 text-right font-mono text-slate-600 dark:text-slate-400">
                     Rs. {(so.subtotal ?? Math.round((so.totalAmount || 0) / 1.18)).toLocaleString()}
                   </td>
-                  <td className="py-2.5 px-3 text-right font-mono font-semibold text-purple-700 dark:text-purple-400">
+                  <td className="py-2.5 px-3 text-right font-mono font-semibold text-slate-600 dark:text-slate-400">
                     Rs. {(so.taxAmount ?? 0).toLocaleString()}
                   </td>
                   <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
                     Rs. {(so.totalAmount ?? 0).toLocaleString()}
                   </td>
                   <td className="py-2.5 px-3 text-center">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 text-[10px] font-bold">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold">
                       <FileCheck2 className="w-3 h-3" /> Annex-C Ready
                     </span>
                   </td>

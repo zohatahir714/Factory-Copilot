@@ -50,7 +50,7 @@ const MainLayout: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen w-full bg-slate-100 dark:bg-slate-950 overflow-hidden font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200 selection:bg-blue-600 selection:text-white">
+    <div className="flex h-[100dvh] w-full bg-slate-100 dark:bg-slate-950 overflow-hidden font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200 selection:bg-indigo-600 selection:text-white">
       {/* Left Collapsible Sidebar with High Contrast & Dynamic Branding */}
       <Sidebar />
 

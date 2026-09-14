@@ -10,9 +10,13 @@
     border-color: #334155;
   }
   body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Geist', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: #0f172a;
     background-color: #f8fafc;
+    letter-spacing: -0.011em;
+    font-feature-settings: 'ss01' on; /* single-story a — Geist's signature */
+    font-variant-numeric: tabular-nums; /* digits align in tables and KPIs */
+    -webkit-font-smoothing: antialiased;
   }
   .dark body {
     color: #f8fafc;
