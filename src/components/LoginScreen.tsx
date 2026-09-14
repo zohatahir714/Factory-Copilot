@@ -137,19 +137,19 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <main className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100 dark:bg-slate-950 overflow-y-auto transition-colors duration-200">
+    <main className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent overflow-y-auto transition-colors duration-200">
       {/* Theme Toggle in Top Right */}
       <button
         type="button"
         id="btn-login-theme-toggle"
         onClick={toggleDarkMode}
-        className="fixed top-5 right-5 p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shadow-xs transition-colors cursor-pointer z-10"
+        className="fixed top-5 right-5 p-2.5 rounded-full surface-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer z-10"
         title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       >
         {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
       </button>
 
-      <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xl space-y-5 transition-colors duration-200 my-auto">
+      <div className="w-full max-w-sm surface-card p-6 sm:p-7 space-y-5 transition-colors duration-200 my-auto">
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center space-y-2.5">
           <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-xs">
@@ -241,7 +241,7 @@ export const LoginScreen: React.FC = () => {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="name@company.com"
-                className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium transition-all"
+                className="w-full pl-9 pr-3.5 py-2.5 field-input rounded-xl text-slate-900 dark:text-white font-medium"
               />
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
@@ -274,7 +274,7 @@ export const LoginScreen: React.FC = () => {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium transition-all"
+                  className="w-full pl-9 pr-10 py-2.5 field-input rounded-xl text-slate-900 dark:text-white font-medium"
                 />
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <button
@@ -311,7 +311,7 @@ export const LoginScreen: React.FC = () => {
             type="submit"
             id="btn-auth-submit"
             disabled={isSubmitting}
-            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer mt-2"
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] disabled:bg-indigo-800 text-white rounded-full font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer mt-2"
           >
             {isSubmitting ? (
               <>

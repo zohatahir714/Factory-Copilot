@@ -217,16 +217,16 @@ export const CashbookCreateModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-3xl my-auto overflow-hidden animate-scaleUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-slate-950/45 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-transparent dark:border-white/10 w-full max-w-3xl my-auto overflow-hidden animate-scaleUp">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div className="px-6 pt-5 pb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black">
               {voucherType}
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Post Multi-Entry Accounting Voucher</h3>
+              <h3 className="text-[15px] font-bold text-slate-900 dark:text-white">Post Multi-Entry Accounting Voucher</h3>
               <p className="text-xs text-slate-500">
                 General Ledger double-entry system with automatic balancing & audit trail
               </p>
@@ -251,7 +251,7 @@ export const CashbookCreateModal: React.FC = () => {
 
           {/* Voucher Type Tabs (CRV, CPV, BRV, BPV, JV) */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="field-label">
               Select Voucher Type
             </label>
             <div className="grid grid-cols-5 gap-2 p-1.5 bg-slate-100 rounded-xl">
@@ -285,14 +285,14 @@ export const CashbookCreateModal: React.FC = () => {
           {/* Voucher Meta Info: Date, Bank Details */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
             <div>
-              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+              <label className="field-label">
                 Voucher Date
               </label>
               <input
                 type="date"
                 value={voucherDate}
                 onChange={(e) => setVoucherDate(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none font-mono"
+                className="w-full px-3 py-1.5 text-xs field-input font-mono"
               />
             </div>
 
@@ -300,13 +300,13 @@ export const CashbookCreateModal: React.FC = () => {
             {(voucherType === 'BRV' || voucherType === 'BPV') && (
               <>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                  <label className="field-label">
                     Bank Account Head
                   </label>
                   <select
                     value={bankAccountId}
                     onChange={(e) => setBankAccountId(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none font-semibold"
+                    className="w-full px-3 py-1.5 text-xs field-input font-semibold"
                   >
                     <option value="">Select Bank...</option>
                     {bankAccounts.map((b) => (
@@ -318,7 +318,7 @@ export const CashbookCreateModal: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                  <label className="field-label">
                     Cheque / Ref No.
                   </label>
                   <input
@@ -326,7 +326,7 @@ export const CashbookCreateModal: React.FC = () => {
                     value={chequeNumber}
                     onChange={(e) => setChequeNumber(e.target.value)}
                     placeholder="e.g. CHQ-992144"
-                    className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none font-mono"
+                    className="w-full px-3 py-1.5 text-xs field-input font-mono"
                   />
                 </div>
               </>
@@ -334,7 +334,7 @@ export const CashbookCreateModal: React.FC = () => {
 
             {/* General Narration */}
             <div className={voucherType === 'BRV' || voucherType === 'BPV' ? 'sm:col-span-3' : 'sm:col-span-2'}>
-              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+              <label className="field-label">
                 General Description / Narration
               </label>
               <input
@@ -342,7 +342,7 @@ export const CashbookCreateModal: React.FC = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Overall voucher purpose or reference..."
-                className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none"
+                className="w-full px-3 py-1.5 text-xs field-input"
               />
             </div>
           </div>
@@ -381,7 +381,7 @@ export const CashbookCreateModal: React.FC = () => {
                         <select
                           value={line.accountId}
                           onChange={(e) => handleLineChange(line.id, 'accountId', e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none font-semibold"
+                          className="w-full px-2 py-1.5 text-xs field-input outline-none font-semibold"
                         >
                           <option value="">Select Account...</option>
                           {accounts.map((acc) => (
@@ -397,7 +397,7 @@ export const CashbookCreateModal: React.FC = () => {
                           value={line.description}
                           onChange={(e) => handleLineChange(line.id, 'description', e.target.value)}
                           placeholder="Line narration..."
-                          className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                          className="w-full px-2 py-1.5 text-xs field-input outline-none"
                         />
                       </td>
                       <td className="p-2 text-right">
@@ -408,7 +408,7 @@ export const CashbookCreateModal: React.FC = () => {
                           value={line.debit}
                           onChange={(e) => handleLineChange(line.id, 'debit', e.target.value)}
                           placeholder="0"
-                          className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-right font-mono font-bold text-slate-900 outline-none"
+                          className="w-full px-2 py-1.5 text-xs field-input text-right font-mono font-bold text-slate-900 dark:text-white outline-none"
                         />
                       </td>
                       <td className="p-2 text-right">
@@ -419,7 +419,7 @@ export const CashbookCreateModal: React.FC = () => {
                           value={line.credit}
                           onChange={(e) => handleLineChange(line.id, 'credit', e.target.value)}
                           placeholder="0"
-                          className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-right font-mono font-bold text-slate-900 outline-none"
+                          className="w-full px-2 py-1.5 text-xs field-input text-right font-mono font-bold text-slate-900 dark:text-white outline-none"
                         />
                       </td>
                       <td className="p-2 text-center">
@@ -484,14 +484,14 @@ export const CashbookCreateModal: React.FC = () => {
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!isBalanced}
-              className="px-5 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-bold rounded-full shadow-sm active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" />
               <span>Post {voucherType} Voucher</span>

@@ -37,23 +37,23 @@ export const CustomerCreateModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden animate-scaleUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-transparent dark:border-white/10 w-full max-w-lg overflow-hidden animate-scaleUp">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div className="px-6 pt-5 pb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold">Register Client / Garment Mill</h3>
-              <p className="text-xs text-slate-300">Add B2B customer for sales orders, invoicing & credit limits</p>
+              <h3 className="text-[15px] font-bold text-slate-900 dark:text-white">Register Client / Garment Mill</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Add B2B customer for sales orders, invoicing & credit limits</p>
             </div>
           </div>
           <button
             type="button"
             onClick={closeModal}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-white/10 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -62,7 +62,7 @@ export const CustomerCreateModal: React.FC = () => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="field-label">
               Customer / Mill Name *
             </label>
             <div className="relative">
@@ -73,14 +73,14 @@ export const CustomerCreateModal: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Al-Rehman Textiles & Exports"
-                className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-medium"
+                className="w-full pl-9 pr-3.5 py-2 text-sm field-input font-medium"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="field-label">
                 City / Location *
               </label>
               <div className="relative">
@@ -91,13 +91,13 @@ export const CustomerCreateModal: React.FC = () => {
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="e.g. Lahore / Faisalabad"
-                  className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none"
+                  className="w-full pl-9 pr-3.5 py-2 text-sm field-input"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="field-label">
                 Contact Phone
               </label>
               <div className="relative">
@@ -107,7 +107,7 @@ export const CustomerCreateModal: React.FC = () => {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+92 42 35789012"
-                  className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-mono"
+                  className="w-full pl-9 pr-3.5 py-2 text-sm field-input font-mono"
                 />
               </div>
             </div>
@@ -115,7 +115,7 @@ export const CustomerCreateModal: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="field-label">
                 Accounts Email
               </label>
               <div className="relative">
@@ -125,13 +125,13 @@ export const CustomerCreateModal: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="accounts@customer.pk"
-                  className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none"
+                  className="w-full pl-9 pr-3.5 py-2 text-sm field-input"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="field-label">
                 Credit Limit (PKR)
               </label>
               <div className="relative">
@@ -141,14 +141,14 @@ export const CustomerCreateModal: React.FC = () => {
                   min="0"
                   value={creditLimit}
                   onChange={(e) => setCreditLimit(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-mono"
+                  className="w-full pl-9 pr-3.5 py-2 text-sm field-input font-mono"
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="field-label">
               Opening Outstanding Receivables (PKR)
             </label>
             <input
@@ -157,7 +157,7 @@ export const CustomerCreateModal: React.FC = () => {
               value={outstandingReceivables}
               onChange={(e) => setOutstandingReceivables(e.target.value === '' ? '' : Number(e.target.value))}
               placeholder="0"
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-mono"
+              className="w-full px-3.5 py-2 text-sm field-input font-mono"
             />
           </div>
 
@@ -171,13 +171,13 @@ export const CustomerCreateModal: React.FC = () => {
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm hover:shadow transition-all cursor-pointer flex items-center gap-2"
+              className="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] rounded-full shadow-sm hover:shadow transition-all cursor-pointer flex items-center gap-2"
             >
               <span>Save Customer</span>
             </button>

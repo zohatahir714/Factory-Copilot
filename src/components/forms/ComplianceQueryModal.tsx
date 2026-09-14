@@ -28,16 +28,16 @@ export const ComplianceQueryModal: React.FC = () => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl overflow-hidden animate-scaleUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-transparent dark:border-white/10 w-full max-w-2xl overflow-hidden animate-scaleUp">
         {/* Header */}
-        <div className="px-6 py-4 bg-indigo-50 border-b border-indigo-200/80 flex items-center justify-between">
+        <div className="px-6 pt-5 pb-4 flex items-start justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-indigo-200 text-indigo-800 flex items-center justify-center">
               <Scale className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-indigo-950">FBR Compliance RAG Knowledge Query</h3>
+              <h3 className="text-[15px] font-bold text-slate-900 dark:text-white">FBR Compliance RAG Knowledge Query</h3>
               <p className="text-xs text-indigo-700">Authoritative statutory retrieval grounded in Pakistani tax laws</p>
             </div>
           </div>
@@ -59,7 +59,7 @@ export const ComplianceQueryModal: React.FC = () => {
               placeholder="Search tax rules, section 153 WHT, SRO 345, GST rates, filing deadlines..."
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-medium"
+              className="w-full pl-10 pr-4 py-2.5 text-sm field-input font-medium"
             />
           </div>
 

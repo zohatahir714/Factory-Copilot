@@ -91,7 +91,7 @@ export const Sidebar: React.FC = () => {
           urdu: 'اسٹاک اور خام مال',
           icon: <Package className="w-5 h-5" />,
           badge: lowStockCount > 0 ? lowStockCount : undefined,
-          badgeColor: 'bg-red-500 text-white font-bold'
+          badgeColor: 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
         },
         {
           id: 'purchase',
@@ -99,15 +99,13 @@ export const Sidebar: React.FC = () => {
           urdu: 'خریداری آرڈرز',
           icon: <ShoppingCart className="w-5 h-5" />,
           badge: pendingPOCount > 0 ? pendingPOCount : undefined,
-          badgeColor: 'bg-amber-500 text-white font-bold'
+          badgeColor: 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
         },
         {
           id: 'suppliers',
           label: 'Suppliers & Vendors',
           urdu: 'سپلائرز اور وینڈرز',
-          icon: <Building2 className="w-5 h-5" />,
-          badge: suppliers.length > 0 ? suppliers.length : undefined,
-          badgeColor: 'bg-indigo-600 text-white font-bold'
+          icon: <Building2 className="w-5 h-5" />
         },
         {
           id: 'movements',
@@ -127,16 +125,14 @@ export const Sidebar: React.FC = () => {
           label: 'Sales & 18% GST',
           urdu: 'فروخت اور انوائس',
           icon: <Receipt className="w-5 h-5" />,
-          badge: salesOrders.length > 0 ? salesOrders.length : undefined,
-          badgeColor: 'bg-slate-700 text-white'
+          badge: salesOrders.length > 0 ? salesOrders.length : undefined
         },
         {
           id: 'customers',
           label: 'Customers & Mills',
           urdu: 'کسٹمرز اور ملز',
           icon: <Users className="w-5 h-5" />,
-          badge: customers.length > 0 ? customers.length : undefined,
-          badgeColor: 'bg-emerald-600 text-white font-bold'
+          badge: customers.length > 0 ? customers.length : undefined
         }
       ]
     },
@@ -155,9 +151,7 @@ export const Sidebar: React.FC = () => {
           id: 'reports',
           label: 'Reports & Financials',
           urdu: 'مالیاتی رپورٹس اور لیجر',
-          icon: <BarChart3 className="w-5 h-5" />,
-          badge: 'GL & P&L',
-          badgeColor: 'bg-emerald-600 text-white font-bold'
+          icon: <BarChart3 className="w-5 h-5" />
         },
         {
           id: 'compliance',
@@ -165,7 +159,7 @@ export const Sidebar: React.FC = () => {
           urdu: 'ٹیکس ریگولیشنز',
           icon: <Scale className="w-5 h-5" />,
           badge: '18%',
-          badgeColor: 'bg-indigo-600 text-white'
+          badgeColor: 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
         },
         {
           id: 'fbr_integration',
@@ -173,7 +167,7 @@ export const Sidebar: React.FC = () => {
           urdu: 'ڈیجیٹل انوائسنگ حب',
           icon: <ShieldCheck className="w-5 h-5" />,
           badge: 'Ready',
-          badgeColor: 'bg-emerald-600 text-white font-bold'
+          badgeColor: 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
         }
       ]
     },
@@ -194,7 +188,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside
-      className={`relative bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out shrink-0 select-none z-30 ${
+      className={`relative bg-white/75 dark:bg-[#0e0f14] text-slate-700 dark:text-slate-200 backdrop-blur-xl border-r border-slate-200/70 dark:border-white/5 flex flex-col justify-between transition-all duration-300 ease-in-out shrink-0 select-none z-30 ${
         sidebarCollapsed ? 'w-20' : 'w-64'
       }`}
     >
@@ -271,15 +265,15 @@ export const Sidebar: React.FC = () => {
                     onClick={() => setActiveTab(item.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all relative group cursor-pointer ${
                       isActive
-                        ? 'bg-indigo-600 text-white font-bold shadow-xs'
-                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 border border-transparent'
+                        ? 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-bold'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent'
                     }`}
                     title={sidebarCollapsed ? `[${section.title}] ${item.label} (${item.urdu})` : undefined}
                   >
                     <div
                       className={`shrink-0 transition-colors ${
                         isActive
-                          ? 'text-white'
+                          ? 'text-indigo-600 dark:text-indigo-400'
                           : 'text-slate-400 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'
                       }`}
                     >
@@ -339,7 +333,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Theme Toggle & User Profile Footer */}
-      <div className="p-3 border-t border-slate-200 dark:border-slate-800/90 bg-slate-50/50 dark:bg-slate-950/60 space-y-2">
+      <div className="p-3 border-t border-slate-200/70 dark:border-white/5 space-y-2">
         {/* Dark/Light Mode Switch */}
         <button
           type="button"
