@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "PakERP Cloud Suite — Deployment Topology",
+    "output": "docs/pakerp-deployment-topology.html",
+    "visual_preset": "blueprint",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "public-surface",
+        "label": "Public surface",
+        "focus": ["users", "edge", "supabase"],
+        "note": "What an anonymous request can touch: static SPA and RLS-gated data only."
+      },
+      {
+        "id": "secret-path",
+        "label": "Secret path",
+        "focus": ["edge", "fn_chat", "fn_transcribe", "groq"],
+        "note": "AI traffic crosses the serverless key vault before reaching Groq."
+      },
+      {
+        "id": "deploy-path",
+        "label": "Deploy path",
+        "focus": ["gitlab", "edge", "fn_chat", "fn_transcribe"],
+        "note": "A GitLab push builds and ships the SPA and functions together."
+      }
+    ]
+  },
+  "components": [
+    { "id": "users", "type": "external", "label": "Judges & Staff", "sublabel": "any device, any browser", "pos": [42, 264], "size": [124, 60] },
+    { "id": "edge", "type": "cloud", "label": "Vercel Edge", "sublabel": "CDN + static SPA", "pos": [236, 264], "size": [126, 60], "tag": "deploy target" },
+    { "id": "fn_chat", "type": "security", "label": "Chat Function", "sublabel": "/api/groq/chat", "pos": [462, 186], "size": [136, 60], "tag": "key here" },
+    { "id": "fn_transcribe", "type": "security", "label": "Voice Function", "sublabel": "/api/groq/transcribe", "pos": [462, 336], "size": [136, 60], "tag": "key here" },
+    { "id": "groq", "type": "external", "label": "Groq Cloud", "sublabel": "Whisper v3 + gpt-oss-120b", "pos": [716, 262], "size": [132, 62], "tag": "inference" },
+    { "id": "supabase", "type": "database", "label": "Supabase Postgres", "sublabel": "11 tables · RLS · Auth", "pos": [716, 470], "size": [136, 62], "tag": "row-level security" },
+    { "id": "gitlab", "type": "external", "label": "GitLab main", "sublabel": "auto-deploy trigger", "pos": [236, 470], "size": [126, 60], "tag": "CI" }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Vercel — global edge network", "wraps": ["edge", "fn_chat", "fn_transcribe"], "pad": 20 },
+    { "kind": "security-group", "label": "serverless key vault", "wraps": ["fn_chat", "fn_transcribe"], "pad": 14 },
+    { "kind": "region", "label": "Supabase project — RLS enforced", "wraps": ["supabase"], "pad": 16 }
+  ],
+  "connections": [
+    { "from": "users", "to": "edge", "label": "HTTPS", "variant": "emphasis", "route": "straight" },
+    { "from": "edge", "to": "fn_chat", "label": "same-origin /api/*", "variant": "emphasis", "route": "orthogonal-h", "labelAt": [368, 200] },
+    { "from": "edge", "to": "fn_transcribe", "label": "same-origin /api/*", "variant": "emphasis", "route": "orthogonal-h", "labelAt": [368, 350] },
+    { "from": "fn_chat", "to": "groq", "label": "Bearer GROQ_API_KEY", "variant": "security", "fromSide": "right", "toSide": "top", "via": [[664, 216], [664, 240], [782, 240]], "labelAt": [672, 228] },
+    { "from": "fn_transcribe", "to": "groq", "label": "Bearer GROQ_API_KEY", "variant": "security", "fromSide": "right", "toSide": "bottom", "via": [[664, 366], [664, 350], [782, 350]], "labelAt": [672, 338] },
+    { "from": "users", "to": "supabase", "label": "publishable key · RLS-gated REST", "variant": "security", "fromSide": "bottom", "toSide": "bottom", "via": [[104, 560], [784, 560]], "labelAt": [420, 548] },
+    { "from": "gitlab", "to": "edge", "label": "git push → auto-build", "variant": "dashed", "route": "straight", "labelAt": [310, 420] }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Static-First Edge",
+      "items": [
+        "The app ships as a static SPA on Vercel's CDN — no server sessions",
+        "Deep links resolve at the edge; every route is publicly reachable",
+        "All dynamic work happens in exactly three serverless functions"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Two Secret Domains",
+      "items": [
+        "Browser holds only Supabase's publishable key — RLS denies anon writes",
+        "GROQ_API_KEY lives solely in serverless env vars, injected by Vercel",
+        "The shipped bundle contains zero secret material (verified by scan)"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Git-Ops Deploy",
+      "items": [
+        "GitLab main push triggers the production build automatically",
+        "SPA bundle and both Groq functions always deploy as one unit",
+        "GitHub mirrors the same history for judges and reviewers"
+      ]
+    }
+  ]
+}
