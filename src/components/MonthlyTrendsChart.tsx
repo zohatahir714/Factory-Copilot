@@ -107,8 +107,8 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Monthly Ledger</span>
           </div>
           <div className="flex items-center justify-between gap-6 text-slate-700 dark:text-slate-200">
-            <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium">
-              <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-500" />
+            <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-medium">
+              <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-500" />
               Sales {metricMode === 'value' ? 'Revenue' : 'Units'}:
             </span>
             <span className="font-mono font-bold text-slate-900 dark:text-white">
@@ -131,7 +131,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
           {metricMode === 'value' && (
             <div className="border-t border-slate-100 dark:border-slate-700/80 pt-1 flex items-center justify-between text-[11px]">
               <span className="text-slate-500 dark:text-slate-400">Trade Spread:</span>
-              <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
+              <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
                 Rs. {((payload[0]?.value || 0) - (payload[1]?.value || 0)).toLocaleString()}
               </span>
             </div>
@@ -147,7 +147,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
       {/* Top Header: Title, Controls & Compliance Schedule */}
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
             <TrendingUp className="w-5 h-5" />
           </div>
           <div>
@@ -174,7 +174,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
               onClick={() => setMetricMode('value')}
               className={`px-3 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
                 metricMode === 'value'
-                  ? 'bg-blue-600 text-white shadow-xs'
+                  ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -185,7 +185,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
               onClick={() => setMetricMode('volume')}
               className={`px-3 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
                 metricMode === 'volume'
-                  ? 'bg-blue-600 text-white shadow-xs'
+                  ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -200,7 +200,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
               onClick={() => setChartType('area')}
               className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                 chartType === 'area'
-                  ? 'bg-blue-600 text-white shadow-xs'
+                  ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
               title="Area Trend View"
@@ -212,7 +212,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
               onClick={() => setChartType('bar')}
               className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                 chartType === 'bar'
-                  ? 'bg-blue-600 text-white shadow-xs'
+                  ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
               title="Bar Comparison View"
@@ -229,7 +229,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
               className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
               title="Inspect FBR Statutory Filing Calendar"
             >
-              <Scale className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <Scale className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
               <span>FBR Schedule</span>
               <ChevronRight className="w-3 h-3" />
             </button>
@@ -246,7 +246,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
               ? `Rs. ${totalPeriodSales.toLocaleString()}`
               : `${totalPeriodSalesVol.toLocaleString()} pcs`}
           </div>
-          <div className="text-[10px] text-blue-600 dark:text-blue-400 font-mono flex items-center gap-1 mt-0.5">
+          <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono flex items-center gap-1 mt-0.5">
             <ArrowUpRight className="w-3 h-3" /> Commercial Invoices
           </div>
         </div>
@@ -270,7 +270,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
               ? `Rs. ${netTradeMargin.toLocaleString()}`
               : `${(totalPeriodSalesVol - totalPeriodPurchasesVol).toLocaleString()} net`}
           </div>
-          <div className="text-[10px] text-blue-600 dark:text-blue-400 font-mono mt-0.5">
+          <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">
             Operational Spread
           </div>
         </div>
@@ -411,7 +411,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
       {/* Unified Single-Color Footer: Operational Telemetry Status */}
       <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-2">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-500" />
+          <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-500" />
           <span>FBR Sales Tax & Input Reconciliation: Real-time ledger sync active</span>
         </div>
         <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">

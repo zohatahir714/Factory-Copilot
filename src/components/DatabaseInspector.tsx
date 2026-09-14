@@ -58,7 +58,7 @@ export const DatabaseInspector: React.FC = () => {
       {/* 1. INVENTORY VIEW */}
       {activeTab === 'inventory' && (
         <div className="space-y-4 max-w-6xl mx-auto animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div>
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
@@ -105,7 +105,7 @@ export const DatabaseInspector: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
@@ -128,7 +128,7 @@ export const DatabaseInspector: React.FC = () => {
                       const isLow = p.currentStock <= p.reorderThreshold;
                       return (
                         <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-3 px-4 font-mono font-bold text-blue-700">{p.sku}</td>
+                          <td className="py-3 px-4 font-mono font-bold text-indigo-700">{p.sku}</td>
                           <td className="py-3 px-4 font-semibold text-slate-900">{p.name}</td>
                           <td className="py-3 px-4 text-slate-500">{p.category}</td>
                           <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
@@ -161,7 +161,7 @@ export const DatabaseInspector: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => openViewModal('product', p)}
-                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 transition-colors cursor-pointer"
                                 title="View Details"
                               >
                                 <Eye className="w-3.5 h-3.5" />
@@ -207,7 +207,7 @@ export const DatabaseInspector: React.FC = () => {
       {/* 2. PURCHASE ORDERS VIEW */}
       {activeTab === 'purchase' && (
         <div className="space-y-4 max-w-6xl mx-auto animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div>
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
@@ -245,7 +245,7 @@ export const DatabaseInspector: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
@@ -266,7 +266,7 @@ export const DatabaseInspector: React.FC = () => {
                       const isPending = po.status === 'pending';
                       return (
                         <tr key={po.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-3 px-4 font-mono font-bold text-blue-700">{po.poNumber}</td>
+                          <td className="py-3 px-4 font-mono font-bold text-indigo-700">{po.poNumber}</td>
                           <td className="py-3 px-4 font-semibold text-slate-900">{po.supplierName}</td>
                           <td className="py-3 px-4">
                             {po.items.map((it, idx) => (
@@ -309,7 +309,7 @@ export const DatabaseInspector: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => openViewModal('po', po)}
-                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 transition-colors cursor-pointer"
                                 title="View PO Details"
                               >
                                 <Eye className="w-3.5 h-3.5" />
@@ -317,7 +317,7 @@ export const DatabaseInspector: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => openPrintDocument({ type: 'purchase_order', data: po })}
-                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 transition-colors cursor-pointer"
                                 title="Print Official Purchase Order"
                               >
                                 <Printer className="w-3.5 h-3.5" />
@@ -355,10 +355,10 @@ export const DatabaseInspector: React.FC = () => {
       {/* 3. SALES & INVOICES VIEW */}
       {activeTab === 'sales' && (
         <div className="space-y-4 max-w-6xl mx-auto animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div>
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
                   <Receipt className="w-5 h-5" />
                 </div>
                 <div>
@@ -385,7 +385,7 @@ export const DatabaseInspector: React.FC = () => {
               </div>
               <button
                 onClick={() => openModal('sale')}
-                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>Record Sale & 18% GST</span>
@@ -393,7 +393,7 @@ export const DatabaseInspector: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
@@ -413,7 +413,7 @@ export const DatabaseInspector: React.FC = () => {
                     .filter(so => !q || so.invoiceNumber.toLowerCase().includes(q) || so.customerName.toLowerCase().includes(q))
                     .map((so) => (
                       <tr key={so.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-4 font-mono font-bold text-blue-700">{so.invoiceNumber}</td>
+                        <td className="py-3 px-4 font-mono font-bold text-indigo-700">{so.invoiceNumber}</td>
                         <td className="py-3 px-4 font-semibold text-slate-900">{so.customerName}</td>
                         <td className="py-3 px-4">
                           {so.items.map((it, idx) => (
@@ -425,7 +425,7 @@ export const DatabaseInspector: React.FC = () => {
                         <td className="py-3 px-4 text-right font-mono text-slate-600">
                           Rs. {(so.subtotal ?? Math.round((so.totalAmount || 0) / 1.18)).toLocaleString()}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-purple-700">
+                        <td className="py-3 px-4 text-right font-mono font-bold text-indigo-700">
                           Rs. {(so.taxAmount ?? 0).toLocaleString()}
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
@@ -441,7 +441,7 @@ export const DatabaseInspector: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => openViewModal('sale', so)}
-                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 transition-colors cursor-pointer"
                               title="Inspect Tax Invoice"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -449,7 +449,7 @@ export const DatabaseInspector: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => openPrintDocument({ type: 'invoice', data: so })}
-                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 transition-colors cursor-pointer"
                               title="Print FBR Tax Invoice (Annex-C)"
                             >
                               <Printer className="w-3.5 h-3.5" />
@@ -486,7 +486,7 @@ export const DatabaseInspector: React.FC = () => {
       {/* 4. CASHBOOK & DISBURSEMENTS VIEW */}
       {activeTab === 'cashbook' && (
         <div className="space-y-4 max-w-6xl mx-auto animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div>
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
@@ -524,7 +524,7 @@ export const DatabaseInspector: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
@@ -568,7 +568,7 @@ export const DatabaseInspector: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => openViewModal('cashbook', c)}
-                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 transition-colors cursor-pointer"
                                 title="View Voucher"
                               >
                                 <Eye className="w-3.5 h-3.5" />
@@ -614,9 +614,9 @@ export const DatabaseInspector: React.FC = () => {
       {/* 5. COMPLIANCE & FBR RAG KNOWLEDGE VIEW */}
       {activeTab === 'compliance' && (
         <div className="space-y-4 max-w-6xl mx-auto animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
                 <Scale className="w-5 h-5" />
               </div>
               <div>
@@ -630,7 +630,7 @@ export const DatabaseInspector: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-purple-50 text-purple-800 text-xs font-bold rounded-lg border border-purple-200">
+              <span className="px-3 py-1 bg-indigo-50 text-indigo-800 text-xs font-bold rounded-lg border border-indigo-200">
                 18 Grounded Statutes
               </span>
             </div>
@@ -640,11 +640,11 @@ export const DatabaseInspector: React.FC = () => {
             {complianceSources.map((cs) => (
               <div
                 key={cs.id}
-                className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between"
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs hover:border-indigo-300 transition-all flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-purple-50 text-purple-800 border border-purple-200">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-indigo-50 text-indigo-800 border border-indigo-200">
                       {cs.authority} • {cs.effectiveYear}
                     </span>
                     <span className="text-[11px] font-mono text-slate-400">
@@ -653,15 +653,15 @@ export const DatabaseInspector: React.FC = () => {
                   </div>
 
                   <h3 className="font-bold text-slate-900 text-sm mt-2">{cs.title}</h3>
-                  <div className="text-xs font-semibold text-blue-700 font-mono mt-0.5">{cs.section}</div>
+                  <div className="text-xs font-semibold text-indigo-700 font-mono mt-0.5">{cs.section}</div>
 
                   <p className="text-xs text-slate-600 mt-2 leading-relaxed">{cs.summary}</p>
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-3 text-xs font-mono">
-                    <span className="text-blue-700 font-bold">GST: {cs.defaultGSTRate}%</span>
-                    <span className="text-purple-700 font-bold">WHT: {cs.withholdingRate}%</span>
+                    <span className="text-indigo-700 font-bold">GST: {cs.defaultGSTRate}%</span>
+                    <span className="text-indigo-700 font-bold">WHT: {cs.withholdingRate}%</span>
                   </div>
                   <button
                     type="button"
@@ -681,7 +681,7 @@ export const DatabaseInspector: React.FC = () => {
       {/* 6. INVENTORY MOVEMENTS AUDIT TRAIL */}
       {activeTab === 'movements' && (
         <div className="space-y-4 max-w-6xl mx-auto animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center">
                 <History className="w-5 h-5" />
@@ -697,7 +697,7 @@ export const DatabaseInspector: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
@@ -746,9 +746,9 @@ export const DatabaseInspector: React.FC = () => {
       {/* 7. SUPPLIERS & VENDORS VIEW */}
       {activeTab === 'suppliers' && (
         <div className="space-y-4 max-w-6xl mx-auto animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
@@ -775,7 +775,7 @@ export const DatabaseInspector: React.FC = () => {
               <button
                 type="button"
                 onClick={() => openModal('supplier')}
-                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Supplier</span>
@@ -783,7 +783,7 @@ export const DatabaseInspector: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
@@ -823,7 +823,7 @@ export const DatabaseInspector: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-bold">
+                          <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-bold">
                             {s.leadTimeDays} days
                           </span>
                         </td>
@@ -849,7 +849,7 @@ export const DatabaseInspector: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => openEditModal('supplier', s)}
-                              className="p-1 text-slate-400 hover:text-blue-600 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
+                              className="p-1 text-slate-400 hover:text-indigo-600 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
                               title="Edit Supplier"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
@@ -885,7 +885,7 @@ export const DatabaseInspector: React.FC = () => {
       {/* 8. CUSTOMERS & TEXTILE MILLS VIEW */}
       {activeTab === 'customers' && (
         <div className="space-y-4 max-w-6xl mx-auto animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
                 <Users className="w-5 h-5" />
@@ -922,7 +922,7 @@ export const DatabaseInspector: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
@@ -972,7 +972,7 @@ export const DatabaseInspector: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => openModal('sale')}
-                              className="px-2 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                              className="px-2 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
                               title="Record Sale Invoice"
                             >
                               + Sale
@@ -988,7 +988,7 @@ export const DatabaseInspector: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => openEditModal('customer', c)}
-                              className="p-1 text-slate-400 hover:text-blue-600 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
+                              className="p-1 text-slate-400 hover:text-indigo-600 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
                               title="Edit Customer"
                             >
                               <Edit3 className="w-3.5 h-3.5" />

@@ -120,11 +120,11 @@ export const SalesOrderCreateModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden animate-scaleUp my-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-xl overflow-hidden animate-scaleUp my-auto">
         {/* Header */}
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-sm">
               <Receipt className="w-5 h-5" />
             </div>
             <div>
@@ -153,13 +153,13 @@ export const SalesOrderCreateModal: React.FC = () => {
           {/* Compliance Auto-check Toggle Switch Banner */}
           <div className={`p-3 rounded-xl border transition-all ${
             complianceAutoCheck
-              ? 'bg-blue-50/90 border-blue-200 text-blue-950'
+              ? 'bg-indigo-50/90 border-indigo-200 text-indigo-950'
               : 'bg-slate-100 border-slate-300 text-slate-700'
           }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                  complianceAutoCheck ? 'bg-blue-600 text-white' : 'bg-slate-400 text-white'
+                  complianceAutoCheck ? 'bg-indigo-600 text-white' : 'bg-slate-400 text-white'
                 }`}>
                   <ShieldCheck className="w-4 h-4" />
                 </div>
@@ -190,7 +190,7 @@ export const SalesOrderCreateModal: React.FC = () => {
                 onClick={() => setComplianceAutoCheck(!complianceAutoCheck)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs ${
                   complianceAutoCheck
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
                     : 'bg-slate-300 hover:bg-slate-400 text-slate-800'
                 }`}
               >
@@ -218,7 +218,7 @@ export const SalesOrderCreateModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => openModal('customer')}
-                className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
               >
                 + Add New Customer
               </button>
@@ -226,7 +226,7 @@ export const SalesOrderCreateModal: React.FC = () => {
             <select
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none font-medium text-slate-900"
+              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-medium text-slate-900"
             >
               {customers.length === 0 ? (
                 <option value="">No customers registered yet - Click + Add New Customer</option>
@@ -246,14 +246,14 @@ export const SalesOrderCreateModal: React.FC = () => {
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 FBR Statutory Tax Category *
               </label>
-              <span className="text-[11px] font-semibold text-purple-700">
+              <span className="text-[11px] font-semibold text-indigo-700">
                 STA 1990 Rates
               </span>
             </div>
             <select
               value={taxCategory}
               onChange={(e) => handleTaxCategoryChange(e.target.value as FBRTaxCategory)}
-              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none font-medium text-slate-900"
+              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-medium text-slate-900"
             >
               <option value="standard_18">Standard Supply @ 18% GST (Active Taxpayer)</option>
               <option value="unregistered_buyer">Unregistered Buyer @ 18% GST + 4% Further Tax (22% Total)</option>
@@ -337,7 +337,7 @@ export const SalesOrderCreateModal: React.FC = () => {
             <select
               value={productId}
               onChange={(e) => setProductId(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none font-medium text-slate-900"
+              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-medium text-slate-900"
             >
               {products.map(p => (
                 <option key={p.id} value={p.id}>
@@ -361,7 +361,7 @@ export const SalesOrderCreateModal: React.FC = () => {
                 className={`w-full px-3.5 py-2.5 text-sm bg-slate-50 focus:bg-white border rounded-lg focus:ring-2 outline-none font-mono font-bold text-slate-900 ${
                   hasInsufficientStock
                     ? 'border-red-500 focus:ring-red-500/20 focus:border-red-600'
-                    : 'border-slate-300 focus:ring-blue-500/20 focus:border-blue-600'
+                    : 'border-slate-300 focus:ring-indigo-500/20 focus:border-indigo-600'
                 }`}
               />
               {hasInsufficientStock && (
@@ -393,12 +393,12 @@ export const SalesOrderCreateModal: React.FC = () => {
               <span className="font-mono font-semibold text-slate-900">{formatPKR(taxResult.subtotal)}</span>
             </div>
 
-            <div className="flex items-center justify-between text-purple-700 font-medium">
+            <div className="flex items-center justify-between text-indigo-700 font-medium">
               <span className="flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
                 Sales Tax (GST @ {taxResult.gstRate}%):
               </span>
-              <span className="font-mono font-bold text-purple-800">+ {formatPKR(taxResult.gstAmount)}</span>
+              <span className="font-mono font-bold text-indigo-800">+ {formatPKR(taxResult.gstAmount)}</span>
             </div>
 
             {taxResult.additionalTaxAmount > 0 && (
@@ -413,7 +413,7 @@ export const SalesOrderCreateModal: React.FC = () => {
 
             <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-sm font-bold text-slate-900">
               <span>Invoice Grand Total:</span>
-              <span className="text-base font-mono font-extrabold text-blue-700">
+              <span className="text-base font-mono font-extrabold text-indigo-700">
                 {formatPKR(taxResult.grandTotal)}
               </span>
             </div>
@@ -450,7 +450,7 @@ export const SalesOrderCreateModal: React.FC = () => {
               className={`px-5 py-2.5 text-white rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-2 cursor-pointer ${
                 complianceBlocked
                   ? 'bg-slate-400 cursor-not-allowed opacity-75'
-                  : 'bg-blue-600 hover:bg-blue-700 disabled:opacity-50'
+                  : 'bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50'
               }`}
               title={complianceBlocked ? 'FBR Compliance Check Blocked' : 'Issue Invoice'}
             >

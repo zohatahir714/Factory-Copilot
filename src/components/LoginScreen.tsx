@@ -153,7 +153,7 @@ export const LoginScreen: React.FC = () => {
             {branding.logoBase64 ? (
               <img src={branding.logoBase64} alt={branding.companyName} className="w-full h-full object-contain p-1.5" />
             ) : (
-              <Building2 className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+              <Building2 className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
             )}
           </div>
           <div>
@@ -238,7 +238,7 @@ export const LoginScreen: React.FC = () => {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="name@company.com"
-                className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-blue-600 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium transition-all"
+                className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium transition-all"
               />
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
@@ -258,7 +258,7 @@ export const LoginScreen: React.FC = () => {
                     setError(null);
                     setSuccessMsg(null);
                   }}
-                  className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                 >
                   Forgot password?
                 </button>
@@ -271,7 +271,7 @@ export const LoginScreen: React.FC = () => {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-blue-600 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium transition-all"
+                  className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium transition-all"
                 />
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <button
@@ -295,7 +295,7 @@ export const LoginScreen: React.FC = () => {
                   id="checkbox-remember-me"
                   checked={rememberMe}
                   onChange={e => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                 />
                 <span>Remember this device</span>
               </label>
@@ -307,7 +307,7 @@ export const LoginScreen: React.FC = () => {
             type="submit"
             id="btn-auth-submit"
             disabled={isSubmitting}
-            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer mt-2"
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer mt-2"
           >
             {isSubmitting ? (
               <>
@@ -338,7 +338,7 @@ export const LoginScreen: React.FC = () => {
                 setError(null);
                 setSuccessMsg(null);
               }}
-              className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer font-medium"
+              className="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-medium"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Back to Sign In

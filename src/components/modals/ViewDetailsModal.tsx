@@ -46,11 +46,11 @@ export const ViewDetailsModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
         <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold">
               {type === 'product' && <Package className="w-5 h-5" />}
               {type === 'po' && <ShoppingCart className="w-5 h-5" />}
               {type === 'sale' && <Receipt className="w-5 h-5" />}
@@ -106,7 +106,7 @@ export const ViewDetailsModal: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[11px]">SKU Identifier</span>
-                  <span className="text-sm font-bold font-mono text-blue-700">{data.sku}</span>
+                  <span className="text-sm font-bold font-mono text-indigo-700">{data.sku}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[11px]">Category</span>
@@ -119,21 +119,21 @@ export const ViewDetailsModal: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
                   <span className="text-slate-500 block text-[10px]">Cost Price</span>
                   <span className="text-sm font-bold font-mono text-slate-900">
                     Rs. {Number(data.costPrice).toLocaleString()}
                   </span>
                 </div>
-                <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
                   <span className="text-slate-500 block text-[10px]">Selling Price</span>
                   <span className="text-sm font-bold font-mono text-emerald-700">
                     Rs. {Number(data.sellingPrice).toLocaleString()}
                   </span>
                 </div>
-                <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
                   <span className="text-slate-500 block text-[10px]">Current Stock</span>
-                  <span className="text-sm font-bold font-mono text-blue-700">
+                  <span className="text-sm font-bold font-mono text-indigo-700">
                     {data.currentStock} {data.unit}
                   </span>
                 </div>
@@ -208,12 +208,12 @@ export const ViewDetailsModal: React.FC = () => {
           {/* SALES INVOICE VIEW */}
           {type === 'sale' && (
             <div className="space-y-4">
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
+              <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
                 <div>
-                  <div className="text-blue-900 font-bold text-sm">FBR Sales Tax Act 1990 Registered Invoice</div>
-                  <div className="text-[11px] text-blue-700 font-mono">STRN: {branding.strnNumber} • Tier-1 POS Integrated</div>
+                  <div className="text-indigo-900 font-bold text-sm">FBR Sales Tax Act 1990 Registered Invoice</div>
+                  <div className="text-[11px] text-indigo-700 font-mono">STRN: {branding.strnNumber} • Tier-1 POS Integrated</div>
                 </div>
-                <div className="text-right font-mono text-blue-900 font-bold">
+                <div className="text-right font-mono text-indigo-900 font-bold">
                   {data.invoiceNumber}
                 </div>
               </div>
@@ -258,7 +258,7 @@ export const ViewDetailsModal: React.FC = () => {
                   <span className="text-slate-500">Subtotal Taxable Amount:</span>
                   <span className="font-bold">Rs. {(Number(data.subtotal) || Math.round(Number(data.totalAmount || 0) / 1.18) || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-blue-700">
+                <div className="flex justify-between text-indigo-700">
                   <span>Sales Tax @ 18% (Section 3(1)):</span>
                   <span className="font-bold">Rs. {(Number(data.taxAmount) || 0).toLocaleString()}</span>
                 </div>
@@ -313,7 +313,7 @@ export const ViewDetailsModal: React.FC = () => {
               <div className="space-y-2">
                 <div>
                   <span className="text-slate-400 text-[10px] font-bold uppercase">General Description</span>
-                  <div className="p-3 bg-white border border-slate-200 rounded-xl text-slate-800 font-medium">{data.description}</div>
+                  <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 font-medium">{data.description}</div>
                 </div>
               </div>
 
@@ -369,9 +369,9 @@ export const ViewDetailsModal: React.FC = () => {
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
                 <div>
                   <span className="text-slate-400 block text-[10px] font-bold uppercase">Account Code</span>
-                  <span className="font-mono font-black text-blue-700 text-lg">{data.code}</span>
+                  <span className="font-mono font-black text-indigo-700 text-lg">{data.code}</span>
                 </div>
-                <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-bold uppercase text-xs">
+                <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 font-bold uppercase text-xs">
                   {data.category}
                 </span>
               </div>
@@ -388,7 +388,7 @@ export const ViewDetailsModal: React.FC = () => {
                 {data.description && (
                   <div>
                     <span className="text-slate-400 text-[10px] font-bold uppercase">Description</span>
-                    <div className="p-3 bg-white border border-slate-200 rounded-xl text-slate-800">{data.description}</div>
+                    <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800">{data.description}</div>
                   </div>
                 )}
               </div>
@@ -409,10 +409,10 @@ export const ViewDetailsModal: React.FC = () => {
           {/* COMPLIANCE SOURCE VIEW */}
           {type === 'compliance' && (
             <div className="space-y-4">
-              <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl">
-                <span className="text-[10px] font-mono font-bold text-purple-800 uppercase">{data.authority} AUTHORITY • {data.effectiveYear}</span>
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl">
+                <span className="text-[10px] font-mono font-bold text-indigo-800 uppercase">{data.authority} AUTHORITY • {data.effectiveYear}</span>
                 <h4 className="font-bold text-slate-900 text-sm mt-0.5">{data.title}</h4>
-                <div className="text-xs text-blue-700 font-mono mt-1 font-semibold">{data.documentName} — {data.section}</div>
+                <div className="text-xs text-indigo-700 font-mono mt-1 font-semibold">{data.documentName} — {data.section}</div>
               </div>
 
               <div>
@@ -430,11 +430,11 @@ export const ViewDetailsModal: React.FC = () => {
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span className="text-slate-400 block text-[10px]">Standard GST Rate</span>
-                  <span className="font-mono font-bold text-blue-700 text-sm">{data.defaultGSTRate}%</span>
+                  <span className="font-mono font-bold text-indigo-700 text-sm">{data.defaultGSTRate}%</span>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span className="text-slate-400 block text-[10px]">Withholding Tax Rate</span>
-                  <span className="font-mono font-bold text-purple-700 text-sm">{data.withholdingRate}%</span>
+                  <span className="font-mono font-bold text-indigo-700 text-sm">{data.withholdingRate}%</span>
                 </div>
               </div>
             </div>
@@ -444,7 +444,7 @@ export const ViewDetailsModal: React.FC = () => {
           {type === 'supplier' && (
             <div className="space-y-4">
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <span className="text-[10px] font-mono font-bold text-blue-700 uppercase">Registered Vendor Profile</span>
+                <span className="text-[10px] font-mono font-bold text-indigo-700 uppercase">Registered Vendor Profile</span>
                 <h4 className="text-base font-bold text-slate-900 mt-1">{data.name}</h4>
                 <p className="text-xs text-slate-500 font-mono mt-0.5">ID: {data.id}</p>
               </div>
@@ -474,7 +474,7 @@ export const ViewDetailsModal: React.FC = () => {
               {data.email && (
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Official Email</span>
-                  <span className="font-mono text-blue-700 text-xs">{data.email}</span>
+                  <span className="font-mono text-indigo-700 text-xs">{data.email}</span>
                 </div>
               )}
             </div>
@@ -496,7 +496,7 @@ export const ViewDetailsModal: React.FC = () => {
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Credit Limit</span>
-                  <span className="font-bold text-blue-700 text-xs font-mono">Rs. {Number(data.creditLimit || 0).toLocaleString()}</span>
+                  <span className="font-bold text-indigo-700 text-xs font-mono">Rs. {Number(data.creditLimit || 0).toLocaleString()}</span>
                 </div>
               </div>
 
@@ -516,7 +516,7 @@ export const ViewDetailsModal: React.FC = () => {
               {data.email && (
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Email Address</span>
-                  <span className="font-mono text-blue-700 text-xs">{data.email}</span>
+                  <span className="font-mono text-indigo-700 text-xs">{data.email}</span>
                 </div>
               )}
             </div>

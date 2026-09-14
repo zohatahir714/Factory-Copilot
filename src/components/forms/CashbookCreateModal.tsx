@@ -218,7 +218,7 @@ export const CashbookCreateModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl my-auto overflow-hidden animate-scaleUp">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-3xl my-auto overflow-hidden animate-scaleUp">
         {/* Header */}
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -258,9 +258,9 @@ export const CashbookCreateModal: React.FC = () => {
               {[
                 { type: 'CRV', label: 'Cash Receipt (CRV)', icon: <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600" /> },
                 { type: 'CPV', label: 'Cash Payment (CPV)', icon: <ArrowUpRight className="w-3.5 h-3.5 text-red-600" /> },
-                { type: 'BRV', label: 'Bank Receipt (BRV)', icon: <ArrowDownLeft className="w-3.5 h-3.5 text-blue-600" /> },
+                { type: 'BRV', label: 'Bank Receipt (BRV)', icon: <ArrowDownLeft className="w-3.5 h-3.5 text-indigo-600" /> },
                 { type: 'BPV', label: 'Bank Payment (BPV)', icon: <ArrowUpRight className="w-3.5 h-3.5 text-indigo-600" /> },
-                { type: 'JV', label: 'Journal Voucher (JV)', icon: <Scale className="w-3.5 h-3.5 text-purple-600" /> }
+                { type: 'JV', label: 'Journal Voucher (JV)', icon: <Scale className="w-3.5 h-3.5 text-indigo-600" /> }
               ].map((v) => (
                 <button
                   key={v.type}
@@ -292,7 +292,7 @@ export const CashbookCreateModal: React.FC = () => {
                 type="date"
                 value={voucherDate}
                 onChange={(e) => setVoucherDate(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none font-mono"
+                className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none font-mono"
               />
             </div>
 
@@ -306,7 +306,7 @@ export const CashbookCreateModal: React.FC = () => {
                   <select
                     value={bankAccountId}
                     onChange={(e) => setBankAccountId(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none font-semibold"
+                    className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none font-semibold"
                   >
                     <option value="">Select Bank...</option>
                     {bankAccounts.map((b) => (
@@ -326,7 +326,7 @@ export const CashbookCreateModal: React.FC = () => {
                     value={chequeNumber}
                     onChange={(e) => setChequeNumber(e.target.value)}
                     placeholder="e.g. CHQ-992144"
-                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none font-mono"
+                    className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none font-mono"
                   />
                 </div>
               </>
@@ -342,7 +342,7 @@ export const CashbookCreateModal: React.FC = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Overall voucher purpose or reference..."
-                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none"
+                className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none"
               />
             </div>
           </div>
@@ -459,7 +459,7 @@ export const CashbookCreateModal: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleAutoBalance}
-                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg border border-blue-200 transition-colors cursor-pointer"
+                    className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg border border-indigo-200 transition-colors cursor-pointer"
                   >
                     Auto-Balance
                   </button>

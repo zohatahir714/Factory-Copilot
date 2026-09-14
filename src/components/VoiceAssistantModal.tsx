@@ -179,8 +179,8 @@ export const VoiceAssistantModal: React.FC = () => {
           badge: 'Sales Tax Act 1990',
           spokenText: spoken,
           stats: [
-            { label: '18% GST Collected', value: formatPKR(totalTax), color: 'text-purple-600' },
-            { label: 'Total Invoiced Volume', value: formatPKR(totalSales), color: 'text-blue-600' },
+            { label: '18% GST Collected', value: formatPKR(totalTax), color: 'text-indigo-600' },
+            { label: 'Total Invoiced Volume', value: formatPKR(totalSales), color: 'text-indigo-600' },
             { label: 'Verified Invoices', value: `${salesOrders.length} Invoices`, color: 'text-slate-800 dark:text-slate-200' }
           ],
           details: 'Standard 18.0% GST auto-imposed. Prepared for direct export into FBR Iris monthly sales return.',
@@ -209,8 +209,8 @@ export const VoiceAssistantModal: React.FC = () => {
           spokenText: spoken,
           stats: [
             { label: 'Pre-Tax Supply', value: formatPKR(amount), color: 'text-slate-900 dark:text-slate-100' },
-            { label: '18% GST (STA Sec 3(1))', value: `+ ${formatPKR(taxRes.gstAmount)}`, color: 'text-purple-600' },
-            { label: 'Filer Grand Total', value: formatPKR(taxRes.grandTotal), color: 'text-blue-600' },
+            { label: '18% GST (STA Sec 3(1))', value: `+ ${formatPKR(taxRes.gstAmount)}`, color: 'text-indigo-600' },
+            { label: 'Filer Grand Total', value: formatPKR(taxRes.grandTotal), color: 'text-indigo-600' },
             { label: 'Non-Filer (+4% Tax)', value: formatPKR(taxResNonFiler.grandTotal), color: 'text-amber-600' }
           ],
           details: `Fiscal Invoice ID: ${taxRes.fbrFiscalInvoiceNumber} • QR verification string auto-computed with SHA-256 fingerprint.`,
@@ -236,7 +236,7 @@ export const VoiceAssistantModal: React.FC = () => {
           badge: 'Real-time Stock Count',
           spokenText: spoken,
           stats: [
-            { label: 'Total Valuation', value: formatPKR(totalVal), color: 'text-blue-600' },
+            { label: 'Total Valuation', value: formatPKR(totalVal), color: 'text-indigo-600' },
             { label: 'Active SKUs', value: `${products.length} Items`, color: 'text-slate-900 dark:text-slate-100' },
             { label: 'Low Stock Alerts', value: `${lowStock.length} Items`, color: lowStock.length > 0 ? 'text-red-600' : 'text-emerald-600' }
           ],
@@ -267,7 +267,7 @@ export const VoiceAssistantModal: React.FC = () => {
           stats: [
             { label: 'Total Receivables', value: formatPKR(totalReceivables), color: 'text-emerald-600' },
             { label: 'Registered Clients', value: `${customers.length} Mills`, color: 'text-slate-900 dark:text-slate-100' },
-            { label: 'Top Debtor', value: topDebtor ? topDebtor.name : 'None', color: 'text-blue-600' }
+            { label: 'Top Debtor', value: topDebtor ? topDebtor.name : 'None', color: 'text-indigo-600' }
           ],
           details: topDebtor ? `${topDebtor.name} owes ${formatPKR(topDebtor.outstandingReceivables)}.` : 'No outstanding balances.',
           actionButton: {
@@ -315,7 +315,7 @@ export const VoiceAssistantModal: React.FC = () => {
           badge: '100% Tax Imposition Enforced',
           spokenText: spoken,
           stats: [
-            { label: 'Sales Tax', value: '18% GST (STA Sec 3(1))', color: 'text-purple-600' },
+            { label: 'Sales Tax', value: '18% GST (STA Sec 3(1))', color: 'text-indigo-600' },
             { label: 'Further Tax', value: '4% on Non-Filers', color: 'text-amber-600' },
             { label: 'Withholding', value: 'Sec 153 Auto-Deducted', color: 'text-emerald-600' }
           ],
@@ -340,8 +340,8 @@ export const VoiceAssistantModal: React.FC = () => {
           spokenText: spoken,
           stats: [
             { label: 'POS Machine ID', value: 'POS-78601 (Assigned)', color: 'text-emerald-600' },
-            { label: 'Statutory GST Engine', value: '18% Auto-Enforced', color: 'text-purple-600' },
-            { label: 'Fiscal QR Standard', value: '16-Field S.R.O. 1805', color: 'text-blue-600' },
+            { label: 'Statutory GST Engine', value: '18% Auto-Enforced', color: 'text-indigo-600' },
+            { label: 'Fiscal QR Standard', value: '16-Field S.R.O. 1805', color: 'text-indigo-600' },
             { label: 'Iris API Sandbox', value: 'Endpoint Handshake OK', color: 'text-emerald-600' }
           ],
           details: 'Step 1: Iris POS Registration. Step 2: Auto 18% GST + 4% Further Tax. Step 3: IMS Gateway Token. Step 4: Tax Asaan QR verification. Step 5: Monthly Annexure-C sync.',
@@ -487,7 +487,7 @@ export const VoiceAssistantModal: React.FC = () => {
       label: 'Print FBR Invoice (80mm)',
       query: 'Print thermal receipt',
       icon: Printer,
-      color: 'bg-blue-600/10 text-blue-600 border-blue-600/20 hover:bg-blue-600/20',
+      color: 'bg-indigo-600/10 text-indigo-600 border-indigo-600/20 hover:bg-indigo-600/20',
       badge: 'FBR QR & Tax Breakdown'
     },
     {
@@ -508,14 +508,14 @@ export const VoiceAssistantModal: React.FC = () => {
       label: 'Check 18% GST Collected',
       query: 'Check GST collected',
       icon: Scale,
-      color: 'bg-purple-500/10 text-purple-600 border-purple-500/20 hover:bg-purple-500/20',
+      color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20',
       badge: 'FBR STA 1990 Audit'
     },
     {
       label: 'Check FBR Tax on Sale (1 Lakh)',
       query: 'Calculate tax for 100000 sale',
       icon: Calculator,
-      color: 'bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20',
+      color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20',
       badge: 'Auto-Compute GST + Further Tax'
     },
     {
@@ -562,7 +562,7 @@ export const VoiceAssistantModal: React.FC = () => {
         {/* Top Header */}
         <div className="px-5 py-4 bg-slate-950 text-white flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-sm">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">
               <Mic className="w-5 h-5" />
             </div>
             <div>
@@ -584,7 +584,7 @@ export const VoiceAssistantModal: React.FC = () => {
               title={audioVoiceEnabled ? 'Voice Response Audio: ON' : 'Voice Response Audio: MUTED'}
               className={`p-2 rounded-xl transition-colors cursor-pointer ${
                 audioVoiceEnabled
-                  ? 'bg-blue-600/30 text-blue-300 hover:bg-blue-600/50'
+                  ? 'bg-indigo-600/30 text-indigo-300 hover:bg-indigo-600/50'
                   : 'bg-slate-800 text-slate-400 hover:text-white'
               }`}
             >
@@ -616,11 +616,11 @@ export const VoiceAssistantModal: React.FC = () => {
               className={`p-3.5 rounded-2xl border transition-all ${
                 micErrorNotice
                   ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200'
-                  : 'bg-blue-500/10 border-blue-500/20 text-blue-950 dark:text-blue-200'
+                  : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-950 dark:text-indigo-200'
               }`}
             >
               <div className="flex items-start gap-2.5">
-                <ShieldAlert className={`w-5 h-5 shrink-0 mt-0.5 ${micErrorNotice ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`} />
+                <ShieldAlert className={`w-5 h-5 shrink-0 mt-0.5 ${micErrorNotice ? 'text-amber-600 dark:text-amber-400' : 'text-indigo-600 dark:text-indigo-400'}`} />
                 <div className="flex-1 text-xs">
                   <div className="font-bold flex items-center justify-between">
                     <span>
@@ -629,7 +629,7 @@ export const VoiceAssistantModal: React.FC = () => {
                         : 'Real Microphone Access Policy'}
                     </span>
                     {isEmbeddedIframe && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 font-mono font-semibold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 font-mono font-semibold">
                         Preview Iframe
                       </span>
                     )}
@@ -651,7 +651,7 @@ export const VoiceAssistantModal: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleOpenInNewTab}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span>Open in Full Window for Native Mic</span>
@@ -750,7 +750,7 @@ export const VoiceAssistantModal: React.FC = () => {
                   ? 'bg-red-600 text-white ring-8 ring-red-500/30 scale-105 animate-pulse'
                   : isTranscribing
                   ? 'bg-amber-600 text-white animate-pulse'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105 active:scale-95 shadow-blue-600/30'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:scale-105 active:scale-95 shadow-indigo-600/30'
               }`}
               title={isRecording ? 'Stop Recording' : 'Start Speaking Voice Command'}
             >
@@ -812,7 +812,7 @@ export const VoiceAssistantModal: React.FC = () => {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleExecuteVoiceAction();
                 }}
-                className={`flex-1 px-4 py-2.5 border rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                className={`flex-1 px-4 py-2.5 border rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
                   darkMode
                     ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500'
                     : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
@@ -823,7 +823,7 @@ export const VoiceAssistantModal: React.FC = () => {
                 id="voice-execute-button"
                 onClick={() => handleExecuteVoiceAction()}
                 disabled={!inputVal.trim() || isProcessing || isTranscribing}
-                className="px-4 sm:px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm shrink-0"
+                className="px-4 sm:px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm shrink-0"
               >
                 {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                 <span>Inspect</span>
@@ -832,17 +832,17 @@ export const VoiceAssistantModal: React.FC = () => {
 
             {/* Live Intent Route Detection Preview */}
             {detectedRoute && (
-              <div className="flex items-center justify-between p-2.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-xs animate-fadeIn">
+              <div className="flex items-center justify-between p-2.5 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl text-xs animate-fadeIn">
                 <div className="flex items-center gap-2 truncate pr-2">
-                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span className="font-semibold text-blue-900 dark:text-blue-200 truncate">
+                  <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <span className="font-semibold text-indigo-900 dark:text-indigo-200 truncate">
                     Recognized: <strong>{detectedRoute.label}</strong> ({detectedRoute.description})
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleExecuteVoiceAction()}
-                  className="text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
+                  className="text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
                 >
                   <span>Execute</span>
                   <ArrowRight className="w-3 h-3" />
@@ -868,15 +868,15 @@ export const VoiceAssistantModal: React.FC = () => {
                     onClick={() => handleExecuteVoiceAction(item.query)}
                     className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 group ${
                       darkMode
-                        ? 'bg-slate-800/60 border-slate-700/80 hover:bg-slate-800 hover:border-blue-500/50'
-                        : 'bg-slate-50 border-slate-200 hover:bg-blue-50 hover:border-blue-300'
+                        ? 'bg-slate-800/60 border-slate-700/80 hover:bg-slate-800 hover:border-indigo-500/50'
+                        : 'bg-slate-50 border-slate-200 hover:bg-indigo-50 hover:border-indigo-300'
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${item.color}`}>
                       <IconComponent className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate">
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">
                         "{item.label}"
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">

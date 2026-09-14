@@ -181,7 +181,7 @@ if (typeof window !== 'undefined') {
 // the login screen with an expiry notice. Real user interaction resets the
 // idle clock. Supabase Auth remains the owner of the underlying session.
 // ============================================================================
-export const SESSION_IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+export const SESSION_IDLE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes — auto-logout policy
 
 interface AppContextType {
   // Navigation

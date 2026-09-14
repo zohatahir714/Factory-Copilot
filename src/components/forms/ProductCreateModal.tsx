@@ -40,7 +40,7 @@ export const ProductCreateModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden animate-scaleUp">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-xl overflow-hidden animate-scaleUp">
         {/* Header */}
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -73,7 +73,7 @@ export const ProductCreateModal: React.FC = () => {
                 placeholder="e.g. YRN-POLY-150D"
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
-                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none font-mono uppercase"
+                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-mono uppercase"
               />
             </div>
 
@@ -84,7 +84,7 @@ export const ProductCreateModal: React.FC = () => {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none font-medium text-slate-800"
+                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-medium text-slate-800"
               >
                 <option value="Yarns & Spinning">Yarns & Spinning</option>
                 <option value="Dyes & Colorants">Dyes & Colorants</option>
@@ -105,7 +105,7 @@ export const ProductCreateModal: React.FC = () => {
               placeholder="e.g. Polyester DTY Yarn 150D/48F Semi-Dull"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none font-medium text-slate-900"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-medium text-slate-900"
             />
           </div>
 
@@ -117,7 +117,7 @@ export const ProductCreateModal: React.FC = () => {
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as any)}
-                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none font-medium text-slate-800"
+                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-medium text-slate-800"
               >
                 <option value="kg">Kilograms (kg)</option>
                 <option value="meters">Meters (m)</option>
@@ -138,7 +138,7 @@ export const ProductCreateModal: React.FC = () => {
                 min="1"
                 value={costPrice}
                 onChange={(e) => setCostPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none font-mono"
+                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-mono"
               />
             </div>
 
@@ -152,7 +152,7 @@ export const ProductCreateModal: React.FC = () => {
                 min="1"
                 value={sellingPrice}
                 onChange={(e) => setSellingPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none font-mono font-bold text-blue-700"
+                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-mono font-bold text-indigo-700"
               />
             </div>
           </div>
@@ -180,7 +180,7 @@ export const ProductCreateModal: React.FC = () => {
                 required
                 value={reorderThreshold}
                 onChange={(e) => setReorderThreshold(e.target.value === '' ? '' : Number(e.target.value))}
-                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none font-mono"
+                className="w-full px-3.5 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-mono"
               />
             </div>
           </div>
@@ -191,16 +191,16 @@ export const ProductCreateModal: React.FC = () => {
           </div>
 
           {/* Real-time Profit Margin Indicator */}
-          <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 text-blue-800 font-semibold">
-              <Calculator className="w-4 h-4 text-blue-600" />
+          <div className="p-3 bg-indigo-50/70 border border-indigo-200/80 rounded-xl flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 text-indigo-800 font-semibold">
+              <Calculator className="w-4 h-4 text-indigo-600" />
               <span>Unit Profit Margin:</span>
             </div>
             <div className="text-right">
-              <span className="font-mono font-bold text-blue-900">
+              <span className="font-mono font-bold text-indigo-900">
                 Rs. {marginPKR.toLocaleString()} / {unit}
               </span>
-              <span className="ml-2 px-1.5 py-0.5 bg-blue-200/60 text-blue-800 rounded font-bold text-[11px]">
+              <span className="ml-2 px-1.5 py-0.5 bg-indigo-200/60 text-indigo-800 rounded font-bold text-[11px]">
                 {marginPct}% markup
               </span>
             </div>

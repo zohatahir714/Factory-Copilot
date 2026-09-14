@@ -69,11 +69,11 @@ export const AccountCreateModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-scaleUp">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden animate-scaleUp">
         {/* Header */}
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
@@ -133,7 +133,7 @@ export const AccountCreateModal: React.FC = () => {
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="e.g. 5040"
                 required
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 font-mono font-bold outline-none"
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 font-mono font-bold outline-none"
               />
             </div>
 
@@ -148,7 +148,7 @@ export const AccountCreateModal: React.FC = () => {
                 onChange={(e) => setType(e.target.value)}
                 placeholder="e.g. Operating Expense"
                 required
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none"
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 outline-none"
               />
             </div>
           </div>
@@ -164,7 +164,7 @@ export const AccountCreateModal: React.FC = () => {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Generator Diesel & Maintenance"
               required
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 font-semibold outline-none"
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 font-semibold outline-none"
             />
           </div>
 
@@ -182,7 +182,7 @@ export const AccountCreateModal: React.FC = () => {
                 value={openingBalance}
                 onChange={(e) => setOpeningBalance(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="0"
-                className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 font-mono font-bold outline-none"
+                className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 font-mono font-bold outline-none"
               />
             </div>
             <p className="text-[10px] text-slate-500 mt-1">Starting balance carried forward from previous fiscal year</p>
@@ -198,7 +198,7 @@ export const AccountCreateModal: React.FC = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Purpose or compliance notes for this account head..."
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none resize-none"
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 outline-none resize-none"
             />
           </div>
 
@@ -213,7 +213,7 @@ export const AccountCreateModal: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" />
               <span>Register Account</span>

@@ -134,7 +134,7 @@ export const FBRIntegrationHub: React.FC = () => {
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-xs font-bold border border-emerald-500/20">
                   S.R.O. 1805(I)/2024 Ready
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono text-xs font-bold border border-blue-500/20">
+                <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono text-xs font-bold border border-indigo-500/20">
                   STA 1990 Deterministic
                 </span>
               </div>
@@ -149,7 +149,7 @@ export const FBRIntegrationHub: React.FC = () => {
             <button
               type="button"
               onClick={() => openModal('sale')}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Receipt className="w-4 h-4" />
               <span>Issue Tax Invoice</span>
@@ -208,19 +208,19 @@ export const FBRIntegrationHub: React.FC = () => {
               <p className="text-[11px] text-slate-500 mt-1">18% GST + 4% further tax auto-imposed on every sale</p>
             </div>
 
-            <div className="p-4 rounded-2xl border bg-blue-500/5 border-blue-500/20">
-              <div className="flex items-center justify-between text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wider">
+            <div className="p-4 rounded-2xl border bg-indigo-500/5 border-indigo-500/20">
+              <div className="flex items-center justify-between text-indigo-700 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
                 <span>Fiscal QR Code</span>
-                <QrCode className="w-4 h-4 text-blue-600" />
+                <QrCode className="w-4 h-4 text-indigo-600" />
               </div>
               <div className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">16-Field Standard</div>
               <p className="text-[11px] text-slate-500 mt-1">Conforming to SRO 1805(I)/2024 barcode payload</p>
             </div>
 
-            <div className="p-4 rounded-2xl border bg-purple-500/5 border-purple-500/20">
-              <div className="flex items-center justify-between text-purple-700 dark:text-purple-400 font-bold text-xs uppercase tracking-wider">
+            <div className="p-4 rounded-2xl border bg-indigo-500/5 border-indigo-500/20">
+              <div className="flex items-center justify-between text-indigo-700 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
                 <span>Iris Annexure-C</span>
-                <FileCheck className="w-4 h-4 text-purple-600" />
+                <FileCheck className="w-4 h-4 text-indigo-600" />
               </div>
               <div className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">E-Filing Ready</div>
               <p className="text-[11px] text-slate-500 mt-1">One-click JSON export for domestic sales monthly return</p>
@@ -321,7 +321,7 @@ export const FBRIntegrationHub: React.FC = () => {
           >
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-blue-600" />
+                <Sliders className="w-5 h-5 text-indigo-600" />
                 <span>POS Device & API Gateway Settings</span>
               </h3>
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
@@ -330,7 +330,7 @@ export const FBRIntegrationHub: React.FC = () => {
                   onClick={() => setEnvironment('sandbox')}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
                     environment === 'sandbox'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-indigo-600 text-white'
                       : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
@@ -385,7 +385,7 @@ export const FBRIntegrationHub: React.FC = () => {
 
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1.5 font-mono">
                 <div className="text-slate-500 text-[10px] uppercase font-bold">Target Gateway Endpoint:</div>
-                <div className="text-blue-600 dark:text-blue-400 break-all">
+                <div className="text-indigo-600 dark:text-indigo-400 break-all">
                   {environment === 'sandbox'
                     ? 'https://ebilling-sandbox.fbr.gov.pk/api/v1/invoice/post'
                     : 'https://ebilling.fbr.gov.pk/api/v1/invoice/post'}
@@ -425,12 +425,12 @@ export const FBRIntegrationHub: React.FC = () => {
               </div>
 
               {/* Live Calculation Preview */}
-              <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900 text-xs space-y-1.5">
+              <div className="p-3.5 bg-indigo-50/60 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-900 text-xs space-y-1.5">
                 <div className="flex justify-between text-slate-600 dark:text-slate-300">
                   <span>Subtotal Value:</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{formatPKR(calculatedTestTax.subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-purple-700 dark:text-purple-300">
+                <div className="flex justify-between text-indigo-700 dark:text-indigo-300">
                   <span>Standard 18% GST (STA Sec 3(1)):</span>
                   <span className="font-mono font-bold">+ {formatPKR(calculatedTestTax.gstAmount)}</span>
                 </div>
@@ -440,9 +440,9 @@ export const FBRIntegrationHub: React.FC = () => {
                     <span className="font-mono font-bold">+ {formatPKR(calculatedTestTax.furtherTaxAmount)}</span>
                   </div>
                 )}
-                <div className="pt-1.5 border-t border-blue-200 dark:border-blue-800 flex justify-between font-bold text-sm text-slate-900 dark:text-slate-100">
+                <div className="pt-1.5 border-t border-indigo-200 dark:border-indigo-800 flex justify-between font-bold text-sm text-slate-900 dark:text-slate-100">
                   <span>Invoice Total:</span>
-                  <span className="font-mono text-blue-700 dark:text-blue-300">{formatPKR(calculatedTestTax.grandTotal)}</span>
+                  <span className="font-mono text-indigo-700 dark:text-indigo-300">{formatPKR(calculatedTestTax.grandTotal)}</span>
                 </div>
               </div>
 
@@ -498,7 +498,7 @@ export const FBRIntegrationHub: React.FC = () => {
 
                   {/* Live Interactive Vector QR Code & Print Action */}
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center gap-4">
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm shrink-0">
+                    <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
                       <FBRQRCode
                         qrString={simulationResponse.qrData}
                         size={120}
@@ -561,7 +561,7 @@ export const FBRIntegrationHub: React.FC = () => {
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                       Cryptographic Invoice Chaining SHA-256 Hash:
                     </span>
-                    <div className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl font-mono text-[11px] text-purple-700 dark:text-purple-300 break-all select-all border border-slate-200 dark:border-slate-700">
+                    <div className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl font-mono text-[11px] text-indigo-700 dark:text-indigo-300 break-all select-all border border-slate-200 dark:border-slate-700">
                       {simulationResponse.sha256Hash}
                     </div>
                   </div>
@@ -631,12 +631,12 @@ export const FBRIntegrationHub: React.FC = () => {
                   const tax = so?.taxAmount || ((so?.totalAmount || 0) - subtotal);
                   return (
                     <tr key={so.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                      <td className="py-3 px-4 font-mono font-bold text-blue-600">{so.invoiceNumber}</td>
+                      <td className="py-3 px-4 font-mono font-bold text-indigo-600">{so.invoiceNumber}</td>
                       <td className="py-3 px-4 font-semibold">{so.customerName}</td>
                       <td className="py-3 px-4 font-mono text-slate-500">5205.1200</td>
                       <td className="py-3 px-4 text-right font-mono">{formatPKR(subtotal)}</td>
-                      <td className="py-3 px-4 text-center font-bold text-purple-600">18.0%</td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-purple-700 dark:text-purple-400">
+                      <td className="py-3 px-4 text-center font-bold text-indigo-600">18.0%</td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-indigo-700 dark:text-indigo-400">
                         {formatPKR(tax)}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
@@ -743,7 +743,7 @@ export const FBRIntegrationHub: React.FC = () => {
                         href={st.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
                       >
                         <span>{st.action}</span>
                         <ExternalLink className="w-3.5 h-3.5" />

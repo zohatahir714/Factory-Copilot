@@ -103,11 +103,11 @@ export const EditItemModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full overflow-hidden">
         {/* Header */}
         <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
               {getIcon()}
             </div>
             <div>
@@ -139,7 +139,7 @@ export const EditItemModal: React.FC = () => {
                   required
                   value={formData.name || ''}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
 
@@ -148,7 +148,7 @@ export const EditItemModal: React.FC = () => {
                 <select
                   value={formData.category || 'Yarns & Spinning'}
                   onChange={e => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
                 >
                   <option value="Yarns & Spinning">Yarns & Spinning</option>
                   <option value="Dyes & Colorants">Dyes & Colorants</option>
@@ -166,7 +166,7 @@ export const EditItemModal: React.FC = () => {
                     required
                     value={formData.costPrice || 0}
                     onChange={e => setFormData({ ...formData, costPrice: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
                   />
                 </div>
                 <div>
@@ -176,7 +176,7 @@ export const EditItemModal: React.FC = () => {
                     required
                     value={formData.sellingPrice || 0}
                     onChange={e => setFormData({ ...formData, sellingPrice: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
                   />
                 </div>
               </div>
@@ -201,7 +201,7 @@ export const EditItemModal: React.FC = () => {
                     required
                     value={formData.reorderThreshold || 0}
                     onChange={e => setFormData({ ...formData, reorderThreshold: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
                   />
                   <p className="text-[10px] text-slate-500 mt-1">Alerts supervisor when balance drops below this amount.</p>
                 </div>
@@ -219,7 +219,7 @@ export const EditItemModal: React.FC = () => {
                   required
                   value={formData.name || ''}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
 
@@ -231,7 +231,7 @@ export const EditItemModal: React.FC = () => {
                     value={formData.city || ''}
                     onChange={e => setFormData({ ...formData, city: e.target.value })}
                     placeholder="e.g. Faisalabad, Pakistan"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
                 <div>
@@ -241,7 +241,7 @@ export const EditItemModal: React.FC = () => {
                     value={formData.phone || ''}
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+92 41 1234567"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
               </div>
@@ -254,7 +254,7 @@ export const EditItemModal: React.FC = () => {
                     min="1"
                     value={formData.leadTimeDays || 3}
                     onChange={e => setFormData({ ...formData, leadTimeDays: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
                   />
                 </div>
                 <div>
@@ -263,7 +263,7 @@ export const EditItemModal: React.FC = () => {
                     type="text"
                     value={formData.paymentTerms || 'Net 30 Days'}
                     onChange={e => setFormData({ ...formData, paymentTerms: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
               </div>
@@ -274,7 +274,7 @@ export const EditItemModal: React.FC = () => {
                   type="email"
                   value={formData.email || ''}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
             </>
@@ -290,7 +290,7 @@ export const EditItemModal: React.FC = () => {
                   required
                   value={formData.name || ''}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
 
@@ -302,7 +302,7 @@ export const EditItemModal: React.FC = () => {
                     value={formData.city || ''}
                     onChange={e => setFormData({ ...formData, city: e.target.value })}
                     placeholder="e.g. Lahore, Pakistan"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
                 <div>
@@ -312,7 +312,7 @@ export const EditItemModal: React.FC = () => {
                     value={formData.phone || ''}
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+92 300 1234567"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
               </div>
@@ -325,7 +325,7 @@ export const EditItemModal: React.FC = () => {
                     min="0"
                     value={formData.creditLimit || 0}
                     onChange={e => setFormData({ ...formData, creditLimit: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
                   />
                 </div>
                 <div>
@@ -334,7 +334,7 @@ export const EditItemModal: React.FC = () => {
                     type="email"
                     value={formData.email || ''}
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
               </div>
@@ -349,7 +349,7 @@ export const EditItemModal: React.FC = () => {
                 <select
                   value={formData.status || 'pending'}
                   onChange={e => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 >
                   <option value="pending">Pending Vendor Delivery</option>
                   <option value="received">Received & Warehouse Restocked</option>
@@ -364,7 +364,7 @@ export const EditItemModal: React.FC = () => {
                   value={formData.notes || ''}
                   onChange={e => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Gate pass number, carrier details..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
             </>
@@ -378,7 +378,7 @@ export const EditItemModal: React.FC = () => {
                 <select
                   value={formData.paymentStatus || 'unpaid'}
                   onChange={e => setFormData({ ...formData, paymentStatus: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 >
                   <option value="unpaid">Unpaid / Awaiting Receivables</option>
                   <option value="paid">Fully Settled & Paid</option>
@@ -398,7 +398,7 @@ export const EditItemModal: React.FC = () => {
                   required
                   value={formData.amount || 0}
                   onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
                 />
               </div>
 
@@ -407,7 +407,7 @@ export const EditItemModal: React.FC = () => {
                 <select
                   value={formData.category || 'misc'}
                   onChange={e => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none capitalize"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none capitalize"
                 >
                   <option value="utilities">Utilities (Electricity / Gas)</option>
                   <option value="wages">Factory Wages / Salaries</option>
@@ -427,7 +427,7 @@ export const EditItemModal: React.FC = () => {
                   required
                   value={formData.description || ''}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
             </>
@@ -443,7 +443,7 @@ export const EditItemModal: React.FC = () => {
                   required
                   value={formData.name || ''}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
 
@@ -453,7 +453,7 @@ export const EditItemModal: React.FC = () => {
                   type="text"
                   value={formData.type || ''}
                   onChange={e => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
 
@@ -463,7 +463,7 @@ export const EditItemModal: React.FC = () => {
                   type="number"
                   value={formData.openingBalance || 0}
                   onChange={e => setFormData({ ...formData, openingBalance: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
                 />
               </div>
 
@@ -473,7 +473,7 @@ export const EditItemModal: React.FC = () => {
                   type="text"
                   value={formData.description || ''}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
             </>
@@ -490,7 +490,7 @@ export const EditItemModal: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
             >
               <Save className="w-4 h-4" />
               <span>Save Changes</span>

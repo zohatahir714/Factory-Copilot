@@ -184,7 +184,7 @@ export const PrintDocumentModal: React.FC = () => {
               onClick={() => setInvoiceFormat('thermal_80mm')}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 invoiceFormat === 'thermal_80mm'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-300 hover:text-white'
               }`}
               title="Standard 80mm Point of Sale thermal roll receipt"
@@ -197,7 +197,7 @@ export const PrintDocumentModal: React.FC = () => {
               onClick={() => setInvoiceFormat('a4_sheet')}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 invoiceFormat === 'a4_sheet'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-300 hover:text-white'
               }`}
               title="Full A4 Corporate Tax Invoice sheet"
@@ -221,9 +221,9 @@ export const PrintDocumentModal: React.FC = () => {
           className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-colors cursor-pointer"
           title="Browse previously saved documents in LocalStorage"
         >
-          <FolderArchive className="w-4 h-4 text-blue-400" />
+          <FolderArchive className="w-4 h-4 text-indigo-400" />
           <span className="hidden md:inline">Archive</span>
-          <span className="px-1.5 py-0.2 bg-blue-600 text-white rounded-full text-[10px] font-mono">
+          <span className="px-1.5 py-0.2 bg-indigo-600 text-white rounded-full text-[10px] font-mono">
             {savedRecords.length}
           </span>
         </button>
@@ -244,7 +244,7 @@ export const PrintDocumentModal: React.FC = () => {
           type="button"
           onClick={handlePrint}
           disabled={isPrinting}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer hover:shadow-blue-600/30"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer hover:shadow-indigo-600/30"
         >
           <Printer className={`w-4 h-4 ${isPrinting ? 'animate-bounce' : ''}`} />
           <span>{isPrinting ? 'Printing...' : type === 'invoice' && invoiceFormat === 'thermal_80mm' ? 'Print 80mm Thermal' : 'Print / Save PDF'}</span>
@@ -266,7 +266,7 @@ export const PrintDocumentModal: React.FC = () => {
         <div className="fixed top-16 right-4 z-50 w-80 max-h-[70vh] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl shadow-2xl p-4 overflow-y-auto no-print animate-fadeIn">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
-              <FolderArchive className="w-4 h-4 text-blue-600" />
+              <FolderArchive className="w-4 h-4 text-indigo-600" />
               <span>LocalStorage Document Archive</span>
             </div>
             <button
@@ -288,11 +288,11 @@ export const PrintDocumentModal: React.FC = () => {
                     openPrintDocument({ type: rec.type, data: rec.dataSnapshot });
                     addToast('info', 'Document Loaded', `Viewing ${rec.title}`);
                   }}
-                  className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 bg-slate-50 dark:bg-slate-800/60 hover:bg-blue-50/50 dark:hover:bg-slate-800 transition-all text-xs flex items-center justify-between group cursor-pointer"
+                  className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50 dark:bg-slate-800/60 hover:bg-indigo-50/50 dark:hover:bg-slate-800 transition-all text-xs flex items-center justify-between group cursor-pointer"
                   title="Click to load into print preview"
                 >
                   <div className="truncate pr-2">
-                    <div className="font-bold text-slate-800 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                    <div className="font-bold text-slate-800 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
                       {rec.title}
                     </div>
                     <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
@@ -593,7 +593,7 @@ export const PrintDocumentModal: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">FBR Fiscal Integration</span>
-                    <div className="font-bold text-xs text-blue-900 mt-0.5">Sales Tax Act 1990 — Section 23 & 3(1)</div>
+                    <div className="font-bold text-xs text-indigo-900 mt-0.5">Sales Tax Act 1990 — Section 23 & 3(1)</div>
                     <div className="text-slate-600 mt-1">FBR Fiscal Invoice ID: {fiscal.fbrFiscalInvoiceNumber}</div>
                     <div className="text-emerald-700 font-bold uppercase mt-0.5">IRIS Annexure-C Synchronized</div>
                   </div>
@@ -627,7 +627,7 @@ export const PrintDocumentModal: React.FC = () => {
                               <td className="p-3 border-r border-slate-200 text-center font-mono text-slate-600">5205.1200</td>
                               <td className="p-3 border-r border-slate-200 text-right font-mono font-bold">{it.quantity} {it.unit}</td>
                               <td className="p-3 border-r border-slate-200 text-right font-mono">Rs. {(Number(it.unitPrice) || 0).toLocaleString()}</td>
-                              <td className="p-3 border-r border-slate-200 text-right font-mono font-bold text-blue-700">18%</td>
+                              <td className="p-3 border-r border-slate-200 text-right font-mono font-bold text-indigo-700">18%</td>
                               <td className="p-3 border-r border-slate-200 text-right font-mono font-bold">Rs. {(itemTax || 0).toLocaleString()}</td>
                               <td className="p-3 text-right font-mono font-black text-slate-900">Rs. {(itemTotal || 0).toLocaleString()}</td>
                             </tr>
@@ -680,7 +680,7 @@ export const PrintDocumentModal: React.FC = () => {
                       <span>Taxable Supply Subtotal:</span>
                       <span className="font-bold">Rs. {subtotalValue.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between text-blue-700 font-bold">
+                    <div className="flex justify-between text-indigo-700 font-bold">
                       <span>General Sales Tax (18% GST):</span>
                       <span>Rs. {fiscal.gstAmount.toLocaleString()}</span>
                     </div>
@@ -788,7 +788,7 @@ export const PrintDocumentModal: React.FC = () => {
 
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider mb-1">Narration / Particulars</span>
-                  <div className="text-xs font-medium text-slate-900 leading-relaxed bg-white p-3 rounded-lg border border-slate-200">
+                  <div className="text-xs font-medium text-slate-900 leading-relaxed bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
                     {data.description || 'N/A'}
                   </div>
                 </div>
@@ -896,7 +896,7 @@ export const PrintDocumentModal: React.FC = () => {
                         data.map((p: any, idx: number) => (
                           <tr key={idx} className="hover:bg-slate-50">
                             <td className="p-3 text-center border-r border-slate-200 font-mono">{idx + 1}</td>
-                            <td className="p-3 border-r border-slate-200 font-mono font-bold text-blue-700">{p.sku}</td>
+                            <td className="p-3 border-r border-slate-200 font-mono font-bold text-indigo-700">{p.sku}</td>
                             <td className="p-3 border-r border-slate-200 font-semibold text-slate-900">{p.name}</td>
                             <td className="p-3 border-r border-slate-200 text-right font-mono font-bold">{p.currentStock || 0} {p.unit}</td>
                             <td className="p-3 border-r border-slate-200 text-right font-mono">Rs. {(Number(p.costPrice) || 0).toLocaleString()}</td>

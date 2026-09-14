@@ -191,11 +191,11 @@ export const ReportsModule: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center font-bold">
             <BarChart3 className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               Financial Reports & General Ledger
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -568,11 +568,11 @@ export const ReportsModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-indigo-200 dark:border-indigo-800">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">
                 Closing Balance (End of Day)
               </span>
-              <div className="text-lg font-black font-mono text-blue-800 dark:text-blue-300 mt-1">
+              <div className="text-lg font-black font-mono text-indigo-800 dark:text-indigo-300 mt-1">
                 Rs. {((dailyCashbookResult.closingCash || 0) + (dailyCashbookResult.closingBank || 0)).toLocaleString()}
               </div>
               <div className="text-[10px] text-slate-500 mt-1">
@@ -723,7 +723,7 @@ export const ReportsModule: React.FC = () => {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
                     {trialBalanceResult.rows.map((row) => (
                       <tr key={row.accountId} className="hover:bg-slate-50/50">
-                        <td className="p-3 pl-4 font-bold text-blue-700 dark:text-blue-400">
+                        <td className="p-3 pl-4 font-bold text-indigo-700 dark:text-indigo-400">
                           {row.code}
                         </td>
                         <td className="p-3 font-sans font-semibold text-slate-900 dark:text-white">
@@ -907,7 +907,7 @@ export const ReportsModule: React.FC = () => {
                     <span className="font-bold text-slate-900 dark:text-white">Rs. {(e.amount || 0).toLocaleString()}</span>
                   </div>
                 ))}
-                <div className="flex justify-between text-xs font-bold font-mono pt-1 text-blue-700">
+                <div className="flex justify-between text-xs font-bold font-mono pt-1 text-indigo-700">
                   <span>Total Equity:</span>
                   <span>Rs. {(balanceSheetResult.totalEquity || 0).toLocaleString()}</span>
                 </div>
@@ -923,7 +923,7 @@ export const ReportsModule: React.FC = () => {
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
                   <span className="text-[10px] uppercase font-bold text-slate-500 block">Liabilities + Equity</span>
-                  <span className="text-lg font-black font-mono text-blue-700">
+                  <span className="text-lg font-black font-mono text-indigo-700">
                     Rs. {((balanceSheetResult.totalLiabilities || 0) + (balanceSheetResult.totalEquity || 0)).toLocaleString()}
                   </span>
                 </div>
@@ -997,7 +997,7 @@ export const ReportsModule: React.FC = () => {
                 onClick={() => setTradeType('purchase')}
                 className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   tradeType === 'purchase'
-                    ? 'bg-blue-700 text-white shadow-xs'
+                    ? 'bg-indigo-700 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
@@ -1052,7 +1052,7 @@ export const ReportsModule: React.FC = () => {
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Total Tax / GST (18%)
               </span>
-              <div className="text-xl font-black font-mono text-blue-700 dark:text-blue-400 mt-1">
+              <div className="text-xl font-black font-mono text-indigo-700 dark:text-indigo-400 mt-1">
                 Rs. {(tradeReportResult.totalTax || 0).toLocaleString()}
               </div>
               <div className="text-[10px] text-slate-500 mt-1">
@@ -1104,7 +1104,7 @@ export const ReportsModule: React.FC = () => {
                       <td className="p-3.5 text-right text-slate-600 dark:text-slate-400">
                         Rs. {(row.subtotal || 0).toLocaleString()}
                       </td>
-                      <td className="p-3.5 text-right text-blue-700 dark:text-blue-400">
+                      <td className="p-3.5 text-right text-indigo-700 dark:text-indigo-400">
                         Rs. {(row.tax || 0).toLocaleString()}
                       </td>
                       <td className="p-3.5 text-right pr-4 font-black text-slate-900 dark:text-white">
@@ -1124,7 +1124,7 @@ export const ReportsModule: React.FC = () => {
                     <td className="p-3.5 text-right font-black text-slate-900 dark:text-white">
                       Rs. {((tradeReportResult.totalAmount || 0) - (tradeReportResult.totalTax || 0)).toLocaleString()}
                     </td>
-                    <td className="p-3.5 text-right font-black text-blue-700 dark:text-blue-400">
+                    <td className="p-3.5 text-right font-black text-indigo-700 dark:text-indigo-400">
                       Rs. {(tradeReportResult.totalTax || 0).toLocaleString()}
                     </td>
                     <td className="p-3.5 text-right pr-4 font-black text-emerald-800 dark:text-emerald-300 text-sm">

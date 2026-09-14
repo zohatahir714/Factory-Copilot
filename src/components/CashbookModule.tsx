@@ -92,13 +92,13 @@ export const CashbookModule: React.FC = () => {
       return <span className="px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 font-mono text-xs font-bold">CPV (Cash Payment)</span>;
     }
     if (type === 'BRV') {
-      return <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 font-mono text-xs font-bold">BRV (Bank Receipt)</span>;
+      return <span className="px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 font-mono text-xs font-bold">BRV (Bank Receipt)</span>;
     }
     if (type === 'BPV') {
       return <span className="px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 font-mono text-xs font-bold">BPV (Bank Payment)</span>;
     }
     if (type === 'JV') {
-      return <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 font-mono text-xs font-bold">JV (Journal Voucher)</span>;
+      return <span className="px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 font-mono text-xs font-bold">JV (Journal Voucher)</span>;
     }
     return flow === 'inflow' ? (
       <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono text-xs font-bold">Receipt</span>
@@ -113,11 +113,11 @@ export const CashbookModule: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center font-bold">
               <Wallet className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Cashbook, Vouchers & Treasury
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -152,7 +152,7 @@ export const CashbookModule: React.FC = () => {
           <button
             type="button"
             onClick={() => openModal('account')}
-            className="px-3.5 py-2 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3.5 py-2 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Account Head</span>
@@ -183,17 +183,17 @@ export const CashbookModule: React.FC = () => {
         </div>
 
         {/* Bank Balance */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-blue-200 dark:border-blue-800 shadow-xs relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-indigo-200 dark:border-indigo-800 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
               Bank Balance (All Accounts)
             </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 flex items-center justify-center">
               <Building2 className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-black font-mono text-blue-800 dark:text-blue-300">
+            <div className="text-2xl font-black font-mono text-indigo-800 dark:text-indigo-300">
               Rs. {(bankBalance || 0).toLocaleString()}
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
@@ -397,7 +397,7 @@ export const CashbookModule: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => openEditModal('cashbook', entry)}
-                                className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg transition-colors cursor-pointer"
                                 title="Edit Voucher"
                               >
                                 <Edit3 className="w-4 h-4" />
@@ -463,7 +463,7 @@ export const CashbookModule: React.FC = () => {
                   onClick={() => setCoaCategoryFilter(pill.id)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     coaCategoryFilter === pill.id
-                      ? 'bg-blue-600 text-white shadow-xs'
+                      ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
                   }`}
                 >
@@ -495,7 +495,7 @@ export const CashbookModule: React.FC = () => {
                       key={acc.id}
                       className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
                     >
-                      <td className="p-3.5 pl-4 font-mono font-black text-blue-700 dark:text-blue-400">
+                      <td className="p-3.5 pl-4 font-mono font-black text-indigo-700 dark:text-indigo-400">
                         {acc.code}
                       </td>
                       <td className="p-3.5">
@@ -546,7 +546,7 @@ export const CashbookModule: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => openEditModal('account', acc)}
-                            className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                             title="Edit Account Head"
                           >
                             <Edit3 className="w-4 h-4" />

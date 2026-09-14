@@ -107,7 +107,7 @@ export const Sidebar: React.FC = () => {
           urdu: 'سپلائرز اور وینڈرز',
           icon: <Building2 className="w-5 h-5" />,
           badge: suppliers.length > 0 ? suppliers.length : undefined,
-          badgeColor: 'bg-blue-600 text-white font-bold'
+          badgeColor: 'bg-indigo-600 text-white font-bold'
         },
         {
           id: 'movements',
@@ -165,7 +165,7 @@ export const Sidebar: React.FC = () => {
           urdu: 'ٹیکس ریگولیشنز',
           icon: <Scale className="w-5 h-5" />,
           badge: '18%',
-          badgeColor: 'bg-purple-600 text-white'
+          badgeColor: 'bg-indigo-600 text-white'
         },
         {
           id: 'fbr_integration',
@@ -211,7 +211,7 @@ export const Sidebar: React.FC = () => {
               <img src={branding.logoBase64} alt={branding.companyName} className="w-full h-full object-contain" />
             </div>
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
               <Building2 className="w-5 h-5" />
             </div>
           )}
@@ -220,7 +220,7 @@ export const Sidebar: React.FC = () => {
               <div className="text-xs font-bold text-slate-900 dark:text-white tracking-tight truncate">
                 {branding.companyName.split(' ')[0]} {branding.companyName.split(' ')[1] || ''}
               </div>
-              <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1.5">
+              <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Live Factory Ledger</span>
               </div>
@@ -271,7 +271,7 @@ export const Sidebar: React.FC = () => {
                     onClick={() => setActiveTab(item.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all relative group cursor-pointer ${
                       isActive
-                        ? 'bg-blue-600 text-white font-bold shadow-xs'
+                        ? 'bg-indigo-600 text-white font-bold shadow-xs'
                         : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 border border-transparent'
                     }`}
                     title={sidebarCollapsed ? `[${section.title}] ${item.label} (${item.urdu})` : undefined}
@@ -280,7 +280,7 @@ export const Sidebar: React.FC = () => {
                       className={`shrink-0 transition-colors ${
                         isActive
                           ? 'text-white'
-                          : 'text-slate-400 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                          : 'text-slate-400 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'
                       }`}
                     >
                       {item.icon}
@@ -304,7 +304,7 @@ export const Sidebar: React.FC = () => {
                     {/* Hover tooltip for collapsed state */}
                     {sidebarCollapsed && (
                       <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl border border-slate-800 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
-                        <div className="text-[9px] uppercase tracking-wider text-blue-400 font-bold">{section.title}</div>
+                        <div className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold">{section.title}</div>
                         <div>{item.label}</div>
                         <div className="text-[10px] text-slate-400 font-urdu">{item.urdu}</div>
                       </div>
@@ -321,12 +321,12 @@ export const Sidebar: React.FC = () => {
       <div className="p-3 border-t border-slate-200 dark:border-slate-800/90">
         <button
           onClick={() => openModal('voice')}
-          className={`w-full flex items-center gap-2.5 p-2.5 bg-slate-50 dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/60 border border-slate-200 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-700/60 text-blue-600 dark:text-blue-400 rounded-xl transition-all cursor-pointer ${
+          className={`w-full flex items-center gap-2.5 p-2.5 bg-slate-50 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-700/60 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all cursor-pointer ${
             sidebarCollapsed ? 'justify-center' : ''
           }`}
           title="Instant Voice Command (English/Urdu)"
         >
-          <div className="w-7 h-7 rounded-lg bg-blue-600/10 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
             <Mic className="w-4 h-4" />
           </div>
           {!sidebarCollapsed && (
@@ -394,7 +394,7 @@ export const Sidebar: React.FC = () => {
         ) : (
           <button
             onClick={() => setActiveTab('settings')}
-            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
           >
             Sign In
           </button>

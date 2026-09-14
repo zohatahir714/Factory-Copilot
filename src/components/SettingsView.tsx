@@ -304,14 +304,14 @@ export const SettingsView: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fadeIn">
       {/* Settings Header */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-xs">
             <Settings className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">System & Enterprise Settings</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">System & Enterprise Settings</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Supabase PostgreSQL cloud storage, User Accounts & RBAC, branding, and Groq AI configurations
             </p>
           </div>
@@ -322,7 +322,7 @@ export const SettingsView: React.FC = () => {
           <button
             onClick={() => setActiveTab('database')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'database' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+              activeTab === 'database' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Database className="w-3.5 h-3.5" />
@@ -331,19 +331,19 @@ export const SettingsView: React.FC = () => {
           <button
             onClick={() => setActiveTab('users')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'users' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+              activeTab === 'users' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
             <span>User Accounts & RBAC</span>
             {isSuperAdmin && (
-              <span className="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.2 rounded font-bold">Admin</span>
+              <span className="bg-indigo-100 text-indigo-800 text-[10px] px-1.5 py-0.2 rounded font-bold">Admin</span>
             )}
           </button>
           <button
             onClick={() => setActiveTab('branding')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'branding' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+              activeTab === 'branding' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
@@ -352,7 +352,7 @@ export const SettingsView: React.FC = () => {
           <button
             onClick={() => setActiveTab('ai')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'ai' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+              activeTab === 'ai' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Cpu className="w-3.5 h-3.5" />
@@ -361,7 +361,7 @@ export const SettingsView: React.FC = () => {
           <button
             onClick={() => setActiveTab('account')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'account' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+              activeTab === 'account' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <User className="w-3.5 h-3.5" />
@@ -370,7 +370,7 @@ export const SettingsView: React.FC = () => {
           <button
             onClick={() => setActiveTab('tax')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'tax' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+              activeTab === 'tax' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
@@ -383,11 +383,11 @@ export const SettingsView: React.FC = () => {
       {activeTab === 'database' && (
         <div className="space-y-6">
           {/* Connection Status Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-5">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Database className="w-5 h-5 text-blue-600" />
+                  <Database className="w-5 h-5 text-indigo-600" />
                   <span>Supabase PostgreSQL Cloud Integration</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -413,7 +413,7 @@ export const SettingsView: React.FC = () => {
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
                     : dbHealth.status === 'disconnected'
                     ? 'bg-amber-50 border-amber-200 text-amber-900'
-                    : 'bg-blue-50 border-blue-200 text-blue-900'
+                    : 'bg-indigo-50 border-indigo-200 text-indigo-900'
                 }`}
               >
                 {dbHealth.status === 'connected' ? (
@@ -452,7 +452,7 @@ export const SettingsView: React.FC = () => {
                     value={supabaseUrlInput}
                     onChange={e => setSupabaseUrlInput(e.target.value)}
                     placeholder="https://xyzcompany.supabase.co"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono text-slate-900"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900"
                   />
                   <span className="text-[11px] text-slate-400 mt-1 block">
                     Found in Supabase Dashboard &gt; Project Settings &gt; API
@@ -469,7 +469,7 @@ export const SettingsView: React.FC = () => {
                       value={supabaseKeyInput}
                       onChange={e => setSupabaseKeyInput(e.target.value)}
                       placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                      className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono text-slate-900"
+                      className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900"
                     />
                     <button
                       type="button"
@@ -487,14 +487,14 @@ export const SettingsView: React.FC = () => {
 
               <div className="pt-2 flex items-center justify-between border-t border-slate-100">
                 <div className="flex items-center gap-2 text-slate-500 text-[11px]">
-                  <Server className="w-4 h-4 text-blue-600" />
+                  <Server className="w-4 h-4 text-indigo-600" />
                   <span>Configured keys are saved in local client storage and utilized for all cloud operations.</span>
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSavingDb}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   <span>{isSavingDb ? 'Saving...' : 'Save Database Settings'}</span>
@@ -513,7 +513,7 @@ export const SettingsView: React.FC = () => {
           </div>
 
           {/* Migration SQL Schema Section */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -543,7 +543,7 @@ export const SettingsView: React.FC = () => {
           </div>
 
           {/* Backup & Snapshot Section */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-4">
             <div className="border-b border-slate-100 pb-4">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Download className="w-5 h-5 text-emerald-600" />
@@ -588,7 +588,7 @@ export const SettingsView: React.FC = () => {
                     onClick={() => backupFileInputRef.current?.click()}
                     className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
-                    <Upload className="w-3.5 h-3.5 text-blue-600" />
+                    <Upload className="w-3.5 h-3.5 text-indigo-600" />
                     <span>Upload JSON</span>
                   </button>
                 </div>
@@ -614,10 +614,10 @@ export const SettingsView: React.FC = () => {
 
           {/* Provision New User Form (Super Admin only) */}
           {isSuperAdmin && (
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-5">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-5">
               <div className="border-b border-slate-100 pb-4">
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-blue-600" />
+                  <UserPlus className="w-5 h-5 text-indigo-600" />
                   <span>Provision New User Account</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -638,7 +638,7 @@ export const SettingsView: React.FC = () => {
                         value={newUserName}
                         onChange={e => setNewUserName(e.target.value)}
                         placeholder="e.g. Tariq Mehmood"
-                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-medium"
+                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
                       />
                       <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     </div>
@@ -655,7 +655,7 @@ export const SettingsView: React.FC = () => {
                         value={newUserEmail}
                         onChange={e => setNewUserEmail(e.target.value)}
                         placeholder="tariq@company.com"
-                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-medium"
+                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
                       />
                       <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     </div>
@@ -668,7 +668,7 @@ export const SettingsView: React.FC = () => {
                     <select
                       value={newUserRole}
                       onChange={e => setNewUserRole(e.target.value as UserRole)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-semibold cursor-pointer"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-semibold cursor-pointer"
                     >
                       <option value="Super Admin">Super Admin (All Privileges & Settings)</option>
                       <option value="Admin">Admin (Operations, Procurement & Sales)</option>
@@ -688,7 +688,7 @@ export const SettingsView: React.FC = () => {
                         value={newUserPassword}
                         onChange={e => setNewUserPassword(e.target.value)}
                         placeholder="Default: Welcome123!"
-                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-mono"
+                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-mono"
                       />
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     </div>
@@ -704,7 +704,7 @@ export const SettingsView: React.FC = () => {
                         value={newUserPhone}
                         onChange={e => setNewUserPhone(e.target.value)}
                         placeholder="+92 300 1234567"
-                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-medium"
+                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
                       />
                       <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     </div>
@@ -714,7 +714,7 @@ export const SettingsView: React.FC = () => {
                     <button
                       type="submit"
                       disabled={isProvisioning}
-                      className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                      className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                     >
                       {isProvisioning ? (
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -730,7 +730,7 @@ export const SettingsView: React.FC = () => {
           )}
 
           {/* User Directory Table */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -761,9 +761,9 @@ export const SettingsView: React.FC = () => {
 
                     const roleBadgeColor =
                       user.role === 'Super Admin'
-                        ? 'bg-purple-100 text-purple-800 border-purple-200'
+                        ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
                         : user.role === 'Admin'
-                        ? 'bg-blue-100 text-blue-800 border-blue-200'
+                        ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
                         : user.role === 'Head Accountant'
                         ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
                         : user.role === 'Factory Supervisor'
@@ -799,7 +799,7 @@ export const SettingsView: React.FC = () => {
                             <select
                               value={editingRole}
                               onChange={e => setEditingRole(e.target.value as UserRole)}
-                              className="px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold outline-none focus:border-blue-600"
+                              className="px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold outline-none focus:border-indigo-600"
                             >
                               <option value="Super Admin">Super Admin</option>
                               <option value="Admin">Admin</option>
@@ -851,7 +851,7 @@ export const SettingsView: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleSaveUserEdit(user.id)}
-                                  className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs cursor-pointer"
+                                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs cursor-pointer"
                                 >
                                   Save
                                 </button>
@@ -872,7 +872,7 @@ export const SettingsView: React.FC = () => {
                                     setEditingRole(user.role);
                                     setEditingPassword('');
                                   }}
-                                  className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                                  className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
                                   title="Edit Role / Reset Password"
                                 >
                                   <Edit3 className="w-3.5 h-3.5" />
@@ -901,7 +901,7 @@ export const SettingsView: React.FC = () => {
           </div>
 
           {/* RBAC Reference Guide */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-4">
             <div className="border-b border-slate-100 pb-3">
               <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -910,16 +910,16 @@ export const SettingsView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-              <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl space-y-1">
-                <span className="font-bold text-purple-900 block">Super Admin</span>
-                <p className="text-[11px] text-purple-800 leading-relaxed">
+              <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-1">
+                <span className="font-bold text-indigo-900 block">Super Admin</span>
+                <p className="text-[11px] text-indigo-800 leading-relaxed">
                   Full unrestricted governance, user provisioning & role management, database schema migrations, and system settings.
                 </p>
               </div>
 
-              <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-1">
-                <span className="font-bold text-blue-900 block">Admin</span>
-                <p className="text-[11px] text-blue-800 leading-relaxed">
+              <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-1">
+                <span className="font-bold text-indigo-900 block">Admin</span>
+                <p className="text-[11px] text-indigo-800 leading-relaxed">
                   Operational executive authority: manages inventory, purchasing, commercial sales, and financial records.
                 </p>
               </div>
@@ -951,10 +951,10 @@ export const SettingsView: React.FC = () => {
 
       {/* 3. COMPANY BRANDING & LOGO */}
       {activeTab === 'branding' && (
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-6">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-blue-600" />
+              <Building2 className="w-5 h-5 text-indigo-600" />
               <span>Company Identity & Custom Invoicing Header</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -1016,7 +1016,7 @@ export const SettingsView: React.FC = () => {
                   required
                   value={brandForm.companyName}
                   onChange={e => setBrandForm(prev => ({ ...prev, companyName: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-medium"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
                 />
               </div>
 
@@ -1026,7 +1026,7 @@ export const SettingsView: React.FC = () => {
                   type="text"
                   value={brandForm.tagline}
                   onChange={e => setBrandForm(prev => ({ ...prev, tagline: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-medium"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
                 />
               </div>
 
@@ -1037,7 +1037,7 @@ export const SettingsView: React.FC = () => {
                   value={brandForm.ntnNumber}
                   onChange={e => setBrandForm(prev => ({ ...prev, ntnNumber: e.target.value }))}
                   placeholder="1234567-8"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono text-slate-900"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900"
                 />
               </div>
 
@@ -1048,7 +1048,7 @@ export const SettingsView: React.FC = () => {
                   value={brandForm.strnNumber}
                   onChange={e => setBrandForm(prev => ({ ...prev, strnNumber: e.target.value }))}
                   placeholder="03-00-1234-001-00"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono text-slate-900"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900"
                 />
               </div>
             </div>
@@ -1056,7 +1056,7 @@ export const SettingsView: React.FC = () => {
             <div className="pt-2 flex justify-end">
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>Save Branding Settings</span>
@@ -1068,10 +1068,10 @@ export const SettingsView: React.FC = () => {
 
       {/* 4. GROQ AI & VOICE SETTINGS */}
       {activeTab === 'ai' && (
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-6">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Cpu className="w-5 h-5 text-blue-600" />
+              <Cpu className="w-5 h-5 text-indigo-600" />
               <span>Groq AI & Voice Transcription Engine</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -1079,9 +1079,9 @@ export const SettingsView: React.FC = () => {
             </p>
           </div>
 
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-2.5">
-            <Server className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-            <div className="text-xs text-blue-900">
+          <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex items-start gap-2.5">
+            <Server className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-indigo-900">
               <span className="font-bold block">Server-Side Key Security</span>
               The Groq API key is configured as an environment variable (GROQ_API_KEY) on the server and is never exposed to the browser — it cannot be read from DevTools, localStorage, or network traffic. Manage the key in your hosting provider's project settings.
             </div>
@@ -1094,7 +1094,7 @@ export const SettingsView: React.FC = () => {
                 <select
                   value={selectedModel}
                   onChange={e => setSelectedModel(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-900"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-slate-900"
                 >
                   <option value="">Server Default — GPT-OSS 120B (Recommended)</option>
                   <option value="openai/gpt-oss-120b">GPT-OSS 120B (Highest Reasoning)</option>
@@ -1161,7 +1161,7 @@ export const SettingsView: React.FC = () => {
             <div className="pt-2 flex justify-end">
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>Save Model Configuration</span>
@@ -1173,10 +1173,10 @@ export const SettingsView: React.FC = () => {
 
       {/* 5. ACTIVE USER SESSION */}
       {activeTab === 'account' && (
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-6">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <User className="w-5 h-5 text-blue-600" />
+              <User className="w-5 h-5 text-indigo-600" />
               <span>Active User Profile & Session</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -1194,7 +1194,7 @@ export const SettingsView: React.FC = () => {
 
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
                 <span className="font-semibold text-slate-500 block">Assigned Role & Privilege Tier</span>
-                <span className="font-bold text-blue-700 text-sm block">{currentUser?.role || 'Super Admin'}</span>
+                <span className="font-bold text-indigo-700 text-sm block">{currentUser?.role || 'Super Admin'}</span>
                 <span className="text-slate-500 text-xs">
                   {currentUser?.permissions?.canManageUsers ? 'Super Admin (Full RBAC Management)' : 'Standard Operator'}
                 </span>
@@ -1224,10 +1224,10 @@ export const SettingsView: React.FC = () => {
 
       {/* 6. FBR TAX DEFAULTS & FACTORY RESET */}
       {activeTab === 'tax' && (
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-6">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-purple-700" />
+              <ShieldCheck className="w-5 h-5 text-indigo-700" />
               <span>FBR Statutory Rules & Database Controls</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -1239,7 +1239,7 @@ export const SettingsView: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                 <span className="font-bold text-slate-800 block">Sales Tax Act 1990 Section 3(1)</span>
-                <span className="text-2xl font-black font-mono text-blue-700 mt-1 block">18.00%</span>
+                <span className="text-2xl font-black font-mono text-indigo-700 mt-1 block">18.00%</span>
                 <span className="text-[11px] text-slate-500 mt-1 block">
                   Deterministic GST computed on all commercial dispatches.
                 </span>
@@ -1247,7 +1247,7 @@ export const SettingsView: React.FC = () => {
 
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                 <span className="font-bold text-slate-800 block">Section 153 Active Taxpayer WHT</span>
-                <span className="text-2xl font-black font-mono text-purple-700 mt-1 block">4.50%</span>
+                <span className="text-2xl font-black font-mono text-indigo-700 mt-1 block">4.50%</span>
                 <span className="text-[11px] text-slate-500 mt-1 block">
                   Withholding deduction on supplies made by corporate companies.
                 </span>

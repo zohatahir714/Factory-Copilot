@@ -12,14 +12,14 @@ export const Toasts: React.FC = () => {
       {notifications.map((notif) => {
         const icons = {
           success: <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />,
-          info: <Info className="w-4 h-4 text-blue-600 shrink-0" />,
+          info: <Info className="w-4 h-4 text-indigo-600 shrink-0" />,
           warning: <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />,
           error: <XCircle className="w-4 h-4 text-red-600 shrink-0" />
         };
 
         const borders = {
           success: 'border-emerald-200 bg-white',
-          info: 'border-blue-200 bg-white',
+          info: 'border-indigo-200 bg-white',
           warning: 'border-amber-200 bg-white',
           error: 'border-red-200 bg-white'
         };
@@ -52,7 +52,7 @@ export const Toasts: React.FC = () => {
                     ? 'bg-red-500'
                     : notif.type === 'warning'
                     ? 'bg-amber-500'
-                    : 'bg-blue-500'
+                    : 'bg-indigo-500'
                 }`}
                 style={{
                   animation: 'shrinkWidth 2s linear forwards'

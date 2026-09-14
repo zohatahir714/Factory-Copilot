@@ -59,8 +59,8 @@ export const CopilotChatView: React.FC = () => {
       supervisor: { label: 'Supervisor Agent', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
       inventory: { label: 'Inventory Agent', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
       purchase: { label: 'Purchase Agent', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-      accounting: { label: 'Accounting Agent', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-      compliance: { label: 'Compliance Agent (FBR RAG)', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' }
+      accounting: { label: 'Accounting Agent', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+      compliance: { label: 'Compliance Agent (FBR RAG)', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' }
     };
     const c = config[domain] || config.supervisor;
     return (
@@ -83,9 +83,9 @@ export const CopilotChatView: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-100/70 overflow-hidden relative">
       {/* Interactive Demo Scripts Bar (Directly matching PRD Section 38 Demo Script) */}
-      <div className="bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-2 overflow-x-auto shrink-0 shadow-2xs">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center gap-2 overflow-x-auto shrink-0 shadow-2xs">
         <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
-          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
           Demo Flows:
         </span>
         <div className="flex items-center gap-1.5">
@@ -94,7 +94,7 @@ export const CopilotChatView: React.FC = () => {
               key={idx}
               type="button"
               onClick={() => triggerDemoPrompt(demo.prompt)}
-              className="px-2.5 py-1 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-md text-xs font-semibold text-slate-700 hover:text-blue-800 transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              className="px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-md text-xs font-semibold text-slate-700 hover:text-indigo-800 transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer shadow-2xs"
             >
               <span>{demo.icon}</span>
               <span>{demo.label}</span>
@@ -118,8 +118,8 @@ export const CopilotChatView: React.FC = () => {
               <div
                 className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-xs ${
                   isUser
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-900 text-blue-400 border border-slate-700'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-900 text-indigo-400 border border-slate-700'
                 }`}
               >
                 {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
@@ -133,13 +133,13 @@ export const CopilotChatView: React.FC = () => {
                     {renderAgentBadge(msg.routedAgent)}
                     {msg.toolExecution && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                        <span className="text-blue-600 font-bold">tool:</span>
+                        <span className="text-indigo-600 font-bold">tool:</span>
                         <span>{msg.toolExecution.toolName}</span>
                         <span className="text-slate-400">({msg.toolExecution.executionMs}ms)</span>
                       </span>
                     )}
                     {msg.inputMethod === 'voice' && (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded font-medium border border-purple-100">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-medium border border-indigo-100">
                         <Mic className="w-2.5 h-2.5" /> Voice Input
                       </span>
                     )}
@@ -150,7 +150,7 @@ export const CopilotChatView: React.FC = () => {
                 <div
                   className={`p-4 rounded-xl text-sm leading-relaxed shadow-xs ${
                     isUser
-                      ? 'bg-blue-600 text-white font-medium rounded-tr-none'
+                      ? 'bg-indigo-600 text-white font-medium rounded-tr-none'
                       : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
                   }`}
                 >
@@ -209,11 +209,11 @@ export const CopilotChatView: React.FC = () => {
         {/* Processing Indicator */}
         {isProcessing && (
           <div className="flex items-center gap-3 mr-auto max-w-xl">
-            <div className="w-8 h-8 rounded-lg bg-slate-900 text-blue-400 border border-slate-700 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-slate-900 text-indigo-400 border border-slate-700 flex items-center justify-center shrink-0">
               <Bot className="w-4 h-4 animate-spin" />
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-xs flex items-center gap-2 text-xs text-slate-600 font-medium">
-              <div className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></div>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 shadow-xs flex items-center gap-2 text-xs text-slate-600 font-medium">
+              <div className="w-2 h-2 rounded-full bg-indigo-600 animate-ping"></div>
               <span>Supervisor routing intent to domain agent & executing validated tools...</span>
             </div>
           </div>
@@ -252,7 +252,7 @@ export const CopilotChatView: React.FC = () => {
       )}
 
       {/* Input Bar */}
-      <div className="bg-white border-t border-slate-200 p-3 md:p-4 shrink-0 shadow-lg">
+      <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3 md:p-4 shrink-0 shadow-lg">
         <form onSubmit={handleSend} className="max-w-4xl mx-auto flex items-center gap-2">
           {/* Voice Button */}
           <button
@@ -262,7 +262,7 @@ export const CopilotChatView: React.FC = () => {
             className={`p-2.5 rounded-xl transition-all cursor-pointer shrink-0 border ${
               isRecording
                 ? 'bg-red-600 text-white border-red-700 animate-pulse'
-                : 'bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border-slate-200'
+                : 'bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border-slate-200'
             }`}
           >
             {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -276,7 +276,7 @@ export const CopilotChatView: React.FC = () => {
               onChange={(e) => setInputVal(e.target.value)}
               placeholder='Ask in English or Roman Urdu: "Kitna cotton yarn bacha hai?" or "Al-Rehman ko 50 kilo sell karo"...'
               disabled={isProcessing}
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-300 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium"
             />
           </div>
 
@@ -284,7 +284,7 @@ export const CopilotChatView: React.FC = () => {
           <button
             type="submit"
             disabled={!inputVal.trim() || isProcessing}
-            className="p-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl transition-all cursor-pointer shrink-0 shadow-sm shadow-blue-600/20"
+            className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl transition-all cursor-pointer shrink-0 shadow-sm shadow-indigo-600/20"
           >
             <Send className="w-4 h-4" />
           </button>

@@ -29,21 +29,21 @@ export const ComplianceQueryModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-scaleUp">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl overflow-hidden animate-scaleUp">
         {/* Header */}
-        <div className="px-6 py-4 bg-purple-50 border-b border-purple-200/80 flex items-center justify-between">
+        <div className="px-6 py-4 bg-indigo-50 border-b border-indigo-200/80 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-purple-200 text-purple-800 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-indigo-200 text-indigo-800 flex items-center justify-center">
               <Scale className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-purple-950">FBR Compliance RAG Knowledge Query</h3>
-              <p className="text-xs text-purple-700">Authoritative statutory retrieval grounded in Pakistani tax laws</p>
+              <h3 className="text-base font-bold text-indigo-950">FBR Compliance RAG Knowledge Query</h3>
+              <p className="text-xs text-indigo-700">Authoritative statutory retrieval grounded in Pakistani tax laws</p>
             </div>
           </div>
           <button
             onClick={closeModal}
-            className="text-purple-400 hover:text-purple-700 p-1.5 rounded-lg hover:bg-purple-200/50 transition-colors cursor-pointer"
+            className="text-indigo-400 hover:text-indigo-700 p-1.5 rounded-lg hover:bg-indigo-200/50 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -59,7 +59,7 @@ export const ComplianceQueryModal: React.FC = () => {
               placeholder="Search tax rules, section 153 WHT, SRO 345, GST rates, filing deadlines..."
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 outline-none font-medium"
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none font-medium"
             />
           </div>
 
@@ -73,7 +73,7 @@ export const ComplianceQueryModal: React.FC = () => {
                 <button
                   key={idx}
                   onClick={() => handleSearch(sq)}
-                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-purple-100 hover:text-purple-900 text-slate-700 rounded-lg text-xs font-medium transition-colors text-left flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-indigo-100 hover:text-indigo-900 text-slate-700 rounded-lg text-xs font-medium transition-colors text-left flex items-center gap-1 cursor-pointer"
                 >
                   <span>{sq}</span>
                   <ArrowRight className="w-3 h-3 text-slate-400" />
@@ -84,7 +84,7 @@ export const ComplianceQueryModal: React.FC = () => {
 
           {/* Result Card */}
           {result && (
-            <div className="mt-4 p-5 bg-slate-50 border border-slate-300 rounded-xl space-y-3 animate-fadeIn">
+            <div className="mt-4 p-5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl space-y-3 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -97,22 +97,22 @@ export const ComplianceQueryModal: React.FC = () => {
                 </span>
               </div>
 
-              <p className="text-xs text-slate-700 leading-relaxed font-sans bg-white p-3 rounded-lg border border-slate-200">
+              <p className="text-xs text-slate-700 leading-relaxed font-sans bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
                 {result.explanation}
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                <div className="p-2.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Applicable GST</span>
-                  <span className="text-sm font-bold text-blue-900">{result.gstRate}%</span>
+                  <span className="text-sm font-bold text-indigo-900">{result.gstRate}%</span>
                 </div>
 
-                <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                <div className="p-2.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">WHT Sec 153 Rate</span>
-                  <span className="text-sm font-bold text-purple-900">{result.withholdingRate > 0 ? `${result.withholdingRate}%` : 'Exempt'}</span>
+                  <span className="text-sm font-bold text-indigo-900">{result.withholdingRate > 0 ? `${result.withholdingRate}%` : 'Exempt'}</span>
                 </div>
 
-                <div className="p-2.5 bg-white rounded-lg border border-purple-100">
+                <div className="p-2.5 bg-white rounded-lg border border-indigo-100">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Statutory Filing</span>
                   <span className="text-xs font-semibold text-slate-800">{result.filingDeadline}</span>
                 </div>
@@ -145,7 +145,7 @@ export const ComplianceQueryModal: React.FC = () => {
         <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
           <button
             onClick={closeModal}
-            className="px-4 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-semibold cursor-pointer"
+            className="px-4 py-1.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg text-xs font-semibold cursor-pointer"
           >
             Close Inspector
           </button>
