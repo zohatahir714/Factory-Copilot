@@ -5,6 +5,8 @@
 @theme {
   --font-sans: 'Geist', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Futuristic display face — sections, KPI tiles, module titles */
+  --font-display: 'Space Grotesk', 'Geist', sans-serif;
 
   /* ── Pinterest-clean surface system ────────────────────────────────
      Light: warm-neutral gallery canvas, pure-white floating cards.
@@ -21,6 +23,13 @@
 
   --animate-fadeIn: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-scaleUp: modalIn 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Bento entrance: rise + settle. Cards cascade via .stagger > :nth-child delays */
+  --animate-bentoIn: bentoIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes bentoIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.985); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
 
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
@@ -72,11 +81,12 @@
 
 /* ── Shared surface classes: one owner for the card language ─────── */
 @layer components {
-  /* Floating card: borderless, diffusion shadow; hairline ring in dark */
+  /* Floating card: borderless, diffusion shadow; hairline ring in dark.
+     Polish pass: inner top highlight gives the surface a machined edge. */
   .surface-card {
     background: #ffffff;
     border-radius: 1.5rem;
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
   .dark .surface-card {
     background: var(--color-surface-dark);
@@ -200,6 +210,82 @@
   .group:hover .viewlink { opacity: 1; transform: translateX(0); }
   @media (prefers-reduced-motion: reduce) {
     .viewlink { transform: none; }
+  }
+
+  /* ── Staggered bento entrance ──────────────────────────────────────
+     Parent gets .stagger; direct children rise in a 50ms cascade.
+     transform + opacity only; disabled for reduced-motion users. */
+  .stagger > * {
+    animation: bentoIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .stagger > :nth-child(1) { animation-delay: 0ms; }
+  .stagger > :nth-child(2) { animation-delay: 50ms; }
+  .stagger > :nth-child(3) { animation-delay: 100ms; }
+  .stagger > :nth-child(4) { animation-delay: 150ms; }
+  .stagger > :nth-child(5) { animation-delay: 200ms; }
+  .stagger > :nth-child(6) { animation-delay: 250ms; }
+  .stagger > :nth-child(7) { animation-delay: 300ms; }
+  .stagger > :nth-child(8) { animation-delay: 350ms; }
+  .stagger > :nth-child(n+9) { animation-delay: 400ms; }
+  @media (prefers-reduced-motion: reduce) {
+    .stagger > * {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* ── Data table system: ledger tables speak one language ────────── */
+  .data-table {
+    width: 100%;
+    text-align: left;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.75rem;
+  }
+  .data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f8f8fa;
+    color: #8a8f9d;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .dark .data-table thead th {
+    background: #191a22;
+    border-bottom-color: var(--color-line-dark);
+    color: #6b7080;
+  }
+  .data-table tbody td {
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .dark .data-table tbody td {
+    border-bottom-color: var(--color-line-dark);
+  }
+  .data-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .data-table tbody tr {
+    transition: background 0.15s ease;
+  }
+  .data-table tbody tr:hover {
+    background: rgba(99, 102, 241, 0.045);
+  }
+  .dark .data-table tbody tr:hover {
+    background: rgba(99, 102, 241, 0.09);
+  }
+  /* Numeric columns: right-aligned cells get tabular alignment free */
+  .data-table td.num,
+  .data-table th.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
   }
 }
 

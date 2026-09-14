@@ -187,7 +187,7 @@ export const ReportsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-12">
+    <div className="space-y-6 animate-fadeIn stagger pb-12">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 surface-card p-6">
         <div className="flex items-center gap-3">
@@ -222,9 +222,9 @@ export const ReportsModule: React.FC = () => {
         <button
           type="button"
           onClick={() => setReportTab('gl')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             reportTab === 'gl'
-              ? 'bg-emerald-700 text-white shadow-xs'
+              ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
@@ -235,9 +235,9 @@ export const ReportsModule: React.FC = () => {
         <button
           type="button"
           onClick={() => setReportTab('cashbook')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             reportTab === 'cashbook'
-              ? 'bg-emerald-700 text-white shadow-xs'
+              ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
@@ -248,9 +248,9 @@ export const ReportsModule: React.FC = () => {
         <button
           type="button"
           onClick={() => setReportTab('financials')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             reportTab === 'financials'
-              ? 'bg-emerald-700 text-white shadow-xs'
+              ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
@@ -261,9 +261,9 @@ export const ReportsModule: React.FC = () => {
         <button
           type="button"
           onClick={() => setReportTab('sales_purchase')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             reportTab === 'sales_purchase'
-              ? 'bg-emerald-700 text-white shadow-xs'
+              ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
@@ -359,7 +359,7 @@ export const ReportsModule: React.FC = () => {
             <button
               type="button"
               onClick={() => addToast('success', 'Report Refreshed', 'Calculated latest ledger entries from database.')}
-              className="w-full py-2 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-full text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
             >
               <Eye className="w-4 h-4" />
               <span>Preview Report</span>
@@ -447,10 +447,10 @@ export const ReportsModule: React.FC = () => {
           )}
 
           {/* GL Ledger Statement Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
+          <div className="surface-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+              <table className="data-table">
+                <thead>
                   <tr>
                     <th className="p-3.5 pl-4">Date</th>
                     <th className="p-3.5">Voucher #</th>
@@ -584,7 +584,7 @@ export const ReportsModule: React.FC = () => {
           {/* Detailed Receipts & Payments for Date */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Receipts Column */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
+            <div className="surface-card overflow-hidden">
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border-b border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
                 <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
                   Cash & Bank Receipts (Inflow)
@@ -619,7 +619,7 @@ export const ReportsModule: React.FC = () => {
             </div>
 
             {/* Payments Column */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
+            <div className="surface-card overflow-hidden">
               <div className="p-3 bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-800 flex items-center justify-between">
                 <span className="text-xs font-bold text-red-800 dark:text-red-300 uppercase tracking-wider">
                   Cash & Bank Disbursements (Outflow)
@@ -675,7 +675,7 @@ export const ReportsModule: React.FC = () => {
                 onClick={() => setFinancialSubTab(sub.id as any)}
                 className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   financialSubTab === sub.id
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                 }`}
               >
@@ -686,7 +686,7 @@ export const ReportsModule: React.FC = () => {
 
           {/* 3.1 TRIAL BALANCE */}
           {financialSubTab === 'tb' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
+            <div className="surface-card overflow-hidden">
               <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -710,8 +710,8 @@ export const ReportsModule: React.FC = () => {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                <table className="data-table">
+                  <thead>
                     <tr>
                       <th className="p-3 pl-4">Account Code</th>
                       <th className="p-3">Account Title</th>
@@ -986,7 +986,7 @@ export const ReportsModule: React.FC = () => {
                 onClick={() => setTradeType('sale')}
                 className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   tradeType === 'sale'
-                    ? 'bg-emerald-700 text-white shadow-xs'
+                    ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
@@ -1074,10 +1074,10 @@ export const ReportsModule: React.FC = () => {
           </div>
 
           {/* Trade Breakdown Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
+          <div className="surface-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+              <table className="data-table">
+                <thead>
                   <tr>
                     <th className="p-3.5 pl-4">
                       {groupBy === 'person' ? 'Party Name (Client / Mill)' : 'Material / Product'}

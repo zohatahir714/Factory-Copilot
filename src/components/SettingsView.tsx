@@ -302,7 +302,7 @@ export const SettingsView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fadeIn">
+    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fadeIn stagger">
       {/* Settings Header */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">

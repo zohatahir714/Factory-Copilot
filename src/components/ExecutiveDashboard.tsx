@@ -63,9 +63,10 @@ const CopilotTypewriter: React.FC = () => {
   );
 };
 
-/* Shared KPI-card shell: borderless floating tile; whole card navigates. */
+/* Shared KPI-card shell: borderless floating tile; whole card navigates.
+   Polish: hover lifts with a wider shadow and a brighter machined ring. */
 const kpiShell =
-  'surface-card surface-card-hover active:scale-[0.99] group p-6 cursor-pointer flex flex-col';
+  'surface-card surface-card-hover active:scale-[0.99] group p-6 cursor-pointer flex flex-col hover:ring-1 hover:ring-indigo-200/70 dark:hover:ring-indigo-400/20';
 const viewLink = 'viewlink';
 
 export const ExecutiveDashboard: React.FC = () => {
@@ -139,7 +140,7 @@ export const ExecutiveDashboard: React.FC = () => {
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">
             {branding.companyName}
           </p>
-          <h2 className="mt-1.5 text-3xl lg:text-[34px] leading-none font-bold tracking-tighter text-slate-900 dark:text-white">
+          <h2 className="mt-1.5 text-3xl lg:text-[34px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
             Executive Overview
           </h2>
           <p className="mt-2 text-[13px] text-slate-500 dark:text-slate-400">
@@ -191,7 +192,7 @@ export const ExecutiveDashboard: React.FC = () => {
       {/* Bento KPI canvas: revenue is the hero tile (double width); the five
           operational surfaces + AI copilot complete the 6-col rhythm.
           Interaction is indigo (one accent); color elsewhere is status only. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 stagger">
 
         {/* 01 · Revenue & GST invoices → Sales module (hero tile) */}
         <div
@@ -210,7 +211,7 @@ export const ExecutiveDashboard: React.FC = () => {
             <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">01</span>
           </div>
           <div className="mt-auto pt-6">
-            <p className="text-[38px] lg:text-[42px] leading-none font-bold font-mono tracking-tighter text-slate-900 dark:text-white">
+            <p className="text-[38px] lg:text-[42px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
               Rs. {totalSalesRevenue.toLocaleString()}
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs">
@@ -241,7 +242,7 @@ export const ExecutiveDashboard: React.FC = () => {
             <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">02</span>
           </div>
           <div className="mt-auto pt-6">
-            <p className="text-[30px] leading-none font-bold font-mono tracking-tighter text-slate-900 dark:text-white">
+            <p className="text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
               Rs. {totalLiquidity.toLocaleString()}
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 space-y-1.5 text-xs">
@@ -282,7 +283,7 @@ export const ExecutiveDashboard: React.FC = () => {
             <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">03</span>
           </div>
           <div className="mt-auto pt-6">
-            <p className="text-[30px] leading-none font-bold font-mono tracking-tighter text-slate-900 dark:text-white">
+            <p className="text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
               Rs. {summary.totalInventoryValuePKR.toLocaleString()}
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs">
@@ -317,7 +318,7 @@ export const ExecutiveDashboard: React.FC = () => {
             <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">04</span>
           </div>
           <div className="mt-auto pt-6">
-            <p className="text-[30px] leading-none font-bold font-mono tracking-tighter text-slate-900 dark:text-white">
+            <p className="text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
               Rs. {committedPOValue.toLocaleString()}
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs">
@@ -346,7 +347,7 @@ export const ExecutiveDashboard: React.FC = () => {
             <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">05</span>
           </div>
           <div className="mt-auto pt-6">
-            <p className="text-[30px] leading-none font-bold font-mono tracking-tighter text-slate-900 dark:text-white">
+            <p className="text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
               Rs. {totalReceivables.toLocaleString()}
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs">
@@ -551,8 +552,8 @@ export const ExecutiveDashboard: React.FC = () => {
           </button>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="mt-4 overflow-x-auto max-h-80 overflow-y-auto">
+          <table className="data-table">
             <thead>
               <tr className="border-b border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
                 <th className="py-2.5 px-3">Invoice #</th>

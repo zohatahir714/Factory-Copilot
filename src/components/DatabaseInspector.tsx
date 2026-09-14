@@ -107,7 +107,7 @@ export const DatabaseInspector: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-900 surface-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="data-table">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
                     <th className="py-3 px-4">SKU Code</th>
@@ -247,7 +247,7 @@ export const DatabaseInspector: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-900 surface-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="data-table">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
                     <th className="py-3 px-4">PO Number</th>
@@ -395,7 +395,7 @@ export const DatabaseInspector: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-900 surface-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="data-table">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
                     <th className="py-3 px-4">Invoice #</th>
@@ -526,7 +526,7 @@ export const DatabaseInspector: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-900 surface-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="data-table">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
                     <th className="py-3 px-4">Voucher Ref</th>
@@ -699,7 +699,7 @@ export const DatabaseInspector: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-900 surface-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="data-table">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
                     <th className="py-3 px-4">Log ID</th>
@@ -785,7 +785,7 @@ export const DatabaseInspector: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="data-table">
                 <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
                   <tr>
                     <th className="py-3 px-4">Supplier / Vendor</th>
@@ -924,7 +924,7 @@ export const DatabaseInspector: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="data-table">
                 <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
                   <tr>
                     <th className="py-3 px-4">Client / Mill Name</th>

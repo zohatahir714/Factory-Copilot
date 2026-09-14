@@ -108,7 +108,7 @@ export const CashbookModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 animate-fadeIn stagger">
       {/* Top Header & Quick Financial Metrics */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 surface-card p-6">
         <div>
@@ -133,7 +133,7 @@ export const CashbookModule: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('reports')}
-            className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
           >
             <BookOpen className="w-4 h-4" />
             <span>General Ledger</span>
@@ -163,7 +163,7 @@ export const CashbookModule: React.FC = () => {
       {/* 3 Real-time Treasury Liquidity Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Cash in Hand */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-emerald-200 dark:border-emerald-800 shadow-xs relative overflow-hidden">
+        <div className="surface-card p-5 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
               Cash in Hand (Drawer)
@@ -183,7 +183,7 @@ export const CashbookModule: React.FC = () => {
         </div>
 
         {/* Bank Balance */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-indigo-200 dark:border-indigo-800 shadow-xs relative overflow-hidden">
+        <div className="surface-card p-5 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
               Bank Balance (All Accounts)
@@ -228,9 +228,9 @@ export const CashbookModule: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveSubTab('vouchers')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeSubTab === 'vouchers'
-              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
+              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
@@ -241,9 +241,9 @@ export const CashbookModule: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveSubTab('coa')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeSubTab === 'coa'
-              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
+              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
@@ -284,7 +284,7 @@ export const CashbookModule: React.FC = () => {
                   onClick={() => setVoucherTypeFilter(pill.id)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     voucherTypeFilter === pill.id
-                      ? 'bg-emerald-700 text-white shadow-xs'
+                      ? 'bg-indigo-600 text-white shadow-sm'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
                   }`}
                 >
@@ -295,10 +295,10 @@ export const CashbookModule: React.FC = () => {
           </div>
 
           {/* Vouchers Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
+          <div className="surface-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+              <table className="data-table">
+                <thead>
                   <tr>
                     <th className="p-3.5 pl-4">Voucher #</th>
                     <th className="p-3.5">Type</th>
@@ -474,10 +474,10 @@ export const CashbookModule: React.FC = () => {
           </div>
 
           {/* Accounts Grid / Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
+          <div className="surface-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+              <table className="data-table">
+                <thead>
                   <tr>
                     <th className="p-3.5 pl-4">Account Code</th>
                     <th className="p-3.5">Account Head Title</th>
