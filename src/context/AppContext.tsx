@@ -306,6 +306,7 @@ interface AppContextType {
 
   // Chart of Accounts CRUD
   addAccount: (data: Omit<ChartOfAccount, 'id' | 'organizationId' | 'createdAt'>) => void;
+  ensurePartyAccount: (partyName: string, kind: 'customer' | 'supplier') => ChartOfAccount | undefined;
   updateAccount: (id: string, updated: Partial<ChartOfAccount>) => void;
   deleteAccount: (id: string) => void;
 
@@ -1261,6 +1262,35 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
   };
 
   // Chart of Accounts CRUD
+  /* Parties live IN the Chart of Accounts: registering a customer/supplier
+     auto-creates their sub-ledger account (AR 11xx / AP 21xx). Idempotent —
+     calling twice for the same name returns the existing account. Also used
+     lazily by the voucher picker when a party account is selected. */
+  const ensurePartyAccount = (partyName: string, kind: 'customer' | 'supplier'): ChartOfAccount | undefined => {
+    const trimmed = partyName.trim();
+    if (!trimmed) return undefined;
+    const existing = accounts.find(a => a.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) return existing;
+    const prefix = kind === 'customer' ? '11' : '21';
+    const nums = accounts.filter(a => a.code.startsWith(prefix)).map(a => parseInt(a.code.slice(2), 10) || 0);
+    const next = (nums.length ? Math.max(...nums) : 0) + 1;
+    const newAcc: ChartOfAccount = {
+      id: `acc_${Date.now()}_${kind}`, 
+      organizationId: organization.id,
+      code: `${prefix}${String(next).padStart(2, '0')}`,
+      name: trimmed,
+      type: kind === 'customer' ? 'Asset' : 'Liability',
+      subType: kind === 'customer' ? 'Accounts Receivable' : 'Accounts Payable',
+      openingBalance: 0,
+      description: kind === 'customer' ? `Customer sub-ledger: ${trimmed}` : `Supplier sub-ledger: ${trimmed}`,
+      isSystem: false,
+      createdAt: new Date().toISOString()
+    };
+    setAccounts(prev => [...prev, newAcc]);
+    addToast('info', 'Account Auto-Created', `${trimmed} (${newAcc.code}) added to Chart of Accounts.`);
+    return newAcc;
+  };
+
   const addAccount = (data: Omit<ChartOfAccount, 'id' | 'organizationId' | 'createdAt'>) => {
     const newAcc: ChartOfAccount = {
       ...data,
@@ -1303,6 +1333,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       createdAt: new Date().toISOString()
     };
     setSuppliers(prev => [newSupplier, ...prev]);
+    ensurePartyAccount(newSupplier.name, 'supplier');
     closeModal();
     addToast('success', 'Supplier Registered', `${newSupplier.name} added to vendor directory.`);
   };
@@ -1332,6 +1363,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       createdAt: new Date().toISOString()
     };
     setCustomers(prev => [newCustomer, ...prev]);
+    ensurePartyAccount(newCustomer.name, 'customer');
     closeModal();
     addToast('success', 'Customer Registered', `${newCustomer.name} added to client directory.`);
   };
@@ -1832,6 +1864,7 @@ Provide a brief, crisp professional executive summary (1-3 sentences) in natural
         updateCashbookEntry,
         deleteCashbookEntry,
         addAccount,
+        ensurePartyAccount,
         updateAccount,
         deleteAccount,
         createSupplierDirect,

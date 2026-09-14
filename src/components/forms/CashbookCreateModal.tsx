@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Wallet,
@@ -17,7 +17,7 @@ import {
 import { VoucherType, VoucherLineItem, PaymentMode } from '../../types';
 
 export const CashbookCreateModal: React.FC = () => {
-  const { activeModal, closeModal, createVoucherDirect, accounts, currentUser, suppliers, customers } = useApp();
+  const { activeModal, closeModal, createVoucherDirect, accounts, currentUser, suppliers, customers, ensurePartyAccount } = useApp();
 
   const [voucherType, setVoucherType] = useState<VoucherType>('CPV');
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('cash');
@@ -92,6 +92,79 @@ export const CashbookCreateModal: React.FC = () => {
       ]);
     }
   }, [voucherType]);
+
+  /* ONE searchable account picker: every CoA head + saved parties in a single
+     list. Selecting a party auto-creates their sub-ledger account.
+     NOTE: all hooks must live above the early return below. */
+  interface AccountOption {
+    key: string;
+    label: string;
+    hint: string;
+    group: string;
+    partyName?: string;
+    partyKind?: 'customer' | 'supplier';
+  }
+  const [pickerLineId, setPickerLineId] = useState<string | null>(null);
+  const [pickerQuery, setPickerQuery] = useState('');
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  const accountOptions: AccountOption[] = useMemo(() => {
+    const coa: AccountOption[] = accounts.map(a => ({
+      key: a.id,
+      label: a.name,
+      hint: `${a.code}`,
+      group: 'Chart of Accounts'
+    }));
+    const cust: AccountOption[] = customers
+      .filter(c => !accounts.some(a => a.name.toLowerCase() === c.name.toLowerCase()))
+      .map(c => ({
+        key: `party_${c.id}`,
+        label: c.name,
+        hint: 'Customer — auto-creates AR account',
+        group: 'Customers & Mills',
+        partyName: c.name,
+        partyKind: 'customer' as const
+      }));
+    const supp: AccountOption[] = suppliers
+      .filter(s => !accounts.some(a => a.name.toLowerCase() === s.name.toLowerCase()))
+      .map(s => ({
+        key: `party_${s.id}`,
+        label: s.name,
+        hint: 'Supplier — auto-creates AP account',
+        group: 'Suppliers & Vendors',
+        partyName: s.name,
+        partyKind: 'supplier' as const
+      }));
+    return [...coa, ...cust, ...supp];
+  }, [accounts, customers, suppliers]);
+
+  const resolveAccount = (line: { accountId: string }): AccountOption | undefined =>
+    line.accountId ? accountOptions.find(o => o.key === line.accountId) : undefined;
+
+  const commitPicker = (lineId: string, opt: AccountOption) => {
+    if (opt.partyName && opt.partyKind) {
+      const acc = ensurePartyAccount(opt.partyName, opt.partyKind);
+      if (acc) {
+        handleLineChange(lineId, 'accountId', acc.id);
+        handleLineChange(lineId, 'party', opt.partyName);
+        setPickerLineId(null);
+        setPickerQuery('');
+        return;
+      }
+    }
+    handleLineChange(lineId, 'accountId', opt.key);
+    handleLineChange(lineId, 'party', '');
+    setPickerLineId(null);
+    setPickerQuery('');
+  };
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setPickerLineId(null);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
 
   if (activeModal !== 'expense') return null;
 
@@ -187,8 +260,8 @@ export const CashbookCreateModal: React.FC = () => {
       return;
     }
 
-    // Party-aware category: a selected supplier party marks supplier_payment,
-    // a customer party marks customer_payment (drives ledger reporting).
+    // Party-aware category: a line whose account is a party sub-ledger marks
+    // the voucher as supplier_payment / customer_payment for reporting.
     const partyLine = lines.find(l => l.party);
     const partyIsSupplier = partyLine ? suppliers.some(s => s.name === partyLine.party) : false;
     const partyIsCustomer = partyLine ? customers.some(c => c.name === partyLine.party) : false;
@@ -383,8 +456,7 @@ export const CashbookCreateModal: React.FC = () => {
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="p-2.5 pl-3 w-44 sm:w-52">Account Head (CoA)</th>
-                    <th className="p-2.5 w-40 sm:w-48">Party (Customer / Supplier)</th>
+                    <th className="p-2.5 pl-3 w-64 sm:w-80">Account (CoA · Customers · Suppliers)</th>
                     <th className="p-2.5">Item Narration</th>
                     <th className="p-2.5 text-right w-24 sm:w-28">Debit (PKR)</th>
                     <th className="p-2.5 text-right w-24 sm:w-28">Credit (PKR)</th>
@@ -394,43 +466,66 @@ export const CashbookCreateModal: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   {lines.map((line, idx) => (
                     <tr key={line.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="p-2 pl-3">
-                        <select
-                          value={line.accountId}
-                          onChange={(e) => handleLineChange(line.id, 'accountId', e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs field-input outline-none font-semibold"
-                        >
-                          <option value="">Select Account...</option>
-                          {accounts.map((acc) => (
-                            <option key={acc.id} value={acc.id}>
-                              {acc.code} - {acc.name} ({acc.category})
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="p-2">
-                        <select
-                          value={(line as any).party || ''}
-                          onChange={(e) => handleLineChange(line.id, 'party', e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs field-input outline-none font-semibold"
-                          title="Pick a saved customer or supplier — their name is stamped into the voucher narration"
-                        >
-                          <option value="">General / No party…</option>
-                          {customers.length > 0 && (
-                            <optgroup label="Customers & Mills">
-                              {customers.map((c) => (
-                                <option key={c.id} value={c.name}>{c.name}{c.city ? ` — ${c.city}` : ''}</option>
-                              ))}
-                            </optgroup>
-                          )}
-                          {suppliers.length > 0 && (
-                            <optgroup label="Suppliers & Vendors">
-                              {suppliers.map((s) => (
-                                <option key={s.id} value={s.name}>{s.name}{s.city ? ` — ${s.city}` : ''}</option>
-                              ))}
-                            </optgroup>
-                          )}
-                        </select>
+                      <td className="p-2 pl-3 relative">
+                        <div ref={pickerLineId === line.id ? pickerRef : undefined} className="relative">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPickerLineId(pickerLineId === line.id ? null : line.id);
+                              setPickerQuery('');
+                            }}
+                            className="w-full px-2.5 py-1.5 text-left text-xs field-input outline-none font-semibold flex items-center justify-between gap-1.5"
+                            title="Search chart of accounts, customers and suppliers"
+                          >
+                            <span className="truncate">{
+                              resolveAccount(line)
+                                ? `${resolveAccount(line)!.hint} · ${resolveAccount(line)!.label}`
+                                : 'Search account…'
+                            }</span>
+                            <svg className="w-3 h-3 shrink-0 opacity-50" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.23 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
+                          </button>
+
+                          {pickerLineId === line.id && (() => {
+                            const q = pickerQuery.trim().toLowerCase();
+                            const filtered = q
+                              ? accountOptions.filter(o => `${o.hint} ${o.label} ${o.group}`.toLowerCase().includes(q))
+                              : accountOptions;
+                            const groups = [...new Set(filtered.map(o => o.group))];
+                            return (
+                              <div className="absolute z-20 mt-1 w-[min(22rem,80vw)] max-h-72 overflow-y-auto rounded-2xl bg-white dark:bg-[#1a1b23] shadow-xl border border-transparent dark:border-white/10 p-1.5 animate-fadeIn">
+                                <div className="sticky top-0 bg-white dark:bg-[#1a1b23] p-1">
+                                  <input
+                                    autoFocus
+                                    type="text"
+                                    value={pickerQuery}
+                                    onChange={(e) => setPickerQuery(e.target.value)}
+                                    placeholder="Type to search accounts, customers, suppliers…"
+                                    className="w-full px-3 py-1.5 text-xs field-input outline-none"
+                                  />
+                                </div>
+                                {filtered.length === 0 && (
+                                  <div className="p-3 text-center text-xs text-slate-400">No matches for “{pickerQuery}”</div>
+                                )}
+                                {groups.map(g => (
+                                  <div key={g} className="mt-1">
+                                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{g}</div>
+                                    {filtered.filter(o => o.group === g).map(o => (
+                                      <button
+                                        key={o.key}
+                                        type="button"
+                                        onClick={() => commitPicker(line.id, o)}
+                                        className="w-full px-2.5 py-1.5 text-left rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/15 transition-colors cursor-pointer"
+                                      >
+                                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">{o.label}</div>
+                                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{o.hint}</div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </td>
                       <td className="p-2">
                         <input
