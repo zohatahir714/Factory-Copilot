@@ -63,6 +63,15 @@ const CopilotTypewriter: React.FC = () => {
   );
 };
 
+/* Compact PKR for KPI tiles: lakh/crore notation keeps nine-figure ledgers
+   inside their cards (standard Pakistani business formatting). */
+const fmtPKR = (n: number): string => {
+  const abs = Math.abs(n);
+  if (abs >= 1e7) return `Rs. ${(n / 1e7).toFixed(2)} Cr`;
+  if (abs >= 1e5) return `Rs. ${(n / 1e5).toFixed(2)} L`;
+  return `Rs. ${Math.round(n).toLocaleString()}`;
+};
+
 /* Shared KPI-card shell: borderless floating tile; whole card navigates.
    Polish: hover lifts with a wider shadow and a brighter machined ring. */
 const kpiShell =
@@ -204,15 +213,15 @@ export const ExecutiveDashboard: React.FC = () => {
           title="Open Sales & 18% GST Ledger"
         >
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
               <TrendingUp className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               Revenue & Invoices
             </span>
-            <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">01</span>
+            <span className="font-mono text-[11px] font-semibold text-slate-500 dark:text-slate-400">01</span>
           </div>
           <div className="mt-auto pt-6">
-            <p className="text-[38px] lg:text-[42px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
-              Rs. {totalSalesRevenue.toLocaleString()}
+            <p className="text-[32px] xl:text-[40px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white" title={`Rs. ${totalSalesRevenue.toLocaleString()}`}>
+              {fmtPKR(totalSalesRevenue)}
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs">
               <span className="font-mono text-slate-500 dark:text-slate-400">
@@ -235,15 +244,15 @@ export const ExecutiveDashboard: React.FC = () => {
           title="Open Cashbook & Treasury Ledger"
         >
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
               <Wallet className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               Cash & Bank
             </span>
-            <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">02</span>
+            <span className="font-mono text-[11px] font-semibold text-slate-500 dark:text-slate-400">02</span>
           </div>
           <div className="mt-auto pt-6">
-            <p className="text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
-              Rs. {totalLiquidity.toLocaleString()}
+            <p className="text-[26px] xl:text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
+              {fmtPKR(totalLiquidity)}
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
@@ -259,8 +268,8 @@ export const ExecutiveDashboard: React.FC = () => {
                 <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">Rs. {bankBalance.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between pt-1">
-                <span className="font-mono text-emerald-600 dark:text-emerald-400">In Rs. {totalInflow.toLocaleString()}</span>
-                <span className="font-mono text-slate-400 dark:text-slate-500">Out Rs. {totalOutflow.toLocaleString()}</span>
+                <span className="font-mono text-emerald-700 dark:text-emerald-300">In Rs. {totalInflow.toLocaleString()}</span>
+                <span className="font-mono text-slate-500 dark:text-slate-400">Out Rs. {totalOutflow.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -276,15 +285,15 @@ export const ExecutiveDashboard: React.FC = () => {
           title="Open Raw Materials & Inventory Ledger"
         >
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
               <Package className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               Inventory
             </span>
-            <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">03</span>
+            <span className="font-mono text-[11px] font-semibold text-slate-500 dark:text-slate-400">03</span>
           </div>
           <div className="mt-auto pt-6">
-            <p className="text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
-              Rs. {summary.totalInventoryValuePKR.toLocaleString()}
+            <p className="text-[26px] xl:text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
+              {fmtPKR(summary.totalInventoryValuePKR)}
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-slate-400">{products.length} SKUs tracked</span>
@@ -293,7 +302,7 @@ export const ExecutiveDashboard: React.FC = () => {
                   {criticalItems.length} below min
                 </span>
               ) : (
-                <span className="chip bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                <span className="chip bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
                   All optimal
                 </span>
               )}
@@ -311,15 +320,15 @@ export const ExecutiveDashboard: React.FC = () => {
           title="Open Purchase Orders & Mill Procurement"
         >
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
               <ShoppingCart className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               Procurement
             </span>
-            <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">04</span>
+            <span className="font-mono text-[11px] font-semibold text-slate-500 dark:text-slate-400">04</span>
           </div>
           <div className="mt-auto pt-6">
-            <p className="text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
-              Rs. {committedPOValue.toLocaleString()}
+            <p className="text-[26px] xl:text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
+              {fmtPKR(committedPOValue)}
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-slate-400">
@@ -340,19 +349,19 @@ export const ExecutiveDashboard: React.FC = () => {
           title="Open Customers Directory & Receivables"
         >
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
               <DollarSign className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               Receivables
             </span>
-            <span className="font-mono text-[11px] font-semibold text-slate-300 dark:text-slate-600">05</span>
+            <span className="font-mono text-[11px] font-semibold text-slate-500 dark:text-slate-400">05</span>
           </div>
           <div className="mt-auto pt-6">
-            <p className="text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
-              Rs. {totalReceivables.toLocaleString()}
+            <p className="text-[26px] xl:text-[30px] leading-none font-bold font-display tracking-tighter text-slate-900 dark:text-white">
+              {fmtPKR(totalReceivables)}
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-slate-400">{customers.length} registered clients</span>
-              <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">Awaiting collection</span>
+              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">Awaiting collection</span>
             </div>
           </div>
         </div>
@@ -364,20 +373,20 @@ export const ExecutiveDashboard: React.FC = () => {
           tabIndex={0}
           onClick={() => setActiveTab('copilot')}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setActiveTab('copilot')}
-          className="surface-card surface-card-hover active:scale-[0.99] group p-6 cursor-pointer flex flex-col bg-gradient-to-br from-indigo-50/90 via-white to-white dark:from-indigo-950/30 dark:via-[#14151b] dark:to-[#14151b]"
+          className="surface-card surface-card-hover active:scale-[0.99] group p-6 cursor-pointer flex flex-col lg:col-span-6 lg:flex-row lg:items-center lg:gap-8 bg-gradient-to-br from-indigo-50/90 via-white to-white dark:from-indigo-950/30 dark:via-[#14151b] dark:to-[#14151b]"
           title="Open the grounded AI Copilot"
         >
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-500/90 dark:text-indigo-400/90">
+            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-600 dark:text-indigo-400">
               <Bot className="w-3.5 h-3.5" />
               AI Copilot
             </span>
-            <span className="font-mono text-[11px] font-semibold text-indigo-300 dark:text-indigo-700">06</span>
+            <span className="font-mono text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">06</span>
           </div>
-          <div className="mt-auto pt-6">
+          <div className="mt-auto pt-6 lg:pt-0 lg:flex-1 lg:mt-0">
             <CopilotTypewriter />
-            <div className="mt-4 pt-4 border-t border-indigo-100 dark:border-white/5 flex items-center justify-between text-xs">
-              <span className="text-indigo-500/80 dark:text-indigo-400/70">Cited answers, never invented</span>
+            <div className="mt-4 pt-4 border-t border-indigo-100 dark:border-white/5 flex items-center justify-between text-xs lg:mt-0 lg:border-t-0 lg:border-l lg:border-l-indigo-100 dark:lg:border-l-white/10 lg:pl-8 lg:shrink-0">
+              <span className="text-indigo-600 dark:text-indigo-300">Cited answers, never invented</span>
               <span className={viewLink}>Ask now <ChevronRight className="w-3 h-3" /></span>
             </div>
           </div>
@@ -456,7 +465,7 @@ export const ExecutiveDashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5">
-                  <span className="chip bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                  <span className="chip bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
                     Optimal
                   </span>
                   <button
@@ -584,7 +593,7 @@ export const ExecutiveDashboard: React.FC = () => {
                     Rs. {(so.totalAmount ?? 0).toLocaleString()}
                   </td>
                   <td className="py-2.5 px-3 text-center">
-                    <span className="chip bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                    <span className="chip bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
                       <FileCheck2 className="w-3 h-3" /> Annex-C Ready
                     </span>
                   </td>

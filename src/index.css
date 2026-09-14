@@ -194,19 +194,20 @@
     line-height: 1.1;
   }
 
-  /* Card footer link — revealed on group hover (quiet chrome) */
+  /* Card footer link — revealed on group hover (quiet chrome).
+   Resting state passes WCAG AA on both themes (indigo-700 / indigo-300). */
   .viewlink {
     display: inline-flex;
     align-items: center;
     gap: 0.125rem;
     font-size: 0.6875rem;
     font-weight: 600;
-    color: #4f46e5;
-    opacity: 0.65;
+    color: #4338ca;
+    opacity: 0.9;
     transform: translateX(-2px);
     transition: opacity 0.2s ease, transform 0.2s ease;
   }
-  .dark .viewlink { color: #818cf8; }
+  .dark .viewlink { color: #a5b4fc; }
   .group:hover .viewlink { opacity: 1; transform: translateX(0); }
   @media (prefers-reduced-motion: reduce) {
     .viewlink { transform: none; }

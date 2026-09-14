@@ -17,7 +17,7 @@ import {
 import { VoucherType, VoucherLineItem, PaymentMode } from '../../types';
 
 export const CashbookCreateModal: React.FC = () => {
-  const { activeModal, closeModal, createVoucherDirect, accounts, currentUser } = useApp();
+  const { activeModal, closeModal, createVoucherDirect, accounts, currentUser, suppliers, customers } = useApp();
 
   const [voucherType, setVoucherType] = useState<VoucherType>('CPV');
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('cash');
@@ -27,16 +27,17 @@ export const CashbookCreateModal: React.FC = () => {
   const [description, setDescription] = useState('');
   const [voucherDate, setVoucherDate] = useState(new Date().toISOString().slice(0, 10));
 
-  // Multi-entry line items
+  // Multi-entry line items (party = saved customer/supplier this line settles with)
   const [lines, setLines] = useState<Array<{
     id: string;
     accountId: string;
     description: string;
     debit: number | '';
     credit: number | '';
+    party?: string;
   }>>([
-    { id: 'line_1', accountId: '', description: '', debit: 15000, credit: 0 },
-    { id: 'line_2', accountId: '', description: '', debit: 0, credit: 15000 }
+    { id: 'line_1', accountId: '', description: '', debit: 15000, credit: 0, party: '' },
+    { id: 'line_2', accountId: '', description: '', debit: 0, credit: 15000, party: '' }
   ]);
 
   const [error, setError] = useState('');
@@ -186,16 +187,30 @@ export const CashbookCreateModal: React.FC = () => {
       return;
     }
 
+    // Party-aware category: a selected supplier party marks supplier_payment,
+    // a customer party marks customer_payment (drives ledger reporting).
+    const partyLine = lines.find(l => l.party);
+    const partyIsSupplier = partyLine ? suppliers.some(s => s.name === partyLine.party) : false;
+    const partyIsCustomer = partyLine ? customers.some(c => c.name === partyLine.party) : false;
+    const resolvedCategory = partyIsSupplier
+      ? 'supplier_payment'
+      : partyIsCustomer
+        ? 'customer_payment'
+        : undefined;
+
     const selectedBank = accounts.find(a => a.id === bankAccountId);
 
     const voucherLineItems: VoucherLineItem[] = lines.map(l => {
       const acc = accounts.find(a => a.id === l.accountId);
+      const narrated = l.party
+        ? `${l.party} — ${l.description.trim() || `${voucherType} settlement`} `
+        : l.description;
       return {
         id: l.id,
         accountId: l.accountId,
         accountCode: acc?.code || '',
         accountName: acc?.name || 'Unknown Account',
-        description: l.description.trim() || description.trim() || `${voucherType} Entry`,
+        description: narrated.trim() || description.trim() || `${voucherType} Entry`,
         debit: Number(l.debit) || 0,
         credit: Number(l.credit) || 0
       };
@@ -211,6 +226,7 @@ export const CashbookCreateModal: React.FC = () => {
       description: description.trim() || `${voucherType} Voucher - ${lines[0]?.description || 'Multi-entry'}`,
       voucherDate,
       amount: totalDebit,
+      category: resolvedCategory,
       entries: voucherLineItems,
       preparedBy: currentUser?.name || 'Managing Director'
     });
@@ -367,10 +383,11 @@ export const CashbookCreateModal: React.FC = () => {
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="p-2.5 pl-3 w-48 sm:w-56">Account Head (CoA)</th>
+                    <th className="p-2.5 pl-3 w-44 sm:w-52">Account Head (CoA)</th>
+                    <th className="p-2.5 w-40 sm:w-48">Party (Customer / Supplier)</th>
                     <th className="p-2.5">Item Narration</th>
-                    <th className="p-2.5 text-right w-28 sm:w-32">Debit (PKR)</th>
-                    <th className="p-2.5 text-right w-28 sm:w-32">Credit (PKR)</th>
+                    <th className="p-2.5 text-right w-24 sm:w-28">Debit (PKR)</th>
+                    <th className="p-2.5 text-right w-24 sm:w-28">Credit (PKR)</th>
                     <th className="p-2.5 text-center w-10"></th>
                   </tr>
                 </thead>
@@ -389,6 +406,30 @@ export const CashbookCreateModal: React.FC = () => {
                               {acc.code} - {acc.name} ({acc.category})
                             </option>
                           ))}
+                        </select>
+                      </td>
+                      <td className="p-2">
+                        <select
+                          value={(line as any).party || ''}
+                          onChange={(e) => handleLineChange(line.id, 'party', e.target.value)}
+                          className="w-full px-2 py-1.5 text-xs field-input outline-none font-semibold"
+                          title="Pick a saved customer or supplier — their name is stamped into the voucher narration"
+                        >
+                          <option value="">General / No party…</option>
+                          {customers.length > 0 && (
+                            <optgroup label="Customers & Mills">
+                              {customers.map((c) => (
+                                <option key={c.id} value={c.name}>{c.name}{c.city ? ` — ${c.city}` : ''}</option>
+                              ))}
+                            </optgroup>
+                          )}
+                          {suppliers.length > 0 && (
+                            <optgroup label="Suppliers & Vendors">
+                              {suppliers.map((s) => (
+                                <option key={s.id} value={s.name}>{s.name}{s.city ? ` — ${s.city}` : ''}</option>
+                              ))}
+                            </optgroup>
+                          )}
                         </select>
                       </td>
                       <td className="p-2">
