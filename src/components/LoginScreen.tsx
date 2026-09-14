@@ -137,7 +137,7 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100 dark:bg-slate-950 overflow-y-auto transition-colors duration-200">
+    <main className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100 dark:bg-slate-950 overflow-y-auto transition-colors duration-200">
       {/* Theme Toggle in Top Right */}
       <button
         type="button"
@@ -241,7 +241,7 @@ export const LoginScreen: React.FC = () => {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="name@company.com"
-                className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium transition-all"
+                className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium transition-all"
               />
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
@@ -261,7 +261,7 @@ export const LoginScreen: React.FC = () => {
                     setError(null);
                     setSuccessMsg(null);
                   }}
-                  className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                  className="text-[11px] py-1.5 -my-1.5 px-1 text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                 >
                   Forgot password?
                 </button>
@@ -274,14 +274,15 @@ export const LoginScreen: React.FC = () => {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium transition-all"
+                  className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium transition-all"
                 />
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(prev => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                   title={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -298,7 +299,7 @@ export const LoginScreen: React.FC = () => {
                   id="checkbox-remember-me"
                   checked={rememberMe}
                   onChange={e => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                 />
                 <span>Remember this device</span>
               </label>
@@ -349,11 +350,11 @@ export const LoginScreen: React.FC = () => {
           </div>
         )}
 
-        <div className="pt-2 text-center text-[11px] text-slate-400 dark:text-slate-500">
+        <div className="pt-2 text-center text-[11px] text-slate-500 dark:text-slate-400">
           <span>Enterprise Access Only. Accounts are provisioned by Super Administrators.</span>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 export default LoginScreen;
