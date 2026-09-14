@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "PakERP Cloud Suite — Database Data Flow",
+    "output": "docs/pakerp-database-map.html",
+    "viewBox": [1080, 560],
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "commerce-path", "label": "Commerce path", "focus": ["suppliers", "purchase_orders", "products", "sales_orders", "customers"], "note": "Procurement feeds stock; stock ships through GST invoices to customers." },
+      { "id": "treasury-path", "label": "Treasury path", "focus": ["sales_orders", "cashbook_entries", "chart_of_accounts", "inventory_movements"], "note": "Every commercial event posts money and stock movements." },
+      { "id": "governance", "label": "Identity & audit", "focus": ["organizations", "profiles", "app_settings", "chart_of_accounts"], "note": "Org, RBAC, branding, and the chart of accounts frame the ledger." }
+    ]
+  },
+  "stages": [
+    { "label": "Identity" },
+    { "label": "Procurement" },
+    { "label": "Stock" },
+    { "label": "Commercial" },
+    { "label": "Ledger" }
+  ],
+  "nodes": [
+    { "id": "organizations", "type": "security", "label": "organizations", "sublabel": "tenant root", "stage": 0, "row": 0, "tag": "RLS root" },
+    { "id": "profiles", "type": "security", "label": "profiles", "sublabel": "users + RBAC", "stage": 0, "row": 2, "tag": "auth" },
+    { "id": "app_settings", "type": "security", "label": "app_settings", "sublabel": "branding + config", "stage": 0, "row": 1, "tag": "org-scoped" },
+    { "id": "suppliers", "type": "frontend", "label": "suppliers", "sublabel": "mills & vendors", "stage": 1, "row": 0, "tag": "master" },
+    { "id": "purchase_orders", "type": "messagebus", "label": "purchase_orders", "sublabel": "GST-inclusive POs", "stage": 1, "row": 1, "tag": "committed" },
+    { "id": "products", "type": "database", "label": "products", "sublabel": "raw materials + stock", "stage": 2, "row": 1, "tag": "SKU master" },
+    { "id": "inventory_movements", "type": "database", "label": "inventory_movements", "sublabel": "immutable audit trail", "stage": 2, "row": 2, "tag": "append-only" },
+    { "id": "customers", "type": "frontend", "label": "customers", "sublabel": "buyers & mills", "stage": 3, "row": 0, "tag": "master" },
+    { "id": "sales_orders", "type": "messagebus", "label": "sales_orders", "sublabel": "18% GST invoices", "stage": 3, "row": 1, "tag": "Annex-C" },
+    { "id": "cashbook_entries", "type": "database", "label": "cashbook_entries", "sublabel": "CRV / CPV / JV vouchers", "stage": 4, "row": 1, "tag": "double-entry" },
+    { "id": "chart_of_accounts", "type": "database", "label": "chart_of_accounts", "sublabel": "GL account tree", "stage": 4, "row": 0, "tag": "GL" }
+  ],
+  "flows": [
+    { "id": "org-profiles", "from": "organizations", "to": "profiles", "label": "membership", "classification": "org-scoped", "variant": "security", "via": [[100, 220], [186, 220], [186, 356]], "labelAt": [204, 246] },
+    { "id": "org-settings", "from": "organizations", "to": "app_settings", "label": "branding", "classification": "org-scoped", "variant": "security", "route": "straight", "labelAt": [420, 128] },
+    { "id": "po-supplier", "from": "suppliers", "to": "purchase_orders", "label": "vendor commitments", "classification": "procurement", "variant": "default", "route": "straight", "labelAt": [400, 200] },
+    { "id": "po-stock", "from": "purchase_orders", "to": "products", "label": "goods receipt", "classification": "stock in", "variant": "emphasis", "route": "straight", "labelAt": [604, 314] },
+    { "id": "movement-audit", "from": "products", "to": "inventory_movements", "label": "every delta", "classification": "append-only", "variant": "dashed", "route": "straight", "labelAt": [620, 390] },
+    { "id": "so-customer", "from": "customers", "to": "sales_orders", "label": "orders", "classification": "commercial", "variant": "default", "route": "straight", "labelAt": [800, 200] },
+    { "id": "so-stock", "from": "products", "to": "sales_orders", "label": "stock out on dispatch", "classification": "stock out", "variant": "emphasis", "route": "straight", "labelAt": [700, 314] },
+    { "id": "so-cash", "from": "sales_orders", "to": "cashbook_entries", "label": "invoice posting", "classification": "double-entry", "variant": "emphasis", "route": "straight", "labelAt": [985, 318] },
+    { "id": "coa-cash", "from": "chart_of_accounts", "to": "cashbook_entries", "label": "account codes", "classification": "GL", "variant": "default", "route": "straight", "labelAt": [940, 200] },
+    { "id": "expense-cash", "from": "purchase_orders", "to": "cashbook_entries", "label": "payables", "classification": "double-entry", "variant": "dashed", "via": [[371, 462], [904, 462]], "labelAt": [600, 450] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Commerce Spine",
+      "items": [
+        "Suppliers commit through purchase orders; receipts raise product stock",
+        "Dispatch decrements stock and issues an 18% GST invoice per sale",
+        "Customers and suppliers are soft-referenced (ON DELETE SET NULL)"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Double-Entry Core",
+      "items": [
+        "Every commercial event lands in cashbook_entries as CRV, CPV, or JV",
+        "chart_of_accounts supplies the GL coding for each voucher leg",
+        "inventory_movements preserves an append-only audit of stock deltas"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Governance Boundary",
+      "items": [
+        "organizations is the tenant root; profiles carry RBAC roles",
+        "RLS keys every table to the organization — anon writes are denied",
+        "app_settings stores branding, Groq model config, and org preferences"
+      ]
+    }
+  ]
+}
