@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "PakERP Cloud Suite — Groq AI Pipeline",
+    "output": "docs/pakerp-ai-pipeline-map.html",
+    "viewBox": [1080, 560],
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "voice-path", "label": "Voice path", "focus": ["mic", "transcribe-proxy", "whisper", "supervisor", "chat-proxy", "llm", "tts"], "note": "Speech becomes text, routes through the supervisor, and comes back as spoken language." },
+      { "id": "chat-path", "label": "Chat path", "focus": ["chat-ui", "supervisor", "chat-proxy", "llm"], "note": "Typed prompts ride the same server-held-key proxy into the LLM." },
+      { "id": "governed-actions", "label": "Governed actions", "focus": ["supervisor", "business-tools", "confirmation", "rag"], "note": "Deterministic tools propose; the human confirms before any write." }
+    ]
+  },
+  "stages": [
+    { "label": "Client" },
+    { "label": "Key Vault" },
+    { "label": "Groq Models" },
+    { "label": "Reasoning" },
+    { "label": "Commit" }
+  ],
+  "nodes": [
+    { "id": "mic", "type": "frontend", "label": "MediaRecorder", "sublabel": "Urdu / English mic", "stage": 0, "row": 0, "tag": "browser" },
+    { "id": "chat-ui", "type": "frontend", "label": "Copilot Chat", "sublabel": "typed prompts", "stage": 0, "row": 2, "tag": "browser" },
+    { "id": "transcribe-proxy", "type": "security", "label": "Transcribe API", "sublabel": "20MB + MIME gate", "stage": 1, "row": 0, "tag": "key here" },
+    { "id": "chat-proxy", "type": "security", "label": "/api/groq/chat", "sublabel": "64KB + model allowlist", "stage": 1, "row": 2, "tag": "key here" },
+    { "id": "whisper", "type": "cloud", "label": "Whisper large-v3", "sublabel": "STT, auto language", "stage": 2, "row": 0, "tag": "Groq" },
+    { "id": "llm", "type": "cloud", "label": "gpt-oss-120b", "sublabel": "chat completions", "stage": 2, "row": 2, "tag": "Groq" },
+    { "id": "supervisor", "type": "messagebus", "label": "Agent Supervisor", "sublabel": "intent + domain router", "stage": 3, "row": 1, "tag": "deterministic" },
+    { "id": "rag", "type": "database", "label": "RAG Retriever", "sublabel": "FBR corpus + citations", "stage": 3, "row": 0, "tag": "grounded" },
+    { "id": "business-tools", "type": "database", "label": "Business Tools", "sublabel": "stock, cash, summary", "stage": 3, "row": 2, "tag": "read-only" },
+    { "id": "confirmation", "type": "security", "label": "Confirm Card", "sublabel": "human-in-the-loop", "stage": 4, "row": 1, "tag": "no silent writes" },
+    { "id": "tts", "type": "frontend", "label": "SpeechSynthesis", "sublabel": "local, no network", "stage": 4, "row": 0, "tag": "browser" }
+  ],
+  "flows": [
+    { "id": "audio-upload", "from": "mic", "to": "transcribe-proxy", "label": "audio blob", "classification": "multipart", "variant": "default", "route": "straight", "labelAt": [230, 128] },
+    { "id": "prompt-upload", "from": "chat-ui", "to": "chat-proxy", "label": "messages JSON", "classification": "same-origin", "variant": "default", "route": "straight", "labelAt": [240, 428] },
+    { "id": "stt-call", "from": "transcribe-proxy", "to": "whisper", "label": "Bearer key", "classification": "server-held", "variant": "security", "route": "straight", "labelAt": [420, 128] },
+    { "id": "llm-call", "from": "chat-proxy", "to": "llm", "label": "Bearer key", "classification": "server-held", "variant": "security", "route": "straight", "labelAt": [420, 400] },
+    { "id": "transcript-back", "from": "whisper", "to": "supervisor", "label": "transcript", "classification": "text", "variant": "emphasis", "via": [[640, 157], [640, 271]], "labelAt": [640, 196] },
+    { "id": "llm-back", "from": "llm", "to": "supervisor", "label": "completion", "classification": "text", "variant": "emphasis", "via": [[640, 385], [640, 271]], "labelAt": [560, 330] },
+    { "id": "rag-lookup", "from": "supervisor", "to": "rag", "label": "tax rule query", "classification": "cited answer", "variant": "dashed", "route": "straight", "labelAt": [760, 200] },
+    { "id": "tool-lookup", "from": "supervisor", "to": "business-tools", "label": "state queries", "classification": "live ledger", "variant": "dashed", "route": "straight", "labelAt": [700, 430] },
+    { "id": "propose", "from": "supervisor", "to": "confirmation", "label": "action proposal", "classification": "structured", "variant": "emphasis", "route": "straight", "labelAt": [860, 264] },
+    { "id": "speak-back", "from": "confirmation", "to": "tts", "label": "spoken reply", "classification": "local TTS", "variant": "default", "route": "straight", "labelAt": [985, 200] }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Keys Never Leave the Server",
+      "items": [
+        "Browser talks only to same-origin /api/groq/* functions",
+        "GROQ_API_KEY is read exclusively inside Vercel serverless functions",
+        "Model allowlist and payload caps stop client-side abuse"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Deterministic Core",
+      "items": [
+        "The supervisor routes intent without free-form generation",
+        "Stock, cash, and summary answers come from typed business tools",
+        "Tax answers cite FBR document and section, never memory"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Human-in-the-Loop",
+      "items": [
+        "Writes are proposed as structured confirmation cards",
+        "Nothing commits to the ledger until a person confirms",
+        "Spoken replies are rendered locally — no third-party TTS"
+      ]
+    }
+  ]
+}
