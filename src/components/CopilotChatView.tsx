@@ -8,15 +8,10 @@ import {
   User,
   ShieldAlert,
   CheckCircle,
-  XCircle,
-  Clock,
   Sparkles,
-  Layers,
-  FileCheck,
-  AlertTriangle,
-  ArrowRight,
+  FileText,
+  BarChart3,
   Receipt,
-  ShoppingCart,
   Package,
   Scale,
   RefreshCw
@@ -56,11 +51,11 @@ export const CopilotChatView: React.FC = () => {
   const renderAgentBadge = (domain?: AgentDomain) => {
     if (!domain) return null;
     const config: Record<AgentDomain, { label: string; bg: string; text: string; border: string }> = {
-      supervisor: { label: 'Supervisor Agent', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
-      inventory: { label: 'Inventory Agent', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-      purchase: { label: 'Purchase Agent', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-      accounting: { label: 'Accounting Agent', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
-      compliance: { label: 'Compliance Agent (FBR RAG)', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' }
+      supervisor: { label: 'Supervisor Agent', bg: 'bg-indigo-50 dark:bg-indigo-950/60', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800/60' },
+      inventory: { label: 'Inventory Agent', bg: 'bg-emerald-50 dark:bg-emerald-950/60', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800/60' },
+      purchase: { label: 'Purchase Agent', bg: 'bg-amber-50 dark:bg-amber-950/60', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800/60' },
+      accounting: { label: 'Accounting Agent', bg: 'bg-indigo-50 dark:bg-indigo-950/60', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800/60' },
+      compliance: { label: 'Compliance Agent (FBR RAG)', bg: 'bg-indigo-50 dark:bg-indigo-950/60', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800/60' }
     };
     const c = config[domain] || config.supervisor;
     return (
@@ -72,16 +67,16 @@ export const CopilotChatView: React.FC = () => {
   };
 
   const demoScripts = [
-    { label: '1. Voice Stock Query', prompt: 'Kitna cotton yarn bacha hai?', urdu: 'کتنا کاٹن یارن بچا ہے؟', icon: '🎙️' },
-    { label: '2. Purchase Order', prompt: 'ColorChem se 100 kilo blue dye ka PO bana do', urdu: 'ڈائی کا پرچیز آرڈر بنا دو', icon: '📝' },
-    { label: '3. Record Sale (18% GST)', prompt: 'Al-Rehman ko 50 kilo cotton yarn sell karo', urdu: 'الرحمٰن کو 50 کلو یارن سیل کرو', icon: '🧾' },
-    { label: '4. Business Summary', prompt: 'Aaj ka complete business summary do', urdu: 'آج کا مکمل بزنس سمری دو', icon: '📊' },
-    { label: '5. Compliance RAG', prompt: 'Is transaction ka applicable tax rule kya hai?', urdu: 'ایف بی آر ٹیکس کا کیا قانون ہے؟', icon: '⚖️' },
-    { label: '6. Receive Goods (PO-1001)', prompt: 'Receive goods for PO-1001', urdu: 'پی او کے گڈز ریسیو کرو', icon: '📦' }
+    { label: '1. Voice Stock Query', prompt: 'Kitna cotton yarn bacha hai?', urdu: 'کتنا کاٹن یارن بچا ہے؟', icon: Mic },
+    { label: '2. Purchase Order', prompt: 'ColorChem se 100 kilo blue dye ka PO bana do', urdu: 'ڈائی کا پرچیز آرڈر بنا دو', icon: FileText },
+    { label: '3. Record Sale (18% GST)', prompt: 'Al-Rehman ko 50 kilo cotton yarn sell karo', urdu: 'الرحمٰن کو 50 کلو یارن سیل کرو', icon: Receipt },
+    { label: '4. Business Summary', prompt: 'Aaj ka complete business summary do', urdu: 'آج کا مکمل بزنس سمری دو', icon: BarChart3 },
+    { label: '5. Compliance RAG', prompt: 'Is transaction ka applicable tax rule kya hai?', urdu: 'ایف بی آر ٹیکس کا کیا قانون ہے؟', icon: Scale },
+    { label: '6. Receive Goods (PO-1001)', prompt: 'Receive goods for PO-1001', urdu: 'پی او کے گڈز ریسیو کرو', icon: Package }
   ];
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-100/70 overflow-hidden relative">
+    <div className="flex-1 flex flex-col h-full bg-slate-100/70 dark:bg-slate-950/50 overflow-hidden relative">
       {/* Interactive Demo Scripts Bar (Directly matching PRD Section 38 Demo Script) */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center gap-2 overflow-x-auto shrink-0 shadow-2xs">
         <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
@@ -94,9 +89,9 @@ export const CopilotChatView: React.FC = () => {
               key={idx}
               type="button"
               onClick={() => triggerDemoPrompt(demo.prompt)}
-              className="px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-md text-xs font-semibold text-slate-700 hover:text-indigo-800 transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800/70 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700 rounded-md text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer shadow-2xs"
             >
-              <span>{demo.icon}</span>
+              <demo.icon className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               <span>{demo.label}</span>
             </button>
           ))}
@@ -132,14 +127,14 @@ export const CopilotChatView: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-2">
                     {renderAgentBadge(msg.routedAgent)}
                     {msg.toolExecution && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                         <span className="text-indigo-600 font-bold">tool:</span>
                         <span>{msg.toolExecution.toolName}</span>
                         <span className="text-slate-400">({msg.toolExecution.executionMs}ms)</span>
                       </span>
                     )}
                     {msg.inputMethod === 'voice' && (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-medium border border-indigo-100">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded font-medium border border-indigo-100 dark:border-indigo-800/60">
                         <Mic className="w-2.5 h-2.5" /> Voice Input
                       </span>
                     )}
@@ -151,7 +146,7 @@ export const CopilotChatView: React.FC = () => {
                   className={`p-4 rounded-xl text-sm leading-relaxed shadow-xs ${
                     isUser
                       ? 'bg-indigo-600 text-white font-medium rounded-tr-none'
-                      : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
+                      : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-none'
                   }`}
                 >
                   <div className="whitespace-pre-line">{msg.content}</div>
@@ -159,21 +154,21 @@ export const CopilotChatView: React.FC = () => {
 
                 {/* Confirmation Interactive Card (PRD Section 14) */}
                 {msg.confirmationRequired && msg.confirmationRequired.status === 'pending' && (
-                  <div className="mt-3 bg-amber-50/90 border-2 border-amber-300 rounded-xl p-4 shadow-sm animate-fadeIn">
-                    <div className="flex items-center gap-2 text-amber-900 font-bold text-sm mb-1.5">
-                      <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                  <div className="mt-3 bg-amber-50/90 dark:bg-amber-950/50 border-2 border-amber-300 dark:border-amber-700/60 rounded-xl p-4 shadow-sm animate-fadeIn">
+                    <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-sm mb-1.5">
+                      <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                       <span>{msg.confirmationRequired.title}</span>
                     </div>
-                    <p className="text-xs text-amber-800 mb-3">
+                    <p className="text-xs text-amber-800 dark:text-amber-300 mb-3">
                       {msg.confirmationRequired.description}
                     </p>
 
                     {/* Breakdown Details */}
-                    <div className="bg-white/80 border border-amber-200 rounded-lg p-2.5 mb-3 text-xs space-y-1 font-mono text-slate-700">
+                    <div className="bg-white/80 dark:bg-slate-900/60 border border-amber-200 dark:border-amber-800/40 rounded-lg p-2.5 mb-3 text-xs space-y-1 font-mono text-slate-700 dark:text-slate-300">
                       {Object.entries(msg.confirmationRequired.details).map(([key, value]) => (
-                        <div key={key} className="flex justify-between items-center py-0.5 border-b border-amber-100 last:border-b-0">
-                          <span className="text-slate-500 font-sans text-[11px] capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
-                          <span className="font-semibold text-slate-900">{typeof value === 'number' ? `Rs. ${value.toLocaleString()}` : String(value)}</span>
+                        <div key={key} className="flex justify-between items-center py-0.5 border-b border-amber-100 dark:border-amber-900/50 last:border-b-0">
+                          <span className="text-slate-500 dark:text-slate-400 font-sans text-[11px] capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">{typeof value === 'number' ? `Rs. ${value.toLocaleString()}` : String(value)}</span>
                         </div>
                       ))}
                     </div>
@@ -182,7 +177,7 @@ export const CopilotChatView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => cancelAction(msg.confirmationRequired!.id)}
-                        className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
+                        className="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60 rounded-lg transition-colors cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -262,7 +257,7 @@ export const CopilotChatView: React.FC = () => {
             className={`p-2.5 rounded-xl transition-all cursor-pointer shrink-0 border ${
               isRecording
                 ? 'bg-red-600 text-white border-red-700 animate-pulse'
-                : 'bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border-slate-200'
+                : 'bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-700 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-300 border-slate-200 dark:border-slate-700'
             }`}
           >
             {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -276,7 +271,7 @@ export const CopilotChatView: React.FC = () => {
               onChange={(e) => setInputVal(e.target.value)}
               placeholder='Ask in English or Roman Urdu: "Kitna cotton yarn bacha hai?" or "Al-Rehman ko 50 kilo sell karo"...'
               disabled={isProcessing}
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-300 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium"
+              className="w-full bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/60 dark:hover:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium"
             />
           </div>
 

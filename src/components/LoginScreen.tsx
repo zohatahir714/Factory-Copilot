@@ -21,6 +21,9 @@ import {
   supabaseResetPassword,
   checkSupabaseHealth
 } from '../supabaseClient';
+import { SESSION_IDLE_TIMEOUT_MS } from '../context/AppContext';
+
+const IDLE_MINUTES = Math.round(SESSION_IDLE_TIMEOUT_MS / 60000);
 
 type AuthMode = 'signin' | 'forgot_password';
 
@@ -207,7 +210,7 @@ export const LoginScreen: React.FC = () => {
             <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
             <div className="flex-1">
               <span className="font-semibold block">Session expired</span>
-              <span>You were signed out after 15 minutes of inactivity. Please sign in again.</span>
+              <span>You were signed out after {IDLE_MINUTES} {IDLE_MINUTES === 1 ? 'minute' : 'minutes'} of inactivity. Please sign in again.</span>
             </div>
           </div>
         )}

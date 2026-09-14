@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { toolGetBusinessSummary } from '../lib/businessTools';
 import { MonthlyTrendsChart } from './MonthlyTrendsChart';
+import { FirstRunGuide } from './FirstRunGuide';
 import {
   TrendingUp,
   Wallet,
@@ -180,6 +181,9 @@ export const ExecutiveDashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* First-run setup guide — renders only while the ledger is empty */}
+      <FirstRunGuide />
 
       {/* KPI grid: five operational entry points + the AI Copilot card.
           Interaction is indigo (one accent); color elsewhere is status only. */}

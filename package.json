@@ -3,6 +3,11 @@
   "private": true,
   "version": "3.0.0",
   "type": "module",
+  "allowScripts": {
+    "esbuild": "node install.js",
+    "protobufjs": "node scripts/postinstall",
+    "@google/genai": "echo 'preinstall: no-op'"
+  },
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "vite build",
