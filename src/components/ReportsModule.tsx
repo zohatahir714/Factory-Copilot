@@ -189,7 +189,7 @@ export const ReportsModule: React.FC = () => {
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 surface-card p-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center font-bold">
             <BarChart3 className="w-5 h-5" />
@@ -273,9 +273,9 @@ export const ReportsModule: React.FC = () => {
       </div>
 
       {/* ENHANCED DATE PICKER & FILTER STRIP (Sticky & Accessible) */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+      <div className="surface-card p-5 space-y-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
             <Calendar className="w-4 h-4 text-emerald-600" />
             <span>Enhanced Period Filter:</span>
           </div>
@@ -308,7 +308,7 @@ export const ReportsModule: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
           {reportTab === 'cashbook' ? (
             <div className="sm:col-span-2">
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              <label className="field-label">
                 Select Cashbook Audit Date
               </label>
               <input
@@ -324,7 +324,7 @@ export const ReportsModule: React.FC = () => {
           ) : (
             <>
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                <label className="field-label">
                   From Date
                 </label>
                 <input
@@ -339,7 +339,7 @@ export const ReportsModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                <label className="field-label">
                   To Date
                 </label>
                 <input
@@ -374,9 +374,9 @@ export const ReportsModule: React.FC = () => {
       {reportTab === 'gl' && (
         <div className="space-y-4">
           {/* GL Account Selector & Search Bar */}
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="surface-card p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="w-full sm:w-1/2">
-              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
+              <label className="field-label">
                 Select Chart of Accounts Head
               </label>
               <select
@@ -393,7 +393,7 @@ export const ReportsModule: React.FC = () => {
             </div>
 
             <div className="w-full sm:w-1/2">
-              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
+              <label className="field-label">
                 Search Account Head
               </label>
               <div className="relative">
@@ -447,7 +447,7 @@ export const ReportsModule: React.FC = () => {
           )}
 
           {/* GL Ledger Statement Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
@@ -532,7 +532,7 @@ export const ReportsModule: React.FC = () => {
         <div className="space-y-4">
           {/* Summary KPI Cards: Opening, Inflow, Outflow, Closing */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div className="bg-slate-50/80 dark:bg-white/[0.04] p-4 rounded-2xl">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Opening Balance ({selectedSingleDate})
               </span>
@@ -584,7 +584,7 @@ export const ReportsModule: React.FC = () => {
           {/* Detailed Receipts & Payments for Date */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Receipts Column */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border-b border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
                 <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
                   Cash & Bank Receipts (Inflow)
@@ -619,7 +619,7 @@ export const ReportsModule: React.FC = () => {
             </div>
 
             {/* Payments Column */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
               <div className="p-3 bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-800 flex items-center justify-between">
                 <span className="text-xs font-bold text-red-800 dark:text-red-300 uppercase tracking-wider">
                   Cash & Bank Disbursements (Outflow)
@@ -686,7 +686,7 @@ export const ReportsModule: React.FC = () => {
 
           {/* 3.1 TRIAL BALANCE */}
           {financialSubTab === 'tb' && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
               <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -761,7 +761,7 @@ export const ReportsModule: React.FC = () => {
 
           {/* 3.2 PROFIT & LOSS */}
           {financialSubTab === 'pl' && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs max-w-3xl space-y-6">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs max-w-3xl space-y-6">
               <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   Statement of Profit or Loss
@@ -843,7 +843,7 @@ export const ReportsModule: React.FC = () => {
 
           {/* 3.3 BALANCE SHEET */}
           {financialSubTab === 'bs' && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs max-w-3xl space-y-6">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs max-w-3xl space-y-6">
               <div className="border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -933,7 +933,7 @@ export const ReportsModule: React.FC = () => {
 
           {/* 3.4 CASH FLOW STATEMENT */}
           {financialSubTab === 'cf' && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs max-w-3xl space-y-6">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs max-w-3xl space-y-6">
               <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   Cash Flow Statement
@@ -978,7 +978,7 @@ export const ReportsModule: React.FC = () => {
       {reportTab === 'sales_purchase' && (
         <div className="space-y-4">
           {/* Sub-controls: Sale vs Purchase, and By Person vs By Material */}
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="surface-card p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
             {/* Trade Mode Toggle */}
             <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
               <button
@@ -1036,7 +1036,7 @@ export const ReportsModule: React.FC = () => {
 
           {/* Trade KPI Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div className="bg-slate-50/80 dark:bg-white/[0.04] p-4 rounded-2xl">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Total {tradeType === 'sale' ? 'Sales Revenue' : 'Procurement Value'}
               </span>
@@ -1048,7 +1048,7 @@ export const ReportsModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div className="bg-slate-50/80 dark:bg-white/[0.04] p-4 rounded-2xl">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Total Tax / GST (18%)
               </span>
@@ -1060,7 +1060,7 @@ export const ReportsModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div className="bg-slate-50/80 dark:bg-white/[0.04] p-4 rounded-2xl">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Total Quantity Handled
               </span>
@@ -1074,7 +1074,7 @@ export const ReportsModule: React.FC = () => {
           </div>
 
           {/* Trade Breakdown Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">

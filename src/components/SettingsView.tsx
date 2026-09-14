@@ -304,7 +304,7 @@ export const SettingsView: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fadeIn">
       {/* Settings Header */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-xs">
             <Settings className="w-5 h-5" />
@@ -383,7 +383,7 @@ export const SettingsView: React.FC = () => {
       {activeTab === 'database' && (
         <div className="space-y-6">
           {/* Connection Status Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-5">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -452,7 +452,7 @@ export const SettingsView: React.FC = () => {
                     value={supabaseUrlInput}
                     onChange={e => setSupabaseUrlInput(e.target.value)}
                     placeholder="https://xyzcompany.supabase.co"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900"
+                    className="w-full px-3.5 py-2.5 field-input rounded-xl font-mono text-slate-900"
                   />
                   <span className="text-[11px] text-slate-400 mt-1 block">
                     Found in Supabase Dashboard &gt; Project Settings &gt; API
@@ -469,7 +469,7 @@ export const SettingsView: React.FC = () => {
                       value={supabaseKeyInput}
                       onChange={e => setSupabaseKeyInput(e.target.value)}
                       placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                      className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900"
+                      className="w-full pl-3.5 pr-10 py-2.5 field-input rounded-xl font-mono text-slate-900"
                     />
                     <button
                       type="button"
@@ -513,7 +513,7 @@ export const SettingsView: React.FC = () => {
           </div>
 
           {/* Migration SQL Schema Section */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -543,7 +543,7 @@ export const SettingsView: React.FC = () => {
           </div>
 
           {/* Backup & Snapshot Section */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs space-y-4">
             <div className="border-b border-slate-100 pb-4">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Download className="w-5 h-5 text-emerald-600" />
@@ -563,7 +563,7 @@ export const SettingsView: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleExportJSON}
-                  className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-3.5 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200 rounded-full font-bold flex items-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all"
                 >
                   <Download className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Export JSON</span>
@@ -586,7 +586,7 @@ export const SettingsView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => backupFileInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-3.5 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200 rounded-full font-bold flex items-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all"
                   >
                     <Upload className="w-3.5 h-3.5 text-indigo-600" />
                     <span>Upload JSON</span>
@@ -614,7 +614,7 @@ export const SettingsView: React.FC = () => {
 
           {/* Provision New User Form (Super Admin only) */}
           {isSuperAdmin && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-5">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs space-y-5">
               <div className="border-b border-slate-100 pb-4">
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <UserPlus className="w-5 h-5 text-indigo-600" />
@@ -638,7 +638,7 @@ export const SettingsView: React.FC = () => {
                         value={newUserName}
                         onChange={e => setNewUserName(e.target.value)}
                         placeholder="e.g. Tariq Mehmood"
-                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
+                        className="w-full pl-9 pr-3.5 py-2 field-input rounded-xl text-slate-900 font-medium"
                       />
                       <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     </div>
@@ -655,7 +655,7 @@ export const SettingsView: React.FC = () => {
                         value={newUserEmail}
                         onChange={e => setNewUserEmail(e.target.value)}
                         placeholder="tariq@company.com"
-                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
+                        className="w-full pl-9 pr-3.5 py-2 field-input rounded-xl text-slate-900 font-medium"
                       />
                       <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     </div>
@@ -668,7 +668,7 @@ export const SettingsView: React.FC = () => {
                     <select
                       value={newUserRole}
                       onChange={e => setNewUserRole(e.target.value as UserRole)}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-semibold cursor-pointer"
+                      className="w-full px-3 py-2 field-input rounded-xl text-slate-900 font-semibold cursor-pointer"
                     >
                       <option value="Super Admin">Super Admin (All Privileges & Settings)</option>
                       <option value="Admin">Admin (Operations, Procurement & Sales)</option>
@@ -688,7 +688,7 @@ export const SettingsView: React.FC = () => {
                         value={newUserPassword}
                         onChange={e => setNewUserPassword(e.target.value)}
                         placeholder="Default: Welcome123!"
-                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-mono"
+                        className="w-full pl-9 pr-3.5 py-2 field-input rounded-xl text-slate-900 font-mono"
                       />
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     </div>
@@ -704,7 +704,7 @@ export const SettingsView: React.FC = () => {
                         value={newUserPhone}
                         onChange={e => setNewUserPhone(e.target.value)}
                         placeholder="+92 300 1234567"
-                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
+                        className="w-full pl-9 pr-3.5 py-2 field-input rounded-xl text-slate-900 font-medium"
                       />
                       <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     </div>
@@ -730,7 +730,7 @@ export const SettingsView: React.FC = () => {
           )}
 
           {/* User Directory Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -799,7 +799,7 @@ export const SettingsView: React.FC = () => {
                             <select
                               value={editingRole}
                               onChange={e => setEditingRole(e.target.value as UserRole)}
-                              className="px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold outline-none focus:border-indigo-600"
+                              className="px-2.5 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500/30"
                             >
                               <option value="Super Admin">Super Admin</option>
                               <option value="Admin">Admin</option>
@@ -846,7 +846,7 @@ export const SettingsView: React.FC = () => {
                                   placeholder="New password (optional)"
                                   value={editingPassword}
                                   onChange={e => setEditingPassword(e.target.value)}
-                                  className="px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs outline-none w-36 font-mono"
+                                  className="px-2.5 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-xs outline-none w-36 font-mono"
                                 />
                                 <button
                                   type="button"
@@ -901,7 +901,7 @@ export const SettingsView: React.FC = () => {
           </div>
 
           {/* RBAC Reference Guide */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs space-y-4">
             <div className="border-b border-slate-100 pb-3">
               <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -951,7 +951,7 @@ export const SettingsView: React.FC = () => {
 
       {/* 3. COMPANY BRANDING & LOGO */}
       {activeTab === 'branding' && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs space-y-6">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-indigo-600" />
@@ -1016,7 +1016,7 @@ export const SettingsView: React.FC = () => {
                   required
                   value={brandForm.companyName}
                   onChange={e => setBrandForm(prev => ({ ...prev, companyName: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
+                  className="w-full px-3.5 py-2.5 field-input rounded-xl text-slate-900 font-medium"
                 />
               </div>
 
@@ -1026,7 +1026,7 @@ export const SettingsView: React.FC = () => {
                   type="text"
                   value={brandForm.tagline}
                   onChange={e => setBrandForm(prev => ({ ...prev, tagline: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
+                  className="w-full px-3.5 py-2.5 field-input rounded-xl text-slate-900 font-medium"
                 />
               </div>
 
@@ -1037,7 +1037,7 @@ export const SettingsView: React.FC = () => {
                   value={brandForm.ntnNumber}
                   onChange={e => setBrandForm(prev => ({ ...prev, ntnNumber: e.target.value }))}
                   placeholder="1234567-8"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900"
+                  className="w-full px-3.5 py-2.5 field-input rounded-xl font-mono text-slate-900"
                 />
               </div>
 
@@ -1048,7 +1048,7 @@ export const SettingsView: React.FC = () => {
                   value={brandForm.strnNumber}
                   onChange={e => setBrandForm(prev => ({ ...prev, strnNumber: e.target.value }))}
                   placeholder="03-00-1234-001-00"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900"
+                  className="w-full px-3.5 py-2.5 field-input rounded-xl font-mono text-slate-900"
                 />
               </div>
             </div>
@@ -1068,7 +1068,7 @@ export const SettingsView: React.FC = () => {
 
       {/* 4. GROQ AI & VOICE SETTINGS */}
       {activeTab === 'ai' && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs space-y-6">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Cpu className="w-5 h-5 text-indigo-600" />
@@ -1094,7 +1094,7 @@ export const SettingsView: React.FC = () => {
                 <select
                   value={selectedModel}
                   onChange={e => setSelectedModel(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-slate-900"
+                  className="w-full px-3.5 py-2.5 field-input rounded-xl font-semibold text-slate-900"
                 >
                   <option value="">Server Default — GPT-OSS 120B (Recommended)</option>
                   <option value="openai/gpt-oss-120b">GPT-OSS 120B (Highest Reasoning)</option>
@@ -1173,7 +1173,7 @@ export const SettingsView: React.FC = () => {
 
       {/* 5. ACTIVE USER SESSION */}
       {activeTab === 'account' && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs space-y-6">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <User className="w-5 h-5 text-indigo-600" />
@@ -1224,7 +1224,7 @@ export const SettingsView: React.FC = () => {
 
       {/* 6. FBR TAX DEFAULTS & FACTORY RESET */}
       {activeTab === 'tax' && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/90 p-6 shadow-xs space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs space-y-6">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-indigo-700" />

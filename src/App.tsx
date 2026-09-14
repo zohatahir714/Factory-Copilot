@@ -75,7 +75,7 @@ const MainLayout: React.FC = () => {
           <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
             <button
               onClick={() => openModal('voice')}
-              className="flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+              className="flex items-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
               title="Speak in Urdu or English"
             >
               <Mic className="w-5 h-5 group-hover:animate-bounce" />
@@ -87,7 +87,7 @@ const MainLayout: React.FC = () => {
               className="p-3 bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
               title="Open AI Copilot Terminal"
             >
-              <Bot className="w-5 h-5 text-blue-400" />
+              <Bot className="w-5 h-5 text-indigo-400" />
             </button>
           </div>
         )}
