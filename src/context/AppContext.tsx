@@ -1066,6 +1066,113 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
     if (update.customers) setCustomers(update.customers);
   };
 
+  /** Double-entry postings for the trade cycle. Sales invoices and purchase
+      orders are commercial documents — these wrappers convert them into real
+      GL vouchers so the General Ledger, Trial Balance, and P&L reflect them.
+      Accounts are matched by CoA code (1020 AR, 2001 AP, 1030/1040 inventory,
+      4001 revenue, 2010 GST payable, 5001 COGS). */
+  const buildTradeVoucher = (
+    opts: {
+      voucherType: VoucherType;
+      referenceId: string;
+      referenceType: string;
+      description: string;
+      amount: number;
+      lines: Array<{ code: string; debit: number; credit: number; narration: string }>; 
+    }
+  ): CashbookEntry | null => {
+    const entries: VoucherLineItem[] = [];
+    opts.lines.forEach((l, i) => {
+      const acc = accounts.find(a => a.code === l.code);
+      if (!acc) return;
+      entries.push({
+        id: `tl_${Date.now()}_${i}`,
+        accountId: acc.id,
+        accountCode: acc.code,
+        accountName: acc.name,
+        description: l.narration,
+        debit: l.debit,
+        credit: l.credit
+      });
+    });
+    // Require a balanced set with at least one resolvable account pair.
+    const deb = entries.reduce((s, e) => s + e.debit, 0);
+    const cred = entries.reduce((s, e) => s + e.credit, 0);
+    if (entries.length < 2 || deb !== cred || deb === 0) return null;
+    return {
+      id: `voucher_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      voucherNumber: opts.referenceId,
+      voucherType: opts.voucherType,
+      organizationId: organization.id,
+      type: opts.voucherType === 'CRV' ? 'inflow' : 'outflow',
+      paymentMode: 'journal',
+      amount: opts.amount,
+      category: opts.referenceType,
+      description: opts.description,
+      referenceId: opts.referenceId,
+      referenceType: opts.referenceType,
+      entries,
+      createdBy: currentUser?.name || 'System',
+      preparedBy: 'System (auto-posted)',
+      createdAt: new Date().toISOString()
+    };
+  };
+
+  /** Post a sales invoice to the GL: Dr AR / Cr Revenue + Cr GST; Dr COGS / Cr Inventory. */
+  const postSaleToLedger = (invoice: {
+    invoiceNumber: string;
+    customerName: string;
+    productName: string;
+    quantity: number;
+    subtotal: number;
+    taxAmount: number;
+    totalAmount: number;
+    costAmount: number;
+  }) => {
+    const lines: Array<{ code: string; debit: number; credit: number; narration: string }> = [
+      { code: '1020', debit: invoice.totalAmount, credit: 0, narration: `AR — ${invoice.customerName} on ${invoice.invoiceNumber}` },
+      { code: '4001', debit: 0, credit: invoice.subtotal, narration: `Sales revenue — ${invoice.productName}` },
+      { code: '2010', debit: 0, credit: invoice.taxAmount, narration: `GST output tax on ${invoice.invoiceNumber}` }
+    ];
+    if (invoice.costAmount > 0) {
+      lines.push(
+        { code: '5001', debit: invoice.costAmount, credit: 0, narration: `COGS — ${invoice.quantity} × ${invoice.productName}` },
+        { code: '1030', debit: 0, credit: invoice.costAmount, narration: `Inventory relieved for dispatch on ${invoice.invoiceNumber}` }
+      );
+    }
+    const voucher = buildTradeVoucher({
+      voucherType: 'JV',
+      referenceId: invoice.invoiceNumber,
+      referenceType: 'sale_invoice',
+      description: `Sales invoice ${invoice.invoiceNumber} — ${invoice.customerName} (${invoice.quantity} × ${invoice.productName})`,
+      amount: invoice.totalAmount,
+      lines
+    });
+    if (voucher) setCashbook(prev => [voucher, ...prev]);
+  };
+
+  /** Post a purchase order to the GL: Dr Inventory / Cr AP (on PO commitment). */
+  const postPurchaseToLedger = (po: {
+    poNumber: string;
+    supplierName: string;
+    productName: string;
+    quantity: number;
+    totalAmount: number;
+  }) => {
+    const voucher = buildTradeVoucher({
+      voucherType: 'JV',
+      referenceId: po.poNumber,
+      referenceType: 'purchase_order',
+      description: `Purchase order ${po.poNumber} — ${po.supplierName} (${po.quantity} × ${po.productName})`,
+      amount: po.totalAmount,
+      lines: [
+        { code: '1030', debit: po.totalAmount, credit: 0, narration: `Inventory received on ${po.poNumber}` },
+        { code: '2001', debit: 0, credit: po.totalAmount, narration: `AP — ${po.supplierName} on ${po.poNumber}` }
+      ]
+    });
+    if (voucher) setCashbook(prev => [voucher, ...prev]);
+  };
+
   // CRUD Operations Implementation
   const createProductDirect = (data: Omit<Product, 'id' | 'organizationId' | 'createdAt' | 'updatedAt'>) => {
     // Strict compliance rule: Inventory can only be added through an approved Purchase Order
@@ -1117,8 +1224,15 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       totalAmount
     });
     applyDatabaseUpdate(res.updatedState);
+    postPurchaseToLedger({
+      poNumber: res.newPo.poNumber,
+      supplierName: supplier.name,
+      productName: product.name,
+      quantity: data.quantity,
+      totalAmount
+    });
     closeModal();
-    addToast('success', 'Purchase Order Issued', `${res.newPo.poNumber} committed for Rs. ${res.newPo.totalAmount.toLocaleString()}`);
+    addToast('success', 'Purchase Order Issued', `${res.newPo.poNumber} committed for Rs. ${res.newPo.totalAmount.toLocaleString()} — posted to ledger.`);
   };
 
   const updatePurchaseOrder = (id: string, updated: Partial<PurchaseOrder>) => {
@@ -1172,8 +1286,18 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       totalAmount
     });
     applyDatabaseUpdate(res.updatedState);
+    postSaleToLedger({
+      invoiceNumber: res.newInvoice.invoiceNumber,
+      customerName: customer.name,
+      productName: product.name,
+      quantity: data.quantity,
+      subtotal,
+      taxAmount,
+      totalAmount,
+      costAmount: Math.round(unitPrice * data.quantity)
+    });
     closeModal();
-    addToast('success', `Sale Invoiced (${taxRate}% FBR Tax)`, `${res.newInvoice.invoiceNumber} recorded. Total: Rs. ${res.newInvoice.totalAmount.toLocaleString()}`);
+    addToast('success', `Sale Invoiced (${taxRate}% FBR Tax)`, `${res.newInvoice.invoiceNumber} recorded & posted to ledger. Total: Rs. ${res.newInvoice.totalAmount.toLocaleString()}`);
   };
 
   const updateSalesOrder = (id: string, updated: Partial<SalesOrder>) => {

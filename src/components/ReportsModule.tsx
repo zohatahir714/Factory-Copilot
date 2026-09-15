@@ -3,21 +3,15 @@ import { useApp } from '../context/AppContext';
 import {
   BarChart3,
   Calendar,
-  Search,
   Printer,
-  Download,
   BookOpen,
   Scale,
-  TrendingUp,
   FileSpreadsheet,
-  Users,
-  Package,
-  Layers,
+  Eye,
   CheckCircle2,
   AlertCircle,
-  Eye,
-  ArrowRight,
-  Filter
+  Users,
+  Package
 } from 'lucide-react';
 import {
   calculateLedgerForAccount,
@@ -28,6 +22,8 @@ import {
   calculateCashFlowStatement,
   calculateSalesPurchaseReport
 } from '../utils/accountingEngine';
+import AccountCombobox from './AccountCombobox';
+import EnhancedDatePicker from './EnhancedDatePicker';
 
 export const ReportsModule: React.FC = () => {
   const {
@@ -56,11 +52,38 @@ export const ReportsModule: React.FC = () => {
   const [startDate, setStartDate] = useState(startOfMonthStr);
   const [endDate, setEndDate] = useState(todayStr);
   const [selectedSingleDate, setSelectedSingleDate] = useState(todayStr);
-  const [activeDatePreset, setActiveDatePreset] = useState<'today' | 'this_month' | 'last_month' | 'fy' | 'custom'>('this_month');
 
-  // GL Account Selector
-  const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || '');
-  const [glSearchTerm, setGlSearchTerm] = useState('');
+  // GL Account Selector (single searchable combobox: CoA heads + trade documents)
+  const [selectedAccountId, setSelectedAccountId] = useState(accounts[0] ? `acc_${accounts[0].id}` : '');
+
+  type GlOption = { key: string; label: string; hint: string; group: string; accountId?: string; filterDoc?: { refType: 'sale_invoice' | 'purchase_order'; refId: string } };
+  const glOptions: GlOption[] = useMemo(() => {
+    const heads: GlOption[] = accounts.map(a => ({
+      key: `acc_${a.id}`,
+      label: a.name,
+      hint: `${a.code} · ${(a.category || a.type || 'Account').toUpperCase()}`,
+      group: 'Chart of Accounts',
+      accountId: a.id
+    }));
+    // Trade documents as first-class ledger lenses: every posted invoice/PO.
+    const sales: GlOption[] = salesOrders.map(inv => ({
+      key: `doc_${inv.invoiceNumber}`,
+      label: `${inv.invoiceNumber} — ${inv.customerName}`,
+      hint: `Sales invoice · Rs. ${inv.totalAmount.toLocaleString()}`,
+      group: 'Sales Invoices',
+      filterDoc: { refType: 'sale_invoice', refId: inv.invoiceNumber }
+    }));
+    const pos: GlOption[] = purchaseOrders.map(po => ({
+      key: `doc_${po.poNumber}`,
+      label: `${po.poNumber} — ${po.supplierName}`,
+      hint: `Purchase order · Rs. ${po.totalAmount.toLocaleString()}`,
+      group: 'Purchase Orders',
+      filterDoc: { refType: 'purchase_order', refId: po.poNumber }
+    }));
+    return [...heads, ...sales, ...pos];
+  }, [accounts, salesOrders, purchaseOrders]);
+
+  const selectedGlOption = glOptions.find(o => o.key === selectedAccountId);
 
   // Financials Sub-Tab
   const [financialSubTab, setFinancialSubTab] = useState<'tb' | 'pl' | 'bs' | 'cf'>('tb');
@@ -69,44 +92,48 @@ export const ReportsModule: React.FC = () => {
   const [tradeType, setTradeType] = useState<'sale' | 'purchase'>('sale');
   const [groupBy, setGroupBy] = useState<'person' | 'material'>('person');
 
-  // Date Presets Handler
-  const handleDatePreset = (preset: 'today' | 'this_month' | 'last_month' | 'fy') => {
-    setActiveDatePreset(preset);
-    const now = new Date();
-    if (preset === 'today') {
-      const d = now.toISOString().slice(0, 10);
-      setStartDate(d);
-      setEndDate(d);
-      setSelectedSingleDate(d);
-    } else if (preset === 'this_month') {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-      const end = now.toISOString().slice(0, 10);
-      setStartDate(start);
-      setEndDate(end);
-    } else if (preset === 'last_month') {
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
-      const end = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
-      setStartDate(start);
-      setEndDate(end);
-    } else if (preset === 'fy') {
-      // Pakistani Fiscal Year (July 1 - June 30)
-      const year = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-      const start = `${year}-07-01`;
-      const end = `${year + 1}-06-30`;
-      setStartDate(start);
-      setEndDate(end);
-    }
-  };
-
-  // 1. General Ledger Calculation
+  // 1. General Ledger Calculation — selected lens = CoA head, or a trade
+  // document (sales invoice / purchase order) shown across ALL its accounts.
   const selectedAccount = useMemo(() => {
-    return accounts.find(a => a.id === selectedAccountId) || accounts[0];
-  }, [accounts, selectedAccountId]);
+    if (selectedGlOption?.accountId) {
+      return accounts.find(a => a.id === selectedGlOption.accountId) || accounts[0];
+    }
+    return accounts[0];
+  }, [accounts, selectedGlOption]);
 
   const ledgerResult = useMemo(() => {
     if (!selectedAccount) return { openingBalance: 0, rows: [], closingBalance: 0, totalDebit: 0, totalCredit: 0 };
     return calculateLedgerForAccount(cashbook, selectedAccount, startDate, endDate);
   }, [cashbook, selectedAccount, startDate, endDate]);
+
+  // Document lens: both sides of one invoice/PO, straight from the vouchers.
+  const scopedLedgerResult = useMemo(() => {
+    const doc = selectedGlOption?.filterDoc;
+    if (!doc) return ledgerResult;
+    const fromTime = new Date(`${startDate}T00:00:00.000Z`).getTime();
+    const toTime = new Date(`${endDate}T23:59:59.999Z`).getTime();
+    const matched = cashbook
+      .filter(v => (v.referenceId === doc.refId || v.voucherNumber === doc.refId) && new Date(v.createdAt).getTime() >= fromTime && new Date(v.createdAt).getTime() <= toTime)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const rows = matched.flatMap(v => (v.entries || []).map(e => ({
+      date: v.createdAt.split('T')[0],
+      voucherNumber: v.voucherNumber || v.id,
+      voucherType: v.voucherType || 'JV',
+      narration: e.description || v.description,
+      debit: e.debit || 0,
+      credit: e.credit || 0,
+      balance: 0
+    })));
+    let bal = 0;
+    rows.forEach(r => { bal += r.debit - r.credit; r.balance = bal; });
+    return {
+      openingBalance: 0,
+      rows,
+      closingBalance: bal,
+      totalDebit: rows.reduce((s, r) => s + r.debit, 0),
+      totalCredit: rows.reduce((s, r) => s + r.credit, 0)
+    };
+  }, [cashbook, ledgerResult, selectedGlOption, startDate, endDate]);
 
   // 2. Daily Cashbook Calculation
   const dailyCashbookResult = useMemo(() => {
@@ -144,15 +171,6 @@ export const ReportsModule: React.FC = () => {
       endDate
     });
   }, [salesOrders, purchaseOrders, products, customers, suppliers, tradeType, groupBy, startDate, endDate]);
-
-  // Filter accounts for GL Search
-  const filteredGlAccounts = useMemo(() => {
-    return accounts.filter(
-      a =>
-        a.name.toLowerCase().includes(glSearchTerm.toLowerCase()) ||
-        a.code.toLowerCase().includes(glSearchTerm.toLowerCase())
-    );
-  }, [accounts, glSearchTerm]);
 
   // Handler for PDF Print trigger
   const handlePrintCurrentReport = () => {
@@ -272,160 +290,74 @@ export const ReportsModule: React.FC = () => {
         </button>
       </div>
 
-      {/* ENHANCED DATE PICKER & FILTER STRIP (Sticky & Accessible) */}
-      <div className="surface-card p-5 space-y-3">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
-            <Calendar className="w-4 h-4 text-emerald-600" />
-            <span>Enhanced Period Filter:</span>
-          </div>
-
-          {/* Quick Presets */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {[
-              { id: 'today', label: 'Today' },
-              { id: 'this_month', label: 'This Month' },
-              { id: 'last_month', label: 'Last Month' },
-              { id: 'fy', label: 'Fiscal Year (2024-25)' }
-            ].map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => handleDatePreset(p.id as any)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-                  activeDatePreset === p.id
-                    ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+      {/* COMPACT FILTER BAR: one date menu + one Preview button. The Preview
+          control is real: it recomputes the memoized statements (useMemo deps
+          are the dates), so clicking it re-renders the visible report. */}
+      <div className="surface-card p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
+          <Calendar className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+          <span>Period:</span>
+          <EnhancedDatePicker
+            mode={reportTab === 'cashbook' ? 'single' : 'range'}
+            startDate={startDate}
+            endDate={endDate}
+            singleDate={selectedSingleDate}
+            onChangeRange={(s, e) => { setStartDate(s); setEndDate(e); }}
+            onChangeSingle={(d) => setSelectedSingleDate(d)}
+          />
         </div>
-
-        {/* Date Inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-          {reportTab === 'cashbook' ? (
-            <div className="sm:col-span-2">
-              <label className="field-label">
-                Select Cashbook Audit Date
-              </label>
-              <input
-                type="date"
-                value={selectedSingleDate}
-                onChange={(e) => {
-                  setSelectedSingleDate(e.target.value);
-                  setActiveDatePreset('custom');
-                }}
-                className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-mono font-bold"
-              />
-            </div>
-          ) : (
-            <>
-              <div>
-                <label className="field-label">
-                  From Date
-                </label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    setStartDate(e.target.value);
-                    setActiveDatePreset('custom');
-                  }}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="field-label">
-                  To Date
-                </label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    setEndDate(e.target.value);
-                    setActiveDatePreset('custom');
-                  }}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-mono font-bold"
-                />
-              </div>
-            </>
-          )}
-
-          <div className="flex items-end">
-            <button
-              type="button"
-              onClick={() => addToast('success', 'Report Refreshed', 'Calculated latest ledger entries from database.')}
-              className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-full text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-            >
-              <Eye className="w-4 h-4" />
-              <span>Preview Report</span>
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => addToast('success', 'Report Refreshed', `Preview recomputed for ${reportTab === 'cashbook' ? selectedSingleDate : `${startDate} → ${endDate}`}.`)}
+          className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-full text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+        >
+          <Eye className="w-4 h-4" />
+          <span>Preview Report</span>
+        </button>
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: GENERAL LEDGER (GL) - The requested primary ledger view with search */}
+      {/* TAB 1: GENERAL LEDGER (GL) — one searchable lens over accounts + docs    */}
       {/* ========================================================================= */}
       {reportTab === 'gl' && (
         <div className="space-y-4">
-          {/* GL Account Selector & Search Bar */}
-          <div className="surface-card p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="w-full sm:w-1/2">
-              <label className="field-label">
-                Select Chart of Accounts Head
-              </label>
-              <select
-                value={selectedAccountId}
-                onChange={(e) => setSelectedAccountId(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-semibold text-slate-900 dark:text-white"
-              >
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.code} - {acc.name} ({(acc.category || acc.type || 'Account').toUpperCase()})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="w-full sm:w-1/2">
-              <label className="field-label">
-                Search Account Head
-              </label>
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={glSearchTerm}
-                  onChange={(e) => setGlSearchTerm(e.target.value)}
-                  placeholder="Quick filter accounts..."
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
-                />
-              </div>
-            </div>
+          {/* Single combobox: CoA heads + Sales Invoices + Purchase Orders */}
+          <div className="surface-card p-4">
+            <label className="field-label">
+              Ledger Lens — Account, Sales Invoice, or Purchase Order
+            </label>
+            <AccountCombobox
+              options={glOptions}
+              value={selectedAccountId}
+              onSelect={(o) => setSelectedAccountId(o.key)}
+              placeholder="Select account or trade document…"
+              searchPlaceholder="Type code, name, invoice #, or party…  (↑↓ browse · Enter select · Esc close)"
+              ariaLabel="Search ledger lens"
+              renderTrigger={(sel) => {
+                const opt = sel as GlOption | undefined;
+                if (!opt) return 'Select account or trade document…';
+                return opt.filterDoc ? opt.label : `${opt.hint} · ${opt.label}`;
+              }}
+            />
           </div>
 
           {/* Account Profile Strip */}
           {selectedAccount && (
-            <div className="bg-emerald-50/70 dark:bg-emerald-950/30 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="surface-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-black text-emerald-800 dark:text-emerald-300 text-base">
+                  <span className="font-mono font-black text-indigo-700 dark:text-indigo-300 text-base">
                     {selectedAccount.code}
                   </span>
                   <span className="text-base font-bold text-slate-900 dark:text-white">
-                    {selectedAccount.name}
+                    {selectedGlOption?.filterDoc ? selectedGlOption.label : selectedAccount.name}
                   </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200">
-                    {selectedAccount.category || selectedAccount.type}
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300">
+                    {selectedGlOption?.filterDoc ? (selectedGlOption.filterDoc.refType === 'sale_invoice' ? 'Sales Invoice' : 'Purchase Order') : (selectedAccount.category || selectedAccount.type)}
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                  Ledger Period: {startDate} to {endDate} • {ledgerResult.rows.length} Transaction(s)
+                  Ledger Period: {startDate} to {endDate} • {scopedLedgerResult.rows.length} Transaction(s)
                 </p>
               </div>
 
@@ -433,13 +365,13 @@ export const ReportsModule: React.FC = () => {
                 <div>
                   <span className="text-[10px] text-slate-500 block uppercase font-bold">Opening</span>
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                    Rs. {(ledgerResult.openingBalance || 0).toLocaleString()}
+                    Rs. {(scopedLedgerResult.openingBalance || 0).toLocaleString()}
                   </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 block uppercase font-bold">Net Closing</span>
-                  <span className="text-base font-black text-emerald-800 dark:text-emerald-300">
-                    Rs. {(ledgerResult.closingBalance || 0).toLocaleString()}
+                  <span className="text-base font-black text-slate-900 dark:text-white">
+                    Rs. {(scopedLedgerResult.closingBalance || 0).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -473,12 +405,12 @@ export const ReportsModule: React.FC = () => {
                     <td className="p-3 text-right text-slate-500">-</td>
                     <td className="p-3 text-right text-slate-500">-</td>
                     <td className="p-3 text-right pr-4 text-slate-900 dark:text-white font-black">
-                      Rs. {(ledgerResult.openingBalance || 0).toLocaleString()}
+                      Rs. {(scopedLedgerResult.openingBalance || 0).toLocaleString()}
                     </td>
                   </tr>
 
                   {/* Transaction Rows */}
-                  {ledgerResult.rows.map((row, idx) => (
+                  {scopedLedgerResult.rows.map((row, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
                       <td className="p-3 pl-4 text-slate-600 dark:text-slate-400">{row.date}</td>
                       <td className="p-3 font-bold text-slate-900 dark:text-white">{row.voucherNumber}</td>
@@ -496,11 +428,18 @@ export const ReportsModule: React.FC = () => {
                       <td className="p-3 text-right font-bold text-slate-900 dark:text-white">
                         {row.credit > 0 ? `Rs. ${(row.credit || 0).toLocaleString()}` : '-'}
                       </td>
-                      <td className="p-3 text-right pr-4 font-black text-emerald-800 dark:text-emerald-300">
+                      <td className="p-3 text-right pr-4 font-black text-slate-900 dark:text-white">
                         Rs. {(row.balance || 0).toLocaleString()}
                       </td>
                     </tr>
                   ))}
+                  {scopedLedgerResult.rows.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="p-6 text-center text-xs text-slate-500 dark:text-slate-400 font-sans">
+                        No ledger activity in this period. Post a voucher, sales invoice, or purchase order to see entries here.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
                 {/* Total Footer */}
                 <tfoot className="bg-slate-100/70 dark:bg-slate-800/80 border-t-2 border-slate-300 dark:border-slate-700 font-mono font-bold text-xs">
@@ -509,13 +448,13 @@ export const ReportsModule: React.FC = () => {
                       Total Activity & Closing Balance
                     </td>
                     <td className="p-3 text-right text-slate-900 dark:text-white font-black">
-                      Rs. {(ledgerResult.totalDebit || 0).toLocaleString()}
+                      Rs. {(scopedLedgerResult.totalDebit || 0).toLocaleString()}
                     </td>
                     <td className="p-3 text-right text-slate-900 dark:text-white font-black">
-                      Rs. {(ledgerResult.totalCredit || 0).toLocaleString()}
+                      Rs. {(scopedLedgerResult.totalCredit || 0).toLocaleString()}
                     </td>
-                    <td className="p-3 text-right pr-4 text-emerald-800 dark:text-emerald-300 font-black text-sm">
-                      Rs. {(ledgerResult.closingBalance || 0).toLocaleString()}
+                    <td className="p-3 text-right pr-4 text-slate-900 dark:text-white font-black text-sm">
+                      Rs. {(scopedLedgerResult.closingBalance || 0).toLocaleString()}
                     </td>
                   </tr>
                 </tfoot>

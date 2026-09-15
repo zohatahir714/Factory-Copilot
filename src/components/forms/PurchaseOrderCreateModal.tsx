@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ShoppingCart, X, Check, Building2, Package, Clock, ShieldCheck } from 'lucide-react';
+import AccountCombobox from '../AccountCombobox';
 
 export const PurchaseOrderCreateModal: React.FC = () => {
   const { activeModal, closeModal, openModal, suppliers, products, createPurchaseOrderDirect } = useApp();
@@ -68,21 +69,23 @@ export const PurchaseOrderCreateModal: React.FC = () => {
               </button>
             </div>
             <div className="relative">
-              <select
+              <AccountCombobox
+                options={suppliers.map(s => ({
+                  key: s.id,
+                  label: s.name,
+                  hint: `${s.city} · ${s.paymentTerms}`,
+                  group: 'Suppliers & Vendors'
+                }))}
                 value={supplierId}
-                onChange={(e) => setSupplierId(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-sm field-input font-medium text-slate-900"
-              >
-                {suppliers.length === 0 ? (
-                  <option value="">No suppliers registered yet - Click + Add New Supplier</option>
-                ) : (
-                  suppliers.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.city}) • Terms: {s.paymentTerms}
-                    </option>
-                  ))
-                )}
-              </select>
+                onSelect={(o) => setSupplierId(o.key)}
+                placeholder={suppliers.length === 0 ? 'No suppliers yet — click + Add New Supplier' : 'Search suppliers by name or city…'}
+                searchPlaceholder="Type supplier name or city…  (↑↓ browse · Enter select · Esc close)"
+                ariaLabel="Search suppliers"
+                listWidthClassName="w-full"
+                renderTrigger={(sel) =>
+                  sel ? `${sel.label} — ${sel.hint}` : (suppliers.length === 0 ? 'No suppliers yet — click + Add New Supplier' : 'Select supplier…')
+                }
+              />
             </div>
             {selectedSupplier && (
               <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-500 font-mono">
@@ -103,17 +106,21 @@ export const PurchaseOrderCreateModal: React.FC = () => {
             <label className="field-label">
               Raw Material / Item to Order *
             </label>
-            <select
+            <AccountCombobox
+              options={products.map(p => ({
+                key: p.id,
+                label: p.name,
+                hint: `${p.sku} · Stock: ${p.currentStock} ${p.unit} · Rs. ${(p.costPrice || 0).toLocaleString()}/${p.unit}`,
+                group: 'Materials & Products'
+              }))}
               value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm field-input font-medium text-slate-900"
-            >
-              {products.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.sku} - {p.name} (Stock: {p.currentStock} {p.unit}) @ Rs. {(p.costPrice || 0).toLocaleString()}/{p.unit}
-                </option>
-              ))}
-            </select>
+              onSelect={(o) => setProductId(o.key)}
+              placeholder={products.length === 0 ? 'No products registered yet' : 'Search materials by name or SKU…'}
+              searchPlaceholder="Type product name or SKU…  (↑↓ browse · Enter select · Esc close)"
+              ariaLabel="Search products"
+              listWidthClassName="w-full"
+              renderTrigger={(sel) => (sel ? `${sel.label} — ${sel.hint}` : 'Select material…')}
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

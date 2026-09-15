@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import AccountCombobox from '../AccountCombobox';
 import {
   calculateFBRTaxByCategory,
   formatPKR,
@@ -223,21 +224,23 @@ export const SalesOrderCreateModal: React.FC = () => {
                 + Add New Customer
               </button>
             </div>
-            <select
+            <AccountCombobox
+              options={customers.map(c => ({
+                key: c.id,
+                label: c.name,
+                hint: `${c.city} · Receivables: Rs. ${(c.outstandingReceivables || 0).toLocaleString()}`,
+                group: 'Customers & Mills'
+              }))}
               value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm field-input font-medium text-slate-900"
-            >
-              {customers.length === 0 ? (
-                <option value="">No customers registered yet - Click + Add New Customer</option>
-              ) : (
-                customers.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.city}) • Receivables: Rs. {(c.outstandingReceivables || 0).toLocaleString()}
-                  </option>
-                ))
-              )}
-            </select>
+              onSelect={(o) => setCustomerId(o.key)}
+              placeholder={customers.length === 0 ? 'No customers yet — click + Add New Customer' : 'Search customers by name or city…'}
+              searchPlaceholder="Type customer name or city…  (↑↓ browse · Enter select · Esc close)"
+              ariaLabel="Search customers"
+              listWidthClassName="w-full"
+              renderTrigger={(sel) =>
+                sel ? `${sel.label} — ${sel.hint}` : (customers.length === 0 ? 'No customers yet — click + Add New Customer' : 'Select customer…')
+              }
+            />
           </div>
 
           {/* Tax Category Selector (Uses calculateFBRTaxByCategory) */}
@@ -334,17 +337,21 @@ export const SalesOrderCreateModal: React.FC = () => {
             <label className="field-label">
               Finished Goods / Product *
             </label>
-            <select
+            <AccountCombobox
+              options={products.map(p => ({
+                key: p.id,
+                label: p.name,
+                hint: `${p.sku} · In stock: ${p.currentStock} ${p.unit} · Rs. ${(p.sellingPrice || 0).toLocaleString()}/${p.unit}`,
+                group: 'Finished Goods'
+              }))}
               value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm field-input font-medium text-slate-900"
-            >
-              {products.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.sku} - {p.name} • In Stock: {p.currentStock} {p.unit} @ Rs. {(p.sellingPrice || 0).toLocaleString()}/{p.unit}
-                </option>
-              ))}
-            </select>
+              onSelect={(o) => setProductId(o.key)}
+              placeholder={products.length === 0 ? 'No products registered yet' : 'Search products by name or SKU…'}
+              searchPlaceholder="Type product name or SKU…  (↑↓ browse · Enter select · Esc close)"
+              ariaLabel="Search products"
+              listWidthClassName="w-full"
+              renderTrigger={(sel) => (sel ? `${sel.label} — ${sel.hint}` : 'Select product…')}
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
