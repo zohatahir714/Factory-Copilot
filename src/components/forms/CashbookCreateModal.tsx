@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Wallet,
@@ -106,7 +106,9 @@ export const CashbookCreateModal: React.FC = () => {
   }
   const [pickerLineId, setPickerLineId] = useState<string | null>(null);
   const [pickerQuery, setPickerQuery] = useState('');
+  const [pickerActiveIdx, setPickerActiveIdx] = useState(-1);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
 
   const accountOptions: AccountOption[] = useMemo(() => {
     const coa: AccountOption[] = accounts.map(a => ({
@@ -141,7 +143,37 @@ export const CashbookCreateModal: React.FC = () => {
   const resolveAccount = (line: { accountId: string }): AccountOption | undefined =>
     line.accountId ? accountOptions.find(o => o.key === line.accountId) : undefined;
 
+  const pickerListRef = useRef<HTMLDivElement>(null);
+
+  /** Flat (group-flattened) filtered list — keyboard index space. */
+  const flatFiltered: AccountOption[] = useMemo(() => {
+    const q = pickerQuery.trim().toLowerCase();
+    if (!q) return accountOptions;
+    return accountOptions.filter(o => `${o.hint} ${o.label} ${o.group}`.toLowerCase().includes(q));
+  }, [accountOptions, pickerQuery]);
+
+  // Anchor the highlight when the list legitimately changes: on open and on
+  // query change. (An effect on flatFiltered would fight arrow keys — its
+  // identity churns every render, resetting the active index mid-navigation.)
+  const openPicker = (lineId: string) => {
+    setPickerQuery('');
+    setPickerActiveIdx(accountOptions.length > 0 ? 0 : -1);
+    setPickerLineId(lineId);
+  };
+
+  // Keep the active option inside the scrollport (scrolls only when needed).
+  useEffect(() => {
+    if (pickerLineId == null || pickerActiveIdx < 0 || !pickerListRef.current) return;
+    const el = pickerListRef.current.querySelector<HTMLElement>(`[data-idx="${pickerActiveIdx}"]`);
+    if (!el) return;
+    const box = pickerListRef.current;
+    const top = el.offsetTop, bottom = top + el.offsetHeight;
+    if (top < box.scrollTop) box.scrollTop = top;
+    else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight;
+  }, [pickerActiveIdx, pickerLineId]);
+
   const commitPicker = (lineId: string, opt: AccountOption) => {
+    if (!opt) return;
     if (opt.partyName && opt.partyKind) {
       const acc = ensurePartyAccount(opt.partyName, opt.partyKind);
       if (acc) {
@@ -167,6 +199,51 @@ export const CashbookCreateModal: React.FC = () => {
   }, []);
 
   if (activeModal !== 'expense') return null;
+
+  /** Keyboard model for the combobox. Bound on BOTH the trigger and the
+      search field so the widget works from whichever has focus.
+      ↑↓ move · Home/End jump · Enter commits · Esc closes · Tab closes.
+      Enter only submits the voucher when the picker is closed. */
+  const handlePickerKeyDown = (e: React.KeyboardEvent, lineId: string) => {
+    const open = pickerLineId === lineId;
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+        e.preventDefault();
+        openPicker(lineId);
+      }
+      return;
+    }
+    const last = flatFiltered.length - 1;
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setPickerActiveIdx(i => (i < 0 ? 0 : (i + 1) % flatFiltered.length));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setPickerActiveIdx(i => (i <= 0 ? last : i - 1));
+        break;
+      case 'Home':
+        e.preventDefault();
+        setPickerActiveIdx(last >= 0 ? 0 : -1);
+        break;
+      case 'End':
+        e.preventDefault();
+        setPickerActiveIdx(last);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (pickerActiveIdx >= 0 && pickerActiveIdx < flatFiltered.length) {
+          commitPicker(lineId, flatFiltered[pickerActiveIdx]);
+        }
+        break;
+      case 'Escape':
+      case 'Tab':
+        setPickerLineId(null);
+        setPickerQuery('');
+        break;
+    }
+  };
 
   const totalDebit = lines.reduce((sum, l) => sum + (Number(l.debit) || 0), 0);
   const totalCredit = lines.reduce((sum, l) => sum + (Number(l.credit) || 0), 0);
@@ -452,9 +529,12 @@ export const CashbookCreateModal: React.FC = () => {
               </button>
             </div>
 
-            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+            {/* No overflow-hidden here: the account combobox dropdown is absolutely
+                positioned and must escape the table. Rounded corners are handled
+                per-cell so the wrapper can stay open. */}
+            <div className="border border-slate-200 dark:border-white/10 rounded-xl bg-white shadow-2xs [&_tbody>tr:last-child>td:first-child]:rounded-bl-[0.85rem] [&_tbody>tr:last-child>td:last-child]:rounded-br-[0.85rem]">
               <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px] [&>tr>th:first-child]:rounded-tl-[0.85rem] [&>tr>th:last-child]:rounded-tr-[0.85rem]">
                   <tr>
                     <th className="p-2.5 pl-3 w-64 sm:w-80">Account (CoA · Customers · Suppliers)</th>
                     <th className="p-2.5">Item Narration</th>
@@ -466,13 +546,19 @@ export const CashbookCreateModal: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   {lines.map((line, idx) => (
                     <tr key={line.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="p-2 pl-3 relative">
+                      <td className="p-2 pl-3">
                         <div ref={pickerLineId === line.id ? pickerRef : undefined} className="relative">
                           <button
                             type="button"
+                            role="combobox"
+                            aria-expanded={pickerLineId === line.id}
+                            aria-haspopup="listbox"
+                            aria-controls={listId}
+                            aria-autocomplete="list"
+                            onKeyDown={(e) => handlePickerKeyDown(e, line.id)}
                             onClick={() => {
-                              setPickerLineId(pickerLineId === line.id ? null : line.id);
-                              setPickerQuery('');
+                              if (pickerLineId === line.id) { setPickerLineId(null); setPickerQuery(''); }
+                              else openPicker(line.id);
                             }}
                             className="w-full px-2.5 py-1.5 text-left text-xs field-input outline-none font-semibold flex items-center justify-between gap-1.5"
                             title="Search chart of accounts, customers and suppliers"
@@ -486,40 +572,59 @@ export const CashbookCreateModal: React.FC = () => {
                           </button>
 
                           {pickerLineId === line.id && (() => {
-                            const q = pickerQuery.trim().toLowerCase();
-                            const filtered = q
-                              ? accountOptions.filter(o => `${o.hint} ${o.label} ${o.group}`.toLowerCase().includes(q))
-                              : accountOptions;
+                            const filtered = flatFiltered;
                             const groups = [...new Set(filtered.map(o => o.group))];
+                            // Map flat keyboard index → option (group headers are not selectable).
+                            let running = 0;
                             return (
-                              <div className="absolute z-20 mt-1 w-[min(22rem,80vw)] max-h-72 overflow-y-auto rounded-2xl bg-white dark:bg-[#1a1b23] shadow-xl border border-transparent dark:border-white/10 p-1.5 animate-fadeIn">
-                                <div className="sticky top-0 bg-white dark:bg-[#1a1b23] p-1">
+                              <div
+                                ref={pickerListRef}
+                                id={listId}
+                                role="listbox"
+                                className="absolute z-30 mt-1 w-[min(24rem,85vw)] max-h-80 overflow-y-auto overscroll-contain rounded-2xl bg-white dark:bg-[#1a1b23] shadow-xl border border-transparent dark:border-white/10 p-1.5 animate-fadeIn"
+                              >
+                                <div className="sticky top-0 bg-white dark:bg-[#1a1b23] p-1 pb-1.5 z-10">
                                   <input
                                     autoFocus
                                     type="text"
+                                    role="searchbox"
                                     value={pickerQuery}
-                                    onChange={(e) => setPickerQuery(e.target.value)}
-                                    placeholder="Type to search accounts, customers, suppliers…"
+                                    onChange={(e) => { setPickerQuery(e.target.value); setPickerActiveIdx(0); }}
+                                    onKeyDown={(e) => handlePickerKeyDown(e, line.id)}
+                                    placeholder="Type to search accounts, customers, suppliers…  (↑↓ browse · Enter select · Esc close)"
+                                    aria-label="Search accounts, customers and suppliers"
                                     className="w-full px-3 py-1.5 text-xs field-input outline-none"
                                   />
                                 </div>
                                 {filtered.length === 0 && (
-                                  <div className="p-3 text-center text-xs text-slate-400">No matches for “{pickerQuery}”</div>
+                                  <div className="p-3 text-center text-xs text-slate-500 dark:text-slate-400">No matches for “{pickerQuery}”</div>
                                 )}
                                 {groups.map(g => (
                                   <div key={g} className="mt-1">
-                                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{g}</div>
-                                    {filtered.filter(o => o.group === g).map(o => (
-                                      <button
-                                        key={o.key}
-                                        type="button"
-                                        onClick={() => commitPicker(line.id, o)}
-                                        className="w-full px-2.5 py-1.5 text-left rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/15 transition-colors cursor-pointer"
-                                      >
-                                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">{o.label}</div>
-                                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{o.hint}</div>
-                                      </button>
-                                    ))}
+                                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{g}</div>
+                                    {filtered.filter(o => o.group === g).map(o => {
+                                      const idx = running++;
+                                      const active = idx === pickerActiveIdx;
+                                      return (
+                                        <button
+                                          key={o.key}
+                                          type="button"
+                                          role="option"
+                                          data-idx={idx}
+                                          aria-selected={active}
+                                          onMouseMove={() => setPickerActiveIdx(idx)}
+                                          onClick={() => commitPicker(line.id, o)}
+                                          className={`w-full px-2.5 py-1.5 text-left rounded-lg transition-colors cursor-pointer ${
+                                            active
+                                              ? 'bg-indigo-600 text-white'
+                                              : 'text-slate-800 dark:text-slate-100 hover:bg-indigo-50 dark:hover:bg-indigo-500/15'
+                                          }`}
+                                        >
+                                          <div className="text-xs font-semibold truncate">{o.label}</div>
+                                          <div className={`text-[10px] font-mono ${active ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>{o.hint}</div>
+                                        </button>
+                                      );
+                                    })}
                                   </div>
                                 ))}
                               </div>
