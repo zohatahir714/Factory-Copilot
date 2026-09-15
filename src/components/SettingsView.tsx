@@ -3,8 +3,7 @@ import { useApp } from '../context/AppContext';
 import { testGroqConnection, GroqTestResult } from '../lib/groqClient';
 import {
   checkSupabaseHealth,
-  DatabaseHealthStatus,
-  SUPABASE_SQL_SCHEMA
+  DatabaseHealthStatus
 } from '../lib/supabaseClient';
 import {
   Settings,
@@ -23,9 +22,7 @@ import {
   LogOut,
   Database,
   Cloud,
-  FileCode,
   Download,
-  Copy,
   Check,
   Eye,
   EyeOff,
@@ -197,12 +194,6 @@ export const SettingsView: React.FC = () => {
     }
   };
 
-  const handleCopySql = () => {
-    navigator.clipboard.writeText(SUPABASE_SQL_SCHEMA);
-    setCopiedSql(true);
-    addToast('info', 'SQL Copied', 'Paste this into your Supabase SQL Editor.');
-    setTimeout(() => setCopiedSql(false), 3000);
-  };
 
   const handleExportJSON = () => {
     const fullBackup = {
@@ -510,36 +501,6 @@ export const SettingsView: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Migration SQL Schema Section */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-transparent dark:border-white/10 shadow-[0_1px_2px_rgba(17,20,45,0.04),0_10px_28px_-14px_rgba(17,20,45,0.10)] dark:shadow-none p-6 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <FileCode className="w-5 h-5 text-indigo-600" />
-                  <span>Production PostgreSQL DDL & RLS Security Script</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Run this DDL script in Supabase SQL Editor to provision all tables, relations, and RLS security policies.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleCopySql}
-                className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
-              >
-                {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedSql ? 'SQL Script Copied!' : 'Copy SQL Schema'}</span>
-              </button>
-            </div>
-
-            <div className="relative bg-slate-950 rounded-xl p-4 overflow-hidden">
-              <pre className="font-mono text-xs text-emerald-400 overflow-x-auto max-h-64 leading-relaxed">
-                {SUPABASE_SQL_SCHEMA}
-              </pre>
-            </div>
           </div>
 
           {/* Backup & Snapshot Section */}

@@ -14,7 +14,8 @@ import {
   Receipt,
   Package,
   Scale,
-  RefreshCw
+  RefreshCw,
+  Truck
 } from 'lucide-react';
 import { AgentDomain } from '../types';
 
@@ -67,12 +68,12 @@ export const CopilotChatView: React.FC = () => {
   };
 
   const demoScripts = [
-    { label: '1. Voice Stock Query', prompt: 'Kitna cotton yarn bacha hai?', urdu: 'کتنا کاٹن یارن بچا ہے؟', icon: Mic },
-    { label: '2. Purchase Order', prompt: 'ColorChem se 100 kilo blue dye ka PO bana do', urdu: 'ڈائی کا پرچیز آرڈر بنا دو', icon: FileText },
-    { label: '3. Record Sale (18% GST)', prompt: 'Al-Rehman ko 50 kilo cotton yarn sell karo', urdu: 'الرحمٰن کو 50 کلو یارن سیل کرو', icon: Receipt },
-    { label: '4. Business Summary', prompt: 'Aaj ka complete business summary do', urdu: 'آج کا مکمل بزنس سمری دو', icon: BarChart3 },
-    { label: '5. Compliance RAG', prompt: 'Is transaction ka applicable tax rule kya hai?', urdu: 'ایف بی آر ٹیکس کا کیا قانون ہے؟', icon: Scale },
-    { label: '6. Receive Goods (PO-1001)', prompt: 'Receive goods for PO-1001', urdu: 'پی او کے گڈز ریسیو کرو', icon: Package }
+    { label: 'اسٹاک کتنا ہے؟', prompt: 'کتنے اسٹاک ہے', urdu: 'کتنا مال بچا ہے؟', icon: Package },
+    { label: 'پرچیز آرڈر', prompt: '100 کلو ڈائی کا پرچیز آرڈر بنا دو', urdu: 'پرچیز آرڈر بنا دو', icon: FileText },
+    { label: 'سیل انوئس (18% GST)', prompt: '50 کلو یارن سیل کرو', urdu: 'سیل ریکارڈ کرو', icon: Receipt },
+    { label: 'بزنس سمری', prompt: 'آج کا مکمل بزنس سمری دو', urdu: 'آج کا حساب بتاؤ', icon: BarChart3 },
+    { label: 'FBR ٹیکس رول', prompt: 'اس ٹرانزیکشن پر کیا ٹیکس قانون لاگو ہے؟', urdu: 'ایف بی آر ٹیکس کا کیا قانون ہے؟', icon: Scale },
+    { label: 'گڈز ریسیو', prompt: 'پی او کے گڈز ریسیو کرو', urdu: 'مال وصول کرو', icon: Truck }
   ];
 
   return (
@@ -229,7 +230,7 @@ export const CopilotChatView: React.FC = () => {
                   <span>Groq Whisper Voice Engine Active</span>
                 </div>
                 <div className="text-sm font-semibold text-slate-200 mt-0.5">
-                  {recordingTranscript || 'Listening to English or Roman Urdu... (Try: "Kitna cotton yarn bacha hai?")'}
+                  {recordingTranscript || 'سن رہا ہوں… اردو میں بولیں (مثال: «کتنا اسٹاک بچا ہے؟»)'}
                 </div>
               </div>
             </div>
@@ -269,7 +270,7 @@ export const CopilotChatView: React.FC = () => {
               type="text"
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
-              placeholder='Ask in English or Roman Urdu: "Kitna cotton yarn bacha hai?" or "Al-Rehman ko 50 kilo sell karo"...'
+              placeholder='اردو میں پوچھیں… «کتنا کیش ہے؟» یا «50 کلو یارن سیل کرو»'
               disabled={isProcessing}
               className="w-full bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/60 dark:hover:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium"
             />
@@ -285,8 +286,8 @@ export const CopilotChatView: React.FC = () => {
           </button>
         </form>
         <div className="max-w-4xl mx-auto mt-1.5 flex items-center justify-between text-[11px] text-slate-400 px-1">
-          <span>Supported: English, Roman Urdu (اردو)</span>
-          <span>Deterministic business execution • Zero hallucinations</span>
+          <span>زبان: اردو • رومان اردو — آواز اور تحریر دونوں</span>
+          <span>قطعی کاروباری اجرا • بغیر کسی گمراہی کے</span>
         </div>
       </div>
     </div>

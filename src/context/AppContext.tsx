@@ -379,7 +379,7 @@ const DEFAULT_BRANDING: BrandingSettings = {
 const DEFAULT_AI_SETTINGS: AISettings = {
   selectedModel: '',
   whisperModel: 'whisper-large-v3',
-  systemLanguage: 'both'
+  systemLanguage: 'ur' // Urdu-first voice platform
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -1767,7 +1767,9 @@ Provide a brief, crisp professional executive summary (1-3 sentences) in natural
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = 'en-US';
+        // Urdu-first voice: recognize Urdu (Roman Urdu speech is still
+        // recognized as Latin transcription; Whisper is the authority).
+        recognition.lang = 'ur-PK';
 
         recognition.onresult = (event: any) => {
           let text = '';
@@ -1814,10 +1816,9 @@ Provide a brief, crisp professional executive summary (1-3 sentences) in natural
         if (audioBlob.size > 100) {
           try {
             addToast('info', 'Groq Whisper', 'Transcribing real voice audio via Whisper Large v3...');
-            const transcript = await transcribeWithGroqWhisper(
-              audioBlob,
-              aiSettings.systemLanguage || 'both'
-            );
+            // Urdu-first: always pass 'ur' so Whisper large-v3 biases to Urdu;
+            // it still returns Roman-Urdu/English words as Latin text when spoken.
+            const transcript = await transcribeWithGroqWhisper(audioBlob, 'ur');
 
             if (transcript && transcript.trim()) {
               setRecordingTranscript(transcript.trim());

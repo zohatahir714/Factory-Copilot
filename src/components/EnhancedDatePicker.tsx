@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type PresetId = 'today' | 'this_month' | 'last_month' | 'fy' | 'custom';
 
 interface Props {
-  /** Range mode (default): From/To inputs driven by presets. */
+  /** Range mode (default): pick a From→To span on one calendar. */
   mode?: 'range' | 'single';
   startDate?: string;
   endDate?: string;
@@ -12,22 +12,30 @@ interface Props {
   onChangeRange?: (start: string, end: string, preset: PresetId) => void;
   onChangeSingle?: (date: string) => void;
   className?: string;
+  align?: 'left' | 'right';
 }
 
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
+const MONTHS_UR = ['جنوری', 'فروری', 'مارچ', 'اپریل', 'مئی', 'جون', 'جولائی', 'اگست', 'ستمبر', 'اکتوبر', 'نومبر', 'دسمبر'];
+const DOW_UR = ['ج', 'پ', 'م', 'ب', 'ج', 'ہ', 'ک']; // جمعرات سے شروع (Thu-first, PK convention)
 
-const PRESETS: Array<{ id: PresetId; label: string }> = [
-  { id: 'today', label: 'Today' },
-  { id: 'this_month', label: 'This Month' },
-  { id: 'last_month', label: 'Last Month' },
-  { id: 'fy', label: 'Fiscal Year' }
-];
+function monthGrid(year: number, month: number): Date[] {
+  const first = new Date(Date.UTC(year, month, 1));
+  const startDow = (first.getUTCDay() + 1) % 7; // Thursday-first index
+  const cells: Date[] = [];
+  for (let i = 0; i < 42; i++) {
+    cells.push(new Date(Date.UTC(year, month, 1 - startDow + i)));
+  }
+  return cells;
+}
+
+const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 /**
  * Enhanced date filter: preset chips (Today / This Month / Last Month /
- * Pakistani fiscal year) plus native date inputs, wrapped in a pill menu so
- * the filter collapses to one control. Keyboard-friendly, dark-mode aware.
- * Fiscal year = 1 Jul – 30 Jun.
+ * Pakistani fiscal year) and a real custom month calendar with click-drag
+ * style range selection (click start, click end). Urdu month labels,
+ * dark-mode aware, opens above or below depending on viewport space.
  */
 export const EnhancedDatePicker: React.FC<Props> = ({
   mode = 'range',
@@ -36,31 +44,46 @@ export const EnhancedDatePicker: React.FC<Props> = ({
   singleDate,
   onChangeRange,
   onChangeSingle,
-  className = ''
+  className = '',
+  align = 'right'
 }) => {
   const today = useMemo(() => fmt(new Date()), []);
   const [open, setOpen] = useState(false);
   const [preset, setPreset] = useState<PresetId>('this_month');
-  const [start, setStart] = useState(startDate || useMemo(() => fmt(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), []));
+  const [start, setStart] = useState(startDate || fmt(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
   const [end, setEnd] = useState(endDate || today);
   const [single, setSingle] = useState(singleDate || today);
+  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
+  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
+  const [pendingStart, setPendingStart] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [dropUp, setDropUp] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) { setOpen(false); setPendingStart(null); }
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  // Flip the panel above the trigger when there is no room below.
+  useEffect(() => {
+    if (!open || !rootRef.current) return;
+    const r = rootRef.current.getBoundingClientRect();
+    const panelH = 360;
+    setDropUp(r.bottom + panelH > window.innerHeight && r.top - panelH > 8);
   }, [open]);
 
   const applyPreset = (id: PresetId) => {
     setPreset(id);
     const now = new Date();
     if (id === 'today') {
-      setStart(today); setEnd(today); if (mode === 'single') setSingle(today);
-      onChangeRange?.(today, today, id); if (mode === 'single') onChangeSingle?.(today);
+      setStart(today); setEnd(today);
+      if (mode === 'single') { setSingle(today); onChangeSingle?.(today); }
+      else onChangeRange?.(today, today, id);
     } else if (id === 'this_month') {
       const s = fmt(new Date(now.getFullYear(), now.getMonth(), 1));
       setStart(s); setEnd(today);
@@ -76,16 +99,50 @@ export const EnhancedDatePicker: React.FC<Props> = ({
       const e = `${y + 1}-06-30`;
       setStart(s); setEnd(e);
       onChangeRange?.(s, e, id);
+      setViewYear(y); setViewMonth(6);
     }
   };
 
-  const summary =
-    mode === 'single'
-      ? single
-      : `${start} → ${end}`;
+  const handleDayClick = (d: Date) => {
+    const day = iso(d);
+    if (mode === 'single') {
+      setSingle(day);
+      setPreset('custom');
+      onChangeSingle?.(day);
+      setOpen(false);
+      return;
+    }
+    if (!pendingStart) {
+      setPendingStart(day);
+    } else {
+      const s = pendingStart <= day ? pendingStart : day;
+      const e = pendingStart <= day ? day : pendingStart;
+      setStart(s); setEnd(e);
+      setPreset('custom');
+      setPendingStart(null);
+      onChangeRange?.(s, e, 'custom');
+      setTimeout(() => setOpen(false), 160);
+    }
+  };
 
-  const inputCls =
-    'w-full px-3 py-1.5 text-xs field-input outline-none font-mono font-bold';
+  const summary = mode === 'single' ? single : `${start} → ${end}`;
+  const grid = monthGrid(viewYear, viewMonth);
+  const rangeStart = pendingStart || start;
+  const rangeEnd = pendingStart ? pendingStart : end;
+
+  const dayCls = (d: Date) => {
+    const day = iso(d);
+    const inMonth = d.getUTCMonth() === viewMonth;
+    const isToday = day === today;
+    const inRange = day >= rangeStart && day <= rangeEnd;
+    const isEdge = day === rangeStart || day === rangeEnd;
+    const base = 'w-8 h-8 text-[11px] rounded-lg flex items-center justify-center transition-colors cursor-pointer';
+    if (isEdge) return `${base} bg-indigo-600 text-white font-bold`;
+    if (inRange) return `${base} bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-200 font-semibold`;
+    if (!inMonth) return `${base} text-slate-300 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5`;
+    if (isToday) return `${base} text-indigo-700 dark:text-indigo-300 font-bold ring-1 ring-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15`;
+    return `${base} text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/15`;
+  };
 
   return (
     <div ref={rootRef} className={`relative ${className}`}>
@@ -95,10 +152,10 @@ export const EnhancedDatePicker: React.FC<Props> = ({
         className="px-3.5 py-2 rounded-full text-xs font-bold field-input flex items-center gap-2 cursor-pointer"
         aria-expanded={open}
         aria-haspopup="dialog"
-        title="Filter by period"
+        title="مدت منتخب کریں"
       >
         <Calendar className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-        <span className="font-mono">{summary}</span>
+        <span className="font-mono" dir="ltr">{summary}</span>
         <svg className="w-3 h-3 shrink-0 opacity-50" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.23 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
         </svg>
@@ -106,13 +163,19 @@ export const EnhancedDatePicker: React.FC<Props> = ({
 
       {open && (
         <div
+          ref={panelRef}
           role="dialog"
-          aria-label="Period filter"
-          className="absolute z-30 right-0 mt-1.5 w-[min(21rem,88vw)] rounded-2xl bg-white dark:bg-[#1a1b23] shadow-xl border border-transparent dark:border-white/10 p-3 space-y-2.5 animate-fadeIn"
+          aria-label="مدت منتخب کریں"
+          className={`absolute z-40 ${align === 'right' ? 'right-0' : 'left-0'} ${dropUp ? 'bottom-full mb-1.5' : 'mt-1.5'} w-[min(20rem,90vw)] rounded-2xl bg-white dark:bg-[#1a1b23] shadow-xl border border-transparent dark:border-white/10 p-3 space-y-2.5 animate-fadeIn`}
         >
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quick presets</div>
+          {/* Presets */}
           <div className="flex flex-wrap gap-1.5">
-            {PRESETS.map(p => (
+            {([
+              { id: 'today', label: 'آج' },
+              { id: 'this_month', label: 'اس ماہ' },
+              { id: 'last_month', label: 'پچھلا ماہ' },
+              { id: 'fy', label: 'مالی سال' }
+            ] as Array<{ id: PresetId; label: string }>).map(p => (
               <button
                 key={p.id}
                 type="button"
@@ -128,50 +191,60 @@ export const EnhancedDatePicker: React.FC<Props> = ({
             ))}
           </div>
 
-          {mode === 'single' ? (
-            <div>
-              <label className="field-label">Date</label>
-              <input
-                type="date"
-                value={single}
-                onChange={e => {
-                  setSingle(e.target.value);
-                  setPreset('custom');
-                  onChangeSingle?.(e.target.value);
-                }}
-                className={inputCls}
-              />
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="field-label">From</label>
-                <input
-                  type="date"
-                  value={start}
-                  max={end}
-                  onChange={e => {
-                    setStart(e.target.value);
-                    setPreset('custom');
-                    onChangeRange?.(e.target.value, end, 'custom');
-                  }}
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className="field-label">To</label>
-                <input
-                  type="date"
-                  value={end}
-                  min={start}
-                  onChange={e => {
-                    setEnd(e.target.value);
-                    setPreset('custom');
-                    onChangeRange?.(start, e.target.value, 'custom');
-                  }}
-                  className={inputCls}
-                />
-              </div>
+          {/* Month header */}
+          <div className="flex items-center justify-between pt-0.5">
+            <button
+              type="button"
+              aria-label="پچھلا ماہ"
+              onClick={() => {
+                const m = viewMonth - 1;
+                if (m < 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m);
+              }}
+              className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              {MONTHS_UR[viewMonth]} {viewYear}
+            </span>
+            <button
+              type="button"
+              aria-label="اگلا ماہ"
+              onClick={() => {
+                const m = viewMonth + 1;
+                if (m > 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m);
+              }}
+              className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Weekday header (Thursday-first) */}
+          <div className="grid grid-cols-7 gap-0.5">
+            {DOW_UR.map((d, i) => (
+              <div key={i} className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-500 text-center py-0.5">{d}</div>
+            ))}
+          </div>
+
+          {/* Day grid */}
+          <div className="grid grid-cols-7 gap-0.5">
+            {grid.map((d, i) => (
+              <button key={i} type="button" onClick={() => handleDayClick(d)} className={dayCls(d)}>
+                {d.getUTCDate()}
+              </button>
+            ))}
+          </div>
+
+          {/* Selected range readout */}
+          <div className="pt-1 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-600 dark:text-slate-400" dir="ltr">
+            <span>{mode === 'single' ? single : start}</span>
+            {mode !== 'single' && <span className="text-indigo-500">→</span>}
+            {mode !== 'single' && <span>{end}</span>}
+          </div>
+          {mode !== 'single' && pendingStart && (
+            <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold text-center">
+              اختتام کی تاریخ منتخب کریں…
             </div>
           )}
         </div>

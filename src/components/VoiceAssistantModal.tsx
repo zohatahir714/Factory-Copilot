@@ -31,7 +31,11 @@ import {
   FileCheck2,
   AlertCircle,
   Clock,
-  Printer
+  Printer,
+  BarChart3,
+  FileText,
+  Users,
+  CalendarDays
 } from 'lucide-react';
 
 interface LiveInspectionData {
@@ -41,6 +45,10 @@ interface LiveInspectionData {
     | 'sale_tax'
     | 'inventory'
     | 'receivables'
+    | 'payables'
+    | 'profit_loss'
+    | 'parties'
+    | 'day_book'
     | 'purchase_orders'
     | 'automate_tax'
     | 'fbr_readiness_guide';
@@ -82,6 +90,7 @@ export const VoiceAssistantModal: React.FC = () => {
     salesOrders,
     products,
     customers,
+    suppliers,
     purchaseOrders,
     openPrintDocument
   } = useApp();
@@ -306,6 +315,99 @@ export const VoiceAssistantModal: React.FC = () => {
         };
       }
 
+      // G2. Payables (AP) Inspection
+      else if (route.queryType === 'payables') {
+        const committedVal = purchaseOrders.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.totalAmount, 0);
+        const spoken = `Total supplier obligations committed are ${formatPKR(committedVal)} across ${purchaseOrders.filter(p => p.status === 'pending').length} open purchase orders.`;
+        resultData = {
+          queryType: 'payables',
+          title: 'Supplier Payables & Commitments',
+          badge: 'Trade Creditors (AP 2001)',
+          spokenText: spoken,
+          stats: [
+            { label: 'Open PO Commitments', value: formatPKR(committedVal), color: 'text-amber-600' },
+            { label: 'Registered Suppliers', value: `${suppliers.length} Vendors`, color: 'text-slate-900 dark:text-slate-100' },
+            { label: 'Ledger Control Head', value: '2001 · AP', color: 'text-indigo-600' }
+          ],
+          details: 'Committed value mirrors open purchase orders posted to Accounts Payable (2001) in the General Ledger.',
+          actionButton: {
+            label: 'Open Cashbook & Treasury',
+            onClick: () => { closeModal(); setActiveTab('cashbook'); }
+          }
+        };
+      }
+
+      // G3. Profit & Loss Inspection
+      else if (route.queryType === 'profit_loss') {
+        const revenue = salesOrders.reduce((s, v) => s + v.totalAmount, 0);
+        const gstOut = salesOrders.reduce((s, v) => s + (v.taxAmount || 0), 0);
+        const expenses = cashbook.filter(c => c.type === 'outflow').reduce((s, v) => s + v.amount, 0);
+        const net = revenue - gstOut - expenses;
+        const spoken = `Total revenue net of GST is ${formatPKR(revenue - gstOut)}; operating expenses ${formatPKR(expenses)}; net ${net >= 0 ? 'profit' : 'loss'} ${formatPKR(Math.abs(net))}.`;
+        resultData = {
+          queryType: 'profit_loss',
+          title: 'نفعہ و نقصان (P&L Snapshot)',
+          badge: 'Live from ledger',
+          spokenText: spoken,
+          stats: [
+            { label: 'Revenue (ex-GST)', value: formatPKR(revenue - gstOut), color: 'text-emerald-600' },
+            { label: 'Operating Expenses', value: formatPKR(expenses), color: 'text-red-600' },
+            { label: net >= 0 ? 'Net Profit' : 'Net Loss', value: formatPKR(Math.abs(net)), color: net >= 0 ? 'text-emerald-600' : 'text-red-600' }
+          ],
+          details: 'Derived live from sales invoices and cashbook vouchers; the authoritative statement lives in Reports → P&L.',
+          actionButton: {
+            label: 'Open Reports & P&L',
+            onClick: () => { closeModal(); setActiveTab('reports'); }
+          }
+        };
+      }
+
+      // G4. Parties Registry
+      else if (route.queryType === 'parties') {
+        const spoken = `${customers.length} customers and ${suppliers.length} suppliers are registered. Total receivables ${formatPKR(customers.reduce((s, c) => s + (c.outstandingReceivables || 0), 0))}.`;
+        resultData = {
+          queryType: 'parties',
+          title: 'گاہک و سپلائر رجسٹری',
+          badge: 'Master Partner Registry',
+          spokenText: spoken,
+          stats: [
+            { label: 'Customers', value: `${customers.length} Mills`, color: 'text-indigo-600' },
+            { label: 'Suppliers', value: `${suppliers.length} Vendors`, color: 'text-indigo-600' },
+            { label: 'Receivables', value: formatPKR(customers.reduce((s, c) => s + (c.outstandingReceivables || 0), 0)), color: 'text-emerald-600' }
+          ],
+          details: 'Each registered party auto-creates its AR/AP sub-ledger account in the Chart of Accounts.',
+          actionButton: {
+            label: 'Open Customers & Mills',
+            onClick: () => { closeModal(); setActiveTab('customers' as any); }
+          }
+        };
+      }
+
+      // G5. Day Book (today)
+      else if (route.queryType === 'day_book') {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const todays = cashbook.filter(v => v.createdAt.slice(0, 10) === todayStr);
+        const inflow = todays.filter(v => v.type === 'inflow').reduce((s, v) => s + v.amount, 0);
+        const outflow = todays.filter(v => v.type === 'outflow').reduce((s, v) => s + v.amount, 0);
+        const spoken = `Aaj ki ${todays.length} entries: inflow ${formatPKR(inflow)}, outflow ${formatPKR(outflow)}.`;
+        resultData = {
+          queryType: 'day_book',
+          title: 'آج کا ڈے بک',
+          badge: todayStr,
+          spokenText: spoken,
+          stats: [
+            { label: 'Entries Today', value: `${todays.length}`, color: 'text-slate-900 dark:text-slate-100' },
+            { label: 'Inflow', value: formatPKR(inflow), color: 'text-emerald-600' },
+            { label: 'Outflow', value: formatPKR(outflow), color: 'text-red-600' }
+          ],
+          details: 'Full statement with opening/closing balances lives in Reports → Daily Cashbook.',
+          actionButton: {
+            label: 'Open Daily Cashbook',
+            onClick: () => { closeModal(); setActiveTab('reports'); }
+          }
+        };
+      }
+
       // G. Automate FBR Compliance
       else if (route.queryType === 'automate_tax') {
         const spoken = 'Automated FBR compliance engine is active. Standard 18% GST, 4% further tax, and Iris Annexure-C reconciliation are auto-imposed on all transactions.';
@@ -481,71 +583,33 @@ export const VoiceAssistantModal: React.FC = () => {
     }
   };
 
-  // Comprehensive One-Tap Voice Command Actions (English & Urdu)
+  // Comprehensive One-Tap Voice Command Actions — Urdu-first (اردو)، Roman Urdu، English
   const voiceCommandChips = [
-    {
-      label: 'Print FBR Invoice (80mm)',
-      query: 'Print thermal receipt',
-      icon: Printer,
-      color: 'bg-indigo-600/10 text-indigo-600 border-indigo-600/20 hover:bg-indigo-600/20',
-      badge: 'FBR QR & Tax Breakdown'
-    },
-    {
-      label: 'How to make FBR Integration Ready?',
-      query: 'How to make system ready for FBR integration',
-      icon: ShieldCheck,
-      color: 'bg-emerald-600/10 text-emerald-600 border-emerald-600/20 hover:bg-emerald-600/20',
-      badge: '5-Step Protocol Guide'
-    },
-    {
-      label: 'Check Cash Balance',
-      query: 'Check cash balance',
-      icon: Wallet,
-      color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20',
-      badge: 'Live Treasury Status'
-    },
-    {
-      label: 'Check 18% GST Collected',
-      query: 'Check GST collected',
-      icon: Scale,
-      color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20',
-      badge: 'FBR STA 1990 Audit'
-    },
-    {
-      label: 'Check FBR Tax on Sale (1 Lakh)',
-      query: 'Calculate tax for 100000 sale',
-      icon: Calculator,
-      color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20',
-      badge: 'Auto-Compute GST + Further Tax'
-    },
-    {
-      label: 'Automate FBR & GST Taxes',
-      query: 'Automate FBR compliance',
-      icon: ShieldAlert,
-      color: 'bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20',
-      badge: 'Impose on Everything'
-    },
-    {
-      label: 'Check Warehouse Stock',
-      query: 'Check stock',
-      icon: Package,
-      color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20',
-      badge: 'SKU Inventory Check'
-    },
-    {
-      label: 'Print Inventory Stock Report',
-      query: 'Print inventory report',
-      icon: Printer,
-      color: 'bg-teal-500/10 text-teal-600 border-teal-500/20 hover:bg-teal-500/20',
-      badge: 'Warehouse Valuation'
-    },
-    {
-      label: 'Record New Sale (18% GST)',
-      query: 'Record a new sale',
-      icon: Receipt,
-      color: 'bg-sky-500/10 text-sky-600 border-sky-500/20 hover:bg-sky-500/20',
-      badge: 'Opens Sales Order Modal'
-    }
+    // — Live inspections —
+    { label: 'کتنا کیش ہے؟', query: 'کتنا کیش ہے', icon: Wallet, color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20', badge: 'لائیو خزانہ' },
+    { label: 'GST کتنا وصول ہوا؟', query: 'GST kitna wasool hua', icon: Scale, color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20', badge: 'FBR 18% آڈٹ' },
+    { label: 'اسٹاک چیک کرو', query: 'اسٹاک چیک کرو', icon: Package, color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20', badge: 'گودام اسٹاک' },
+    { label: 'وصولی کتنی ہے؟', query: 'وصولی کتنی ہے', icon: Receipt, color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20', badge: 'AR بیلنس' },
+    { label: 'سپلائر پیمنٹس؟', query: 'supplier payments kitni hain', icon: Building2, color: 'bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20', badge: 'AP بیلنس' },
+    { label: 'نفعہ کتنا ہوا؟', query: 'munafa kitna hua', icon: BarChart3, color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20', badge: 'P&L اسنیپ شاٹ' },
+    { label: '1 لاکھ سیل پر ٹیکس؟', query: '1 lakh ki sale par tax kitna', icon: Calculator, color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20', badge: 'GST + فرڈر ٹیکس' },
+    { label: 'آج کا حساب', query: 'aaj ka hisab batao', icon: CalendarDays, color: 'bg-sky-500/10 text-sky-600 border-sky-500/20 hover:bg-sky-500/20', badge: 'ڈے بک' },
+    // — Creation workflows —
+    { label: 'نیا سیل انوئس', query: 'naya sale invoice banao', icon: Receipt, color: 'bg-sky-500/10 text-sky-600 border-sky-500/20 hover:bg-sky-500/20', badge: '18% GST انوئس' },
+    { label: 'پرچیز آرڈر بناو', query: 'purchase order bana do', icon: FileText, color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20', badge: 'PO ورک فلو' },
+    { label: 'کیش واؤچر', query: 'cash voucher banao', icon: Wallet, color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20', badge: 'کیش بک انٹری' },
+    { label: 'نیا سپلائر', query: 'naya supplier add karo', icon: Building2, color: 'bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20', badge: 'ون بورڈنگ' },
+    { label: 'نیا گاہک', query: 'naya customer add karo', icon: Users, color: 'bg-sky-500/10 text-sky-600 border-sky-500/20 hover:bg-sky-500/20', badge: 'رجسٹریشن' },
+    { label: 'نیا پروڈکٹ', query: 'naya product add karo', icon: Package, color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20', badge: 'SKU رجسٹری' },
+    // — Printing —
+    { label: 'انوئس پرنٹ کرو', query: 'invoice print karo', icon: Printer, color: 'bg-indigo-600/10 text-indigo-600 border-indigo-600/20 hover:bg-indigo-600/20', badge: 'FBR 80mm تھرمل' },
+    { label: 'اسٹاک رپورٹ پرنٹ', query: 'stock report print karo', icon: Printer, color: 'bg-teal-500/10 text-teal-600 border-teal-500/20 hover:bg-teal-500/20', badge: 'ویلیویشن رپورٹ' },
+    // — Navigation —
+    { label: 'ڈیش بورڈ کھولو', query: 'dashboard kholo', icon: BarChart3, color: 'bg-slate-500/10 text-slate-600 border-slate-500/20 hover:bg-slate-500/20', badge: 'ایگزیکٹو ویو' },
+    { label: 'رپورٹس کھولو', query: 'reports kholo', icon: FileText, color: 'bg-slate-500/10 text-slate-600 border-slate-500/20 hover:bg-slate-500/20', badge: 'GL و فنانشلز' },
+    // — FBR —
+    { label: 'FBR ریڈی ہے؟', query: 'FBR integration ready kaise ho', icon: ShieldCheck, color: 'bg-emerald-600/10 text-emerald-600 border-emerald-600/20 hover:bg-emerald-600/20', badge: '5-اسٹپ گائیڈ' },
+    { label: 'ٹیکس آٹومیٹ کرو', query: 'tax automate karo', icon: ShieldAlert, color: 'bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20', badge: 'خودکار GST' }
   ];
 
   return (
