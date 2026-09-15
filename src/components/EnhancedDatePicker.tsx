@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type PresetId = 'today' | 'this_month' | 'last_month' | 'fy' | 'custom';
@@ -17,7 +18,7 @@ interface Props {
 
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const DOW = ['Th', 'Fr', 'Sa', 'Su', 'Mo', 'Tu', 'We']; // Thursday-first, Pakistan convention
+const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']; // Sunday-first columns
 
 /** Exactly the days of the viewed month (no leading/trailing overflow rows). */
 function monthDays(year: number, month: number): Date[] {
@@ -28,12 +29,19 @@ function monthDays(year: number, month: number): Date[] {
 }
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
+const PANEL_W = 304; // 19rem
 
 /**
  * Enhanced date filter: preset chips (Today / This Month / Last Month /
  * Fiscal Year) and a custom month calendar with click-click range selection.
  * English labels; grid contains only the viewed month's days laid under the
- * correct weekday columns. Opens above or below depending on viewport space.
+ * correct weekday columns.
+ *
+ * The panel is portaled to document.body and positioned `fixed` from the
+ * trigger's viewport rect, so no ancestor overflow-hidden/scroll container or
+ * stacking context (module roots, modals, tables) can clip or bury it. It
+ * flips above/below, clamps to the viewport, tracks scroll, and closes when
+ * the trigger scrolls away.
  */
 export const EnhancedDatePicker: React.FC<Props> = ({
   mode = 'range',
@@ -54,25 +62,68 @@ export const EnhancedDatePicker: React.FC<Props> = ({
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [pendingStart, setPendingStart] = useState<string | null>(null);
+  const [coords, setCoords] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const close = useCallback(() => { setOpen(false); setPendingStart(null); }, []);
+
+  const computeCoords = useCallback(() => {
+    const trig = rootRef.current?.getBoundingClientRect();
+    if (!trig) return;
+    const ph = panelRef.current?.offsetHeight || 360;
+    const margin = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const pw = Math.min(PANEL_W, vw - margin * 2);
+    let left = align === 'right' ? trig.right - pw : trig.left;
+    left = Math.max(margin, Math.min(left, vw - pw - margin));
+    const spaceBelow = vh - trig.bottom - 6;
+    const spaceAbove = trig.top - 6;
+    let top: number;
+    let maxHeight: number;
+    if (spaceBelow >= ph) { top = trig.bottom + 6; maxHeight = vh - top - margin; }
+    else if (spaceAbove >= ph) { top = trig.top - ph - 6; maxHeight = ph; }
+    else if (spaceBelow >= spaceAbove) { top = trig.bottom + 6; maxHeight = spaceBelow - margin; }
+    else { maxHeight = spaceAbove - margin; top = Math.max(margin, trig.top - maxHeight - 6); }
+    top = Math.max(margin, Math.min(top, vh - margin));
+    maxHeight = Math.max(220, Math.min(maxHeight, vh - top - margin));
+    setCoords({ left: Math.round(left), top: Math.round(top), width: Math.round(pw), maxHeight: Math.round(maxHeight) });
+  }, [align]);
+
+  useLayoutEffect(() => {
+    if (!open) { setCoords(null); return; }
+    computeCoords();
+    const onMove = () => {
+      const trig = rootRef.current?.getBoundingClientRect();
+      if (!trig) return;
+      // Trigger scrolled out of view — the picker is meaningless; close it.
+      if (trig.bottom < -24 || trig.top > window.innerHeight + 24) { close(); return; }
+      computeCoords();
+    };
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
+    return () => {
+      window.removeEventListener('scroll', onMove, true);
+      window.removeEventListener('resize', onMove);
+    };
+  }, [open, computeCoords, close]);
 
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) { setOpen(false); setPendingStart(null); }
+      const t = e.target as Node;
+      if (rootRef.current?.contains(t) || panelRef.current?.contains(t)) return;
+      close();
     };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
-
-  // Flip the panel above the trigger when there is no room below.
-  const [dropUp, setDropUp] = useState(false);
-  useEffect(() => {
-    if (!open || !rootRef.current) return;
-    const r = rootRef.current.getBoundingClientRect();
-    const panelH = 360;
-    setDropUp(r.bottom + panelH > window.innerHeight && r.top - panelH > 8);
-  }, [open]);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open, close]);
 
   const applyPreset = (id: PresetId) => {
     setPreset(id);
@@ -106,7 +157,7 @@ export const EnhancedDatePicker: React.FC<Props> = ({
       setSingle(day);
       setPreset('custom');
       onChangeSingle?.(day);
-      setOpen(false);
+      close();
       return;
     }
     if (!pendingStart) {
@@ -124,8 +175,8 @@ export const EnhancedDatePicker: React.FC<Props> = ({
 
   const summary = mode === 'single' ? single : `${start} → ${end}`;
   const days = monthDays(viewYear, viewMonth);
-  // Thursday-first column index of the 1st (0 = Th column).
-  const leadBlanks = (new Date(Date.UTC(viewYear, viewMonth, 1)).getUTCDay() + 1) % 7;
+  // Weekday column of the 1st for Sunday-first headers (0 = Su column).
+  const leadBlanks = new Date(Date.UTC(viewYear, viewMonth, 1)).getUTCDay();
   const rangeStart = pendingStart || start;
   const rangeEnd = pendingStart ? pendingStart : end;
 
@@ -158,11 +209,13 @@ export const EnhancedDatePicker: React.FC<Props> = ({
         </svg>
       </button>
 
-      {open && (
+      {open && coords && createPortal(
         <div
+          ref={panelRef}
           role="dialog"
           aria-label="Select period"
-          className={`absolute z-40 ${align === 'right' ? 'right-0' : 'left-0'} ${dropUp ? 'bottom-full mb-1.5' : 'mt-1.5'} w-[min(19rem,90vw)] rounded-2xl bg-white dark:bg-[#1a1b23] shadow-xl border border-transparent dark:border-white/10 p-3 space-y-2.5 animate-fadeIn`}
+          className="fixed rounded-2xl bg-white dark:bg-[#1a1b23] shadow-xl border border-transparent dark:border-white/10 p-3 space-y-2.5 animate-fadeIn overflow-y-auto"
+          style={{ left: coords.left, top: coords.top, width: coords.width, maxHeight: coords.maxHeight, zIndex: 70 }}
         >
           {/* Presets */}
           <div className="flex flex-wrap gap-1.5">
@@ -198,7 +251,7 @@ export const EnhancedDatePicker: React.FC<Props> = ({
               }}
               className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
               {MONTHS[viewMonth]} {viewYear}
@@ -212,11 +265,11 @@ export const EnhancedDatePicker: React.FC<Props> = ({
               }}
               className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Weekday header (Thursday-first) */}
+          {/* Weekday header (Sunday-first) */}
           <div className="grid grid-cols-7 gap-0.5">
             {DOW.map((d, i) => (
               <div key={i} className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-500 text-center py-0.5">{d}</div>
@@ -246,7 +299,8 @@ export const EnhancedDatePicker: React.FC<Props> = ({
               Select the end date…
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

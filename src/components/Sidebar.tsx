@@ -188,7 +188,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside
-      className={`relative bg-white/75 dark:bg-[#0e0f14] text-slate-700 dark:text-slate-200 backdrop-blur-xl border-r border-slate-200/70 dark:border-white/5 flex flex-col justify-between transition-all duration-300 ease-in-out shrink-0 select-none z-30 ${
+      className={`relative bg-white/90 dark:bg-[#0e0f14] text-slate-700 dark:text-slate-200 border-r border-slate-200/70 dark:border-white/5 flex flex-col justify-between transition-all duration-300 ease-in-out shrink-0 select-none z-10 ${
         sidebarCollapsed ? 'w-20' : 'w-64'
       }`}
     >

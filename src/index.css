@@ -21,19 +21,23 @@
   --shadow-card: 0 1px 2px rgba(17, 20, 45, 0.04), 0 10px 28px -14px rgba(17, 20, 45, 0.10);
   --shadow-lift: 0 2px 4px rgba(17, 20, 45, 0.05), 0 20px 44px -18px rgba(17, 20, 45, 0.18);
 
-  --animate-fadeIn: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-scaleUp: modalIn 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* fill-mode 'backwards': pre-animation styles apply during the delay, but
+     nothing is retained after completion — no lingering transform, so these
+     elements never keep a stacking context that would trap popover children
+     (datepicker/combobox panels) under the sidebar's z-30. */
+  --animate-fadeIn: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  --animate-scaleUp: modalIn 0.34s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   /* Bento entrance: rise + settle. Cards cascade via .stagger > :nth-child delays */
-  --animate-bentoIn: bentoIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-bentoIn: bentoIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 
   @keyframes bentoIn {
     from { opacity: 0; transform: translateY(16px) scale(0.985); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 1; transform: none; }
   }
 
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    to { opacity: 1; transform: none; }
   }
   @keyframes modalIn {
     from { opacity: 0; transform: translateY(14px) scale(0.965); }
@@ -217,7 +221,7 @@
      Parent gets .stagger; direct children rise in a 50ms cascade.
      transform + opacity only; disabled for reduced-motion users. */
   .stagger > * {
-    animation: bentoIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: bentoIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
   .stagger > :nth-child(1) { animation-delay: 0ms; }
   .stagger > :nth-child(2) { animation-delay: 50ms; }
