@@ -16,16 +16,14 @@ interface Props {
 }
 
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
-const MONTHS_UR = ['جنوری', 'فروری', 'مارچ', 'اپریل', 'مئی', 'جون', 'جولائی', 'اگست', 'ستمبر', 'اکتوبر', 'نومبر', 'دسمبر'];
-const DOW_UR = ['ج', 'پ', 'م', 'ب', 'ج', 'ہ', 'ک']; // جمعرات سے شروع (Thu-first, PK convention)
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DOW = ['Th', 'Fr', 'Sa', 'Su', 'Mo', 'Tu', 'We']; // Thursday-first, Pakistan convention
 
-function monthGrid(year: number, month: number): Date[] {
-  const first = new Date(Date.UTC(year, month, 1));
-  const startDow = (first.getUTCDay() + 1) % 7; // Thursday-first index
+/** Exactly the days of the viewed month (no leading/trailing overflow rows). */
+function monthDays(year: number, month: number): Date[] {
+  const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   const cells: Date[] = [];
-  for (let i = 0; i < 42; i++) {
-    cells.push(new Date(Date.UTC(year, month, 1 - startDow + i)));
-  }
+  for (let i = 1; i <= days; i++) cells.push(new Date(Date.UTC(year, month, i)));
   return cells;
 }
 
@@ -33,9 +31,9 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 /**
  * Enhanced date filter: preset chips (Today / This Month / Last Month /
- * Pakistani fiscal year) and a real custom month calendar with click-drag
- * style range selection (click start, click end). Urdu month labels,
- * dark-mode aware, opens above or below depending on viewport space.
+ * Fiscal Year) and a custom month calendar with click-click range selection.
+ * English labels; grid contains only the viewed month's days laid under the
+ * correct weekday columns. Opens above or below depending on viewport space.
  */
 export const EnhancedDatePicker: React.FC<Props> = ({
   mode = 'range',
@@ -57,8 +55,6 @@ export const EnhancedDatePicker: React.FC<Props> = ({
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [pendingStart, setPendingStart] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const [dropUp, setDropUp] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -70,6 +66,7 @@ export const EnhancedDatePicker: React.FC<Props> = ({
   }, [open]);
 
   // Flip the panel above the trigger when there is no room below.
+  const [dropUp, setDropUp] = useState(false);
   useEffect(() => {
     if (!open || !rootRef.current) return;
     const r = rootRef.current.getBoundingClientRect();
@@ -126,20 +123,20 @@ export const EnhancedDatePicker: React.FC<Props> = ({
   };
 
   const summary = mode === 'single' ? single : `${start} → ${end}`;
-  const grid = monthGrid(viewYear, viewMonth);
+  const days = monthDays(viewYear, viewMonth);
+  // Thursday-first column index of the 1st (0 = Th column).
+  const leadBlanks = (new Date(Date.UTC(viewYear, viewMonth, 1)).getUTCDay() + 1) % 7;
   const rangeStart = pendingStart || start;
   const rangeEnd = pendingStart ? pendingStart : end;
 
   const dayCls = (d: Date) => {
     const day = iso(d);
-    const inMonth = d.getUTCMonth() === viewMonth;
     const isToday = day === today;
     const inRange = day >= rangeStart && day <= rangeEnd;
     const isEdge = day === rangeStart || day === rangeEnd;
-    const base = 'w-8 h-8 text-[11px] rounded-lg flex items-center justify-center transition-colors cursor-pointer';
+    const base = 'h-8 text-[11px] rounded-lg flex items-center justify-center transition-colors cursor-pointer';
     if (isEdge) return `${base} bg-indigo-600 text-white font-bold`;
     if (inRange) return `${base} bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-200 font-semibold`;
-    if (!inMonth) return `${base} text-slate-300 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5`;
     if (isToday) return `${base} text-indigo-700 dark:text-indigo-300 font-bold ring-1 ring-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15`;
     return `${base} text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/15`;
   };
@@ -152,7 +149,7 @@ export const EnhancedDatePicker: React.FC<Props> = ({
         className="px-3.5 py-2 rounded-full text-xs font-bold field-input flex items-center gap-2 cursor-pointer"
         aria-expanded={open}
         aria-haspopup="dialog"
-        title="مدت منتخب کریں"
+        title="Select period"
       >
         <Calendar className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
         <span className="font-mono" dir="ltr">{summary}</span>
@@ -163,18 +160,17 @@ export const EnhancedDatePicker: React.FC<Props> = ({
 
       {open && (
         <div
-          ref={panelRef}
           role="dialog"
-          aria-label="مدت منتخب کریں"
-          className={`absolute z-40 ${align === 'right' ? 'right-0' : 'left-0'} ${dropUp ? 'bottom-full mb-1.5' : 'mt-1.5'} w-[min(20rem,90vw)] rounded-2xl bg-white dark:bg-[#1a1b23] shadow-xl border border-transparent dark:border-white/10 p-3 space-y-2.5 animate-fadeIn`}
+          aria-label="Select period"
+          className={`absolute z-40 ${align === 'right' ? 'right-0' : 'left-0'} ${dropUp ? 'bottom-full mb-1.5' : 'mt-1.5'} w-[min(19rem,90vw)] rounded-2xl bg-white dark:bg-[#1a1b23] shadow-xl border border-transparent dark:border-white/10 p-3 space-y-2.5 animate-fadeIn`}
         >
           {/* Presets */}
           <div className="flex flex-wrap gap-1.5">
             {([
-              { id: 'today', label: 'آج' },
-              { id: 'this_month', label: 'اس ماہ' },
-              { id: 'last_month', label: 'پچھلا ماہ' },
-              { id: 'fy', label: 'مالی سال' }
+              { id: 'today', label: 'Today' },
+              { id: 'this_month', label: 'This Month' },
+              { id: 'last_month', label: 'Last Month' },
+              { id: 'fy', label: 'Fiscal Year' }
             ] as Array<{ id: PresetId; label: string }>).map(p => (
               <button
                 key={p.id}
@@ -195,7 +191,7 @@ export const EnhancedDatePicker: React.FC<Props> = ({
           <div className="flex items-center justify-between pt-0.5">
             <button
               type="button"
-              aria-label="پچھلا ماہ"
+              aria-label="Previous month"
               onClick={() => {
                 const m = viewMonth - 1;
                 if (m < 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m);
@@ -205,11 +201,11 @@ export const EnhancedDatePicker: React.FC<Props> = ({
               <ChevronRight className="w-4 h-4" />
             </button>
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-              {MONTHS_UR[viewMonth]} {viewYear}
+              {MONTHS[viewMonth]} {viewYear}
             </span>
             <button
               type="button"
-              aria-label="اگلا ماہ"
+              aria-label="Next month"
               onClick={() => {
                 const m = viewMonth + 1;
                 if (m > 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m);
@@ -222,15 +218,18 @@ export const EnhancedDatePicker: React.FC<Props> = ({
 
           {/* Weekday header (Thursday-first) */}
           <div className="grid grid-cols-7 gap-0.5">
-            {DOW_UR.map((d, i) => (
+            {DOW.map((d, i) => (
               <div key={i} className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-500 text-center py-0.5">{d}</div>
             ))}
           </div>
 
-          {/* Day grid */}
-          <div className="grid grid-cols-7 gap-0.5">
-            {grid.map((d, i) => (
-              <button key={i} type="button" onClick={() => handleDayClick(d)} className={dayCls(d)}>
+          {/* Day grid — only this month's days, aligned under real columns */}
+          <div className="grid grid-cols-7 gap-0.5" style={{ gridAutoRows: '2rem' }}>
+            {Array.from({ length: leadBlanks }).map((_, i) => (
+              <div key={`blank_${i}`} />
+            ))}
+            {days.map(d => (
+              <button key={iso(d)} type="button" onClick={() => handleDayClick(d)} className={dayCls(d)}>
                 {d.getUTCDate()}
               </button>
             ))}
@@ -244,7 +243,7 @@ export const EnhancedDatePicker: React.FC<Props> = ({
           </div>
           {mode !== 'single' && pendingStart && (
             <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold text-center">
-              اختتام کی تاریخ منتخب کریں…
+              Select the end date…
             </div>
           )}
         </div>

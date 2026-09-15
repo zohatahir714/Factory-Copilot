@@ -614,12 +614,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setAuthUser = (user: AuthUser) => {
     setSessionExpired(false);
+    lastActivityRef.current = Date.now();
     setCurrentUser(user);
     localStorage.setItem('copilot_auth_user', JSON.stringify(user));
   };
 
   const login = (email: string, password?: string): boolean => {
     setSessionExpired(false);
+    lastActivityRef.current = Date.now();
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPassword = (password || '').trim();
 
@@ -698,6 +700,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // owner — this only ends the app-level session.
   useEffect(() => {
     if (!isAuthenticated) return;
+
+    // CRITICAL: re-anchor the idle clock to NOW on every login. The ref may
+    // hold a stale pre-login timestamp (user sat on the login screen longer
+    // than the timeout), which would sign the user out seconds after logging
+    // in — the "logged out repeatedly" bug.
+    lastActivityRef.current = Date.now();
 
     const bumpActivity = () => { lastActivityRef.current = Date.now(); };
     const activityEvents: (keyof WindowEventMap)[] = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
