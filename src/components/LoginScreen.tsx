@@ -12,26 +12,20 @@ import {
   LogIn,
   KeyRound,
   Mail,
-  ArrowLeft,
   RefreshCw
 } from 'lucide-react';
 import {
   getSupabaseConfig,
   supabaseSignIn,
-  supabaseResetPassword,
   checkSupabaseHealth
 } from '../supabaseClient';
 import { SESSION_IDLE_TIMEOUT_MS } from '../context/AppContext';
 
 const IDLE_MINUTES = Math.round(SESSION_IDLE_TIMEOUT_MS / 60000);
 
-type AuthMode = 'signin' | 'forgot_password';
 
 export const LoginScreen: React.FC = () => {
   const { branding, login, setAuthUser, darkMode, toggleDarkMode, addToast, sessionExpired } = useApp();
-
-  // Auth Mode: Sign In or Forgot Password
-  const [authMode, setAuthMode] = useState<AuthMode>('signin');
 
   // Form Fields
   const [email, setEmail] = useState(() => {
@@ -91,43 +85,22 @@ export const LoginScreen: React.FC = () => {
     }
 
     try {
-      if (authMode === 'signin') {
-        // 1. Try Supabase Auth if configured
-        const { isConfigured } = getSupabaseConfig();
-        if (isConfigured) {
-          const authRes = await supabaseSignIn(trimmedEmail, trimmedPassword);
-          if (authRes.success && authRes.user) {
-            setAuthUser(authRes.user);
-            addToast('success', 'Authenticated via Supabase', authRes.message);
-            setIsSubmitting(false);
-            return;
-          }
-        }
-
-        // 2. Fallback to Local Auth Registry in AppContext
-        const localSuccess = login(trimmedEmail, trimmedPassword);
-        if (!localSuccess) {
-          setError('Invalid credentials. Please contact your system administrator to provision or reset your account.');
-        }
-      } else if (authMode === 'forgot_password') {
-        if (!trimmedEmail) {
-          setError('Please enter your corporate email address.');
+      // 1. Try Supabase Auth if configured
+      const { isConfigured } = getSupabaseConfig();
+      if (isConfigured) {
+        const authRes = await supabaseSignIn(trimmedEmail, trimmedPassword);
+        if (authRes.success && authRes.user) {
+          setAuthUser(authRes.user);
+          addToast('success', 'Authenticated via Supabase', authRes.message);
           setIsSubmitting(false);
           return;
         }
+      }
 
-        const { isConfigured } = getSupabaseConfig();
-        if (isConfigured) {
-          const resetRes = await supabaseResetPassword(trimmedEmail);
-          if (resetRes.success) {
-            setSuccessMsg(resetRes.message);
-            addToast('success', 'Recovery Email Sent', resetRes.message);
-          } else {
-            setError(resetRes.message || 'Failed to send password reset request.');
-          }
-        } else {
-          setSuccessMsg('In offline mode, please contact your Super Admin to reset your account password from the Settings module.');
-        }
+      // 2. Fallback to Local Auth Registry in AppContext
+      const localSuccess = login(trimmedEmail, trimmedPassword);
+      if (!localSuccess) {
+        setError('Invalid credentials. Please contact your system administrator to provision or reset your account.');
       }
     } catch (err: any) {
       setError(err?.message || 'An unexpected authentication error occurred.');
@@ -247,64 +220,49 @@ export const LoginScreen: React.FC = () => {
             </div>
           </div>
 
-          {/* PASSWORD FIELD (Sign In Only) */}
-          {authMode === 'signin' && (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="font-semibold text-slate-700 dark:text-slate-300">
-                  Password
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode('forgot_password');
-                    setError(null);
-                    setSuccessMsg(null);
-                  }}
-                  className="text-[11px] py-1.5 -my-1.5 px-1 text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-                >
-                  Forgot password?
-                </button>
-              </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  id="input-auth-password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-9 pr-10 py-2.5 field-input rounded-xl text-slate-900 dark:text-white font-medium"
-                />
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(prev => !prev)}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                  title={showPassword ? 'Hide password' : 'Show password'}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* CHECKBOXES & OPTIONS */}
-          {authMode === 'signin' && (
-            <div className="flex items-center justify-between pt-0.5">
-              <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400 text-xs">
-                <input
-                  type="checkbox"
-                  id="checkbox-remember-me"
-                  checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                  className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                />
-                <span>Remember this device</span>
+          {/* PASSWORD FIELD */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-semibold text-slate-700 dark:text-slate-300">
+                Password
               </label>
             </div>
-          )}
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                id="input-auth-password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-9 pr-10 py-2.5 field-input rounded-xl text-slate-900 dark:text-white font-medium"
+              />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(prev => !prev)}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                title={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* CHECKBOXES & OPTIONS */}
+          <div className="flex items-center justify-between pt-0.5">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400 text-xs">
+              <input
+                type="checkbox"
+                id="checkbox-remember-me"
+                checked={rememberMe}
+                onChange={e => setRememberMe(e.target.checked)}
+                className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+              <span>Remember this device</span>
+            </label>
+          </div>
 
           {/* SUBMIT BUTTON */}
           <button
@@ -318,40 +276,33 @@ export const LoginScreen: React.FC = () => {
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                 <span>Authenticating...</span>
               </>
-            ) : authMode === 'signin' ? (
+            ) : (
               <>
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Sign In</span>
-              </>
-            ) : (
-              <>
-                <KeyRound className="w-3.5 h-3.5" />
-                <span>Send Password Reset Link</span>
               </>
             )}
           </button>
         </form>
 
-        {/* FORGOT PASSWORD RETURN BACK */}
-        {authMode === 'forgot_password' && (
-          <div className="text-center pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode('signin');
-                setError(null);
-                setSuccessMsg(null);
-              }}
-              className="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-medium"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Back to Sign In
-            </button>
-          </div>
-        )}
-
         <div className="pt-2 text-center text-[11px] text-slate-500 dark:text-slate-400">
           <span>Enterprise Access Only. Accounts are provisioned by Super Administrators.</span>
+        </div>
+
+        {/* Demo credentials — judges can sign in with the seeded Super Admin. */}
+        <div className="pt-1 text-center">
+          <div className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100/80 dark:bg-white/5 rounded-full px-3.5 py-1.5 font-mono" title="Demo credentials for evaluation">
+            <KeyRound className="w-3 h-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
+            <span>Demo login:</span>
+            <button
+              type="button"
+              onClick={() => { setEmail('admin@gmail.com'); setPassword('admin123'); setError(null); setSuccessMsg(null); }}
+              className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+              title="Click to fill the form with demo credentials"
+            >
+              admin@gmail.com / admin123
+            </button>
+          </div>
         </div>
       </div>
     </main>

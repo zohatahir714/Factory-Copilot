@@ -439,6 +439,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString()
     },
     {
+      id: 'usr_demo_admin',
+      email: 'admin@gmail.com',
+      name: 'Demo Admin (Judge Access)',
+      role: 'Super Admin',
+      password: 'admin123',
+      status: 'active',
+      phone: '+92 300 8888888',
+      createdAt: new Date().toISOString()
+    },
+    {
       id: 'usr_system_owner',
       email: 'learnthetechfirst@gmail.com',
       name: 'System Owner (Super Admin)',
