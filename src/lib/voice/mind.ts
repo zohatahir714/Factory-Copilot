@@ -48,7 +48,8 @@ Schema:
 
 Rules:
 1. The utterance may be Urdu script, Roman Urdu, or English — treat all as equal.
-2. Bind spoken entity words to the LIVE DIGEST below. «سبیر» → the customer whose name contains it. «یارن» → the product whose name matches. If nothing matches, set confidence ≤ 0.5 and put an Urdu clarifying question in "clarification".
+2. Bind spoken entity words to the LIVE DIGEST below. «سبیر» → the customer whose name contains it. «یارن» → the product whose name matches. If a referenced EXISTING entity matches nothing, set confidence ≤ 0.5 and put an Urdu clarifying question in "clarification".
+2b. EXCEPTION — creation flows introduce NEW records: for create_supplier / create_customer / create_product, extract the NEW name verbatim from the utterance into "party" (supplier/customer) or "product" (product) even though it is not in the digest. Example: «Adil Textiles نام سے نیا سپلائر رجسٹر کرو» → party: "Adil Textiles". Never ask for clarification when the new name is clearly stated.
 3. Convert Urdu number words: پچاس=50, سو=100, ہزار/چھیاسی etc. «چھیاسی ہزار» = 86000. لاکھ=100000, کروڑ=10000000.
 4. «سیل»/«بیک»/«فروخت» about goods → create_sale. «منگواؤ»/«آرڈر»/«خریداری» → create_purchase_order. «ادا کرو»/«خرچ»/«واؤچر» with cash → create_cash_voucher.
 5. Questions about data («کتنا», «کتنی», «بتاؤ», how much, what is) → action "query" + the right topic.

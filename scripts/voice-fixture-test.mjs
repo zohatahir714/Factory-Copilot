@@ -165,6 +165,80 @@ ok(inPeriod(new Date().toISOString(), 'today'), 'inPeriod: today true for now');
 ok(!inPeriod(new Date(2020, 0, 1).toISOString(), 'this_month'), 'inPeriod: 2020 not this month');
 
 // ---------------------------------------------------------------------------
+// 5 · Extended: Roman Urdu sale sentences, period words, supplier payments
+// ---------------------------------------------------------------------------
+
+// — Roman Urdu sale sentences (mind path — parse-level assertions) —
+const romanSale1 = parseMindResponse(JSON.stringify({
+  action: 'create_sale', topic: null,
+  entities: { party: 'Gul Ahmed', product: 'Yarn 30/1', quantity: 75, unit: 'kg', amount: 88000, period: null, module: null, document: null },
+  confidence: 0.91, clarification: null
+}));
+eq(romanSale1?.action, 'create_sale', 'roman sale: action');
+eq(romanSale1?.entities.quantity, 75, 'roman sale: quantity 75');
+eq(romanSale1?.entities.unit, 'kg', 'roman sale: unit kg');
+
+const romanSale2 = parseMindResponse(JSON.stringify({
+  action: 'create_sale', topic: null,
+  entities: { party: 'Sabir Textile Mills', product: null, quantity: 200, unit: 'bags', amount: null, period: null, module: null, document: null },
+  confidence: 0.88, clarification: null
+}));
+eq(romanSale2?.entities.quantity, 200, 'roman sale: 200 bags qty');
+ok(romanSale2?.entities.amount === null, 'roman sale: absent amount stays null (never guessed)');
+
+// — Period words («پچھلے مہینے», last month, fiscal year) —
+const plLastMonth = executeQuery(
+  { action: 'query', topic: 'profit_loss', entities: { period: 'last_month' }, confidence: 1, clarification: null, source: 'mind' },
+  state
+);
+ok(plLastMonth?.spoken.length > 0, 'period: last_month P&L returns spoken');
+ok(plLastMonth?.title.includes('Profit'), 'period: last_month P&L card titles');
+
+const dayBookPeriod = executeQuery(
+  { action: 'query', topic: 'day_book', entities: { period: 'today' }, confidence: 1, clarification: null, source: 'mind' },
+  state
+);
+ok(dayBookPeriod?.spoken.includes('آج'), 'period: day_book spoken anchors to آج');
+
+// inPeriod boundary cases: month edges
+const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+ok(inPeriod(monthStart.toISOString(), 'this_month'), 'inPeriod: 1st of month is this_month');
+const lastMonthDay = new Date(); lastMonthDay.setMonth(lastMonthDay.getMonth() - 1);
+ok(!inPeriod(lastMonthDay.toISOString(), 'this_month'), 'inPeriod: last month day is NOT this_month');
+ok(inPeriod(lastMonthDay.toISOString(), 'last_month'), 'inPeriod: last month day IS last_month');
+
+// — Supplier payment phrasings: resolveParty must bind suppliers —
+const suppState = { ...state, suppliers: [{ name: 'National Spinning Mills', pendingCommitment: 85000 }] };
+const suppHit = resolveParty('national', suppState);
+eq(suppHit?.name, 'National Spinning Mills', 'supplier resolve: partial “national”');
+eq(suppHit?.role, 'supplier', 'supplier resolve: role=supplier');
+eq(suppHit?.balance, 85000, 'supplier resolve: pending commitment as balance');
+
+const suppQuery = executeQuery(
+  { action: 'query', topic: 'receivables', entities: { party: 'National' }, confidence: 1, clarification: null, source: 'mind' },
+  suppState
+);
+ok(suppQuery?.spoken.includes('ادا کرنے ہیں'), 'supplier AP phrasing: «ادا کرنے ہیں» spoken');
+ok(suppQuery?.title.includes('Payable'), 'supplier AP card titled Payable');
+
+// Customer still wins when both registries could match (AR-first).
+const bothHit = resolveParty('sabir', { ...suppState, suppliers: [{ name: 'Sabir Traders', pendingCommitment: 1000 }] });
+eq(bothHit?.role, 'customer', 'resolve precedence: customer wins over same-name supplier');
+
+// — Amount extraction from Roman payment phrasings —
+eq(extractAmount('national ko 2 lakh ka payment'), 200000, 'amount: roman “2 lakh ka payment”');
+eq(extractAmount('suppliers ko pichhle mahine 50 hazar adaa kiya'), 50000, 'amount: “50 hazar adaa kiya”');
+eq(extractAmount('پچاس ہزار کا واؤچر'), 50000, 'amount: Urdu «پچاس ہزار کا واؤچر»');
+
+// — Fast-path must NOT swallow write phrasings (they need the mind) —
+ok(tryFastPath('sale karni hai 50 kg') === null, 'fast-path: sale sentence escalates to mind');
+ok(tryFastPath('supplier ko payment karni hai') === null, 'fast-path: supplier payment escalates to mind');
+ok(tryFastPath('national ko 50000 ka voucher banao') === null, 'fast-path: voucher creation escalates to mind');
+
+// — Fast-path negation guards stay correct —
+ok(tryFastPath('stock kitna hai') === null || tryFastPath('stock kitna hai')?.topic !== 'cash', 'fast-path: stock question never routes to cash');
+
+// ---------------------------------------------------------------------------
 // Report
 // ---------------------------------------------------------------------------
 console.log(`\n=== VOICE MIND FIXTURES: ${passed} passed, ${failed} failed ===`);

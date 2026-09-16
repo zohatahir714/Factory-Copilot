@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { understand, type LiveStateDigest } from '../lib/voice/mind';
-import { executeQuery, clarifyResult, type ExecutorResult } from '../lib/voice/executor';
+import { executeQuery, clarifyResult, prepareWrite, type ExecutorResult, type PendingWrite } from '../lib/voice/executor';
 import { tryFastPath, tryFastPathTax, type VoiceIntent } from '../lib/voice/fastPath';
 import { calculateFBRTax, formatPKR } from '../utils/fbrTaxEngine';
 import {
@@ -110,13 +110,24 @@ export const VoiceAssistantModal: React.FC = () => {
     customers,
     suppliers,
     purchaseOrders,
-    openPrintDocument
+    openPrintDocument,
+    recordSaleDirect,
+    createPurchaseOrderDirect,
+    recordExpenseDirect,
+    createSupplierDirect,
+    createCustomerDirect,
+    createProductDirect
   } = useApp();
 
   const [inputVal, setInputVal] = useState('');
   const [detectedRoute, setDetectedRoute] = useState<ExecutorResult | null>(null);
   const [isMindThinking, setIsMindThinking] = useState(false);
   const [isTestingMic, setIsTestingMic] = useState(false);
+  // STAGE 2 — pending write awaiting spoken confirmation (60s TTL)
+  const [pendingWrite, setPendingWrite] = useState<PendingWrite | null>(null);
+  const pendingWriteRef = useRef<PendingWrite | null>(null);
+  const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const executorState = { cashbook, salesOrders, products: products as any, customers: customers as any, suppliers: suppliers as any, purchaseOrders };
   const [liveResult, setLiveResult] = useState<ExecutorResult | null>(null);
 
   // Detect whether running in an embedded preview iframe
@@ -147,6 +158,82 @@ export const VoiceAssistantModal: React.FC = () => {
     }
   }, [inputVal]);
 
+  /** Actions that produce a pending write instead of an immediate result. */
+  const WRITE_ACTIONS = new Set([
+    'create_sale', 'create_purchase_order', 'create_cash_voucher',
+    'create_supplier', 'create_customer', 'create_product'
+  ]);
+
+  /** Arm a pending write: speak the confirmation, start the 60s TTL. */
+  const armPendingWrite = (pending: PendingWrite) => {
+    if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+    setPendingWrite(pending);
+    pendingWriteRef.current = pending;
+    if (audioVoiceEnabled) speakText(pending.confirmSpoken);
+    pendingTimerRef.current = setTimeout(() => {
+      setPendingWrite(null);
+      pendingWriteRef.current = null;
+      addToast('info', 'کمانڈ منسوخ', 'تصدیق کا وقت ختم ہو گیا');
+    }, 60000);
+  };
+
+  /** Commit the armed pending write through the AppContext mutations. */
+  const commitPendingWrite = useCallback(() => {
+    const pending = pendingWriteRef.current;
+    if (!pending) return;
+    if (pendingTimerRef.current) { clearTimeout(pendingTimerRef.current); pendingTimerRef.current = null; }
+    setPendingWrite(null);
+    pendingWriteRef.current = null;
+    const p = pending.payload as any;
+    switch (pending.action) {
+      case 'create_sale': {
+        const customer = customers.find(c => c.name === p.customerKey) || (customers as any).find((c: any) => c.name.toLowerCase().includes(String(p.customerKey).toLowerCase()));
+        const product = products.find(pr => pr.name === p.productKey) || (products as any).find((pr: any) => pr.name.toLowerCase().includes(String(p.productKey).toLowerCase()));
+        if (customer && product) {
+          recordSaleDirect({ customerId: customer.id, productId: product.id, quantity: p.quantity, subtotal: p.subtotal, taxRate: p.taxRate, taxAmount: p.taxAmount, totalAmount: p.totalAmount, isFiler: p.isFiler });
+          addToast('success', 'سیل درج ہو گئی', `${p.quantity} × ${product.name} → ${customer.name}`);
+        }
+        break;
+      }
+      case 'create_purchase_order': {
+        const supplier = suppliers.find(s => s.name === p.supplierKey) || (suppliers as any).find((s: any) => s.name.toLowerCase().includes(String(p.supplierKey).toLowerCase()));
+        const product = products.find(pr => pr.name === p.productKey) || (products as any).find((pr: any) => pr.name.toLowerCase().includes(String(p.productKey).toLowerCase()));
+        if (supplier && product) {
+          createPurchaseOrderDirect({ supplierId: supplier.id, productId: product.id, quantity: p.quantity });
+          addToast('success', 'پرچیز آرڈر جاری ہوا', `${p.quantity} × ${product.name} ← ${supplier.name}`);
+        }
+        break;
+      }
+      case 'create_cash_voucher':
+        recordExpenseDirect({ amount: p.amount, category: 'misc', description: p.description, type: p.type });
+        addToast('success', 'واؤچر درج ہو گیا', `Rs. ${p.amount.toLocaleString()}`);
+        break;
+      case 'create_supplier':
+        createSupplierDirect({ name: p.name, city: p.city, phone: p.phone, email: p.email, leadTimeDays: p.leadTimeDays, paymentTerms: p.paymentTerms });
+        addToast('success', 'سپلائر رجسٹرڈ', p.name);
+        break;
+      case 'create_customer':
+        createCustomerDirect({ name: p.name, city: p.city, phone: p.phone, email: p.email, creditLimit: p.creditLimit });
+        addToast('success', 'گاہک رجسٹرڈ', p.name);
+        break;
+      case 'create_product':
+        createProductDirect({ name: p.name, sku: p.sku, category: p.category, unit: p.unit, costPrice: p.costPrice, sellingPrice: p.sellingPrice, reorderThreshold: p.reorderThreshold, currentStock: p.currentStock });
+        addToast('success', 'پروڈکٹ شامل', p.name);
+        break;
+    }
+    if (audioVoiceEnabled) speakText('ہو گیا۔');
+  }, [customers, products, suppliers, recordSaleDirect, createPurchaseOrderDirect, recordExpenseDirect, createSupplierDirect, createCustomerDirect, createProductDirect, audioVoiceEnabled, addToast, speakText]);
+
+  /** Cancel the armed pending write. */
+  const cancelPendingWrite = useCallback(() => {
+    if (pendingTimerRef.current) { clearTimeout(pendingTimerRef.current); pendingTimerRef.current = null; }
+    setPendingWrite(null);
+    pendingWriteRef.current = null;
+    addToast('info', 'کمانڈ منسوخ', 'تصدیق منسوخ کر دی گئی');
+    if (audioVoiceEnabled) speakText('کمانڈ منسوخ۔');
+  }, [addToast, speakText, audioVoiceEnabled]);
+
+  /**
   if (activeModal !== 'voice') return null;
 
   /**
@@ -158,6 +245,21 @@ export const VoiceAssistantModal: React.FC = () => {
   const handleExecuteVoiceAction = async (rawText?: string) => {
     const query = (rawText || inputVal).trim();
     if (!query || isProcessing || isTranscribing || isMindThinking) return;
+
+    // STAGE 2 — spoken confirmation/cancel of an armed write (spec §4)
+    if (pendingWriteRef.current) {
+      if (/^(?:ہاں|جی|جی ہاں|haan|han|yes|confirm|tasdeeq|کرو|کر دو)\b/i.test(query)) {
+        setInputVal(''); setRecordingTranscript(''); setDetectedRoute(null);
+        commitPendingWrite();
+        return;
+      }
+      if (/^(?:نہیں|nahi|no|cancel|کینسل|منسوخ)\b/i.test(query)) {
+        setInputVal(''); setRecordingTranscript(''); setDetectedRoute(null);
+        cancelPendingWrite();
+        return;
+      }
+      // Any other utterance leaves the pending write armed (60s TTL expires it).
+    }
 
     // Clear input buffer immediately
     setInputVal('');
@@ -175,19 +277,19 @@ export const VoiceAssistantModal: React.FC = () => {
     try {
       const { intent } = await understand(query, buildDigest());
       if (intent.action === 'query' && intent.topic) {
-        result = executeQuery(intent, {
-          cashbook,
-          salesOrders,
-          products: products as any,
-          customers: customers as any,
-          suppliers: suppliers as any,
-          purchaseOrders
-        });
+        result = executeQuery(intent, executorState);
       } else if (intent.source === 'clarify') {
         result = clarifyResult(intent);
+      } else if (WRITE_ACTIONS.has(intent.action)) {
+        const prep = prepareWrite(intent, executorState);
+        if ('pending' in prep) {
+          armPendingWrite(prep.pending);
+          result = { kind: 'query', spoken: prep.pending.confirmSpoken, title: prep.pending.label, badge: 'Confirm?', stats: [] };
+        } else {
+          result = prep.reason;
+        }
       } else {
-        // Stage 2 actions (create/navigate/print/guide/compliance) — for now,
-        // hand the utterance to the Copilot with the parsed intent as context.
+        // Navigation/print/guide/compliance land here in a later stage.
         fellBackToCopilot = true;
       }
     } catch {
@@ -384,6 +486,28 @@ export const VoiceAssistantModal: React.FC = () => {
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* STAGE 2 — PENDING WRITE CONFIRMATION CARD */}
+          {pendingWrite && (
+            <div className={`p-4 rounded-2xl border shadow-sm space-y-3 animate-fadeIn ${darkMode ? 'bg-amber-950/40 border-amber-700/60' : 'bg-amber-50 border-amber-300'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">{pendingWrite.label}</h4>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-mono text-[10px] font-bold border border-amber-500/30">تصدیق؟</span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{pendingWrite.confirmSpoken}</p>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={commitPendingWrite} className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4" /> ہاں — درج کریں
+                </button>
+                <button type="button" onClick={cancelPendingWrite} className="flex-1 px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5">
+                  <X className="w-4 h-4" /> نہیں — منسوخ
+                </button>
               </div>
             </div>
           )}

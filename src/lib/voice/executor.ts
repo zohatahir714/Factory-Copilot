@@ -32,18 +32,28 @@ export interface ExecutorResult {
 export interface ExecutorState {
   cashbook: Array<{ type: 'inflow' | 'outflow'; amount: number; createdAt: string }>;
   salesOrders: Array<{ totalAmount: number; taxAmount?: number; createdAt: string }>;
-  products: Array<{ name: string; currentStock: number; reorderThreshold: number; costPrice: number; unit: string }>;
+  products: Array<{ name: string; currentStock: number; reorderThreshold: number; costPrice: number; sellingPrice: number; unit: string }>;
   customers: Array<{ name: string; outstandingReceivables: number }>;
   suppliers: Array<{ name: string }>;
   purchaseOrders: Array<{ status: string; totalAmount: number; poNumber: string; supplierName: string }>;
 }
 
-/** Exact-match party resolution by normalized substring. */
-export function resolveParty(name: string | null, state: ExecutorState): { name: string; balance: number } | null {
+/** Exact-match party resolution: customers (AR balance) first, then suppliers (pending PO commitment). */
+export function resolveParty(
+  name: string | null,
+  state: ExecutorState
+): { name: string; balance: number; role: 'customer' | 'supplier' } | null {
   if (!name) return null;
   const n = name.toLowerCase().trim();
   const cust = state.customers.find(c => c.name.toLowerCase().includes(n) || n.includes(c.name.toLowerCase()));
-  if (cust) return { name: cust.name, balance: cust.outstandingReceivables };
+  if (cust) return { name: cust.name, balance: cust.outstandingReceivables, role: 'customer' };
+  const supp = (state.suppliers as Array<{ name: string; pendingCommitment?: number }>).find(
+    s => s.name.toLowerCase().includes(n) || n.includes(s.name.toLowerCase())
+  );
+  if (supp) {
+    const commitment = supp.pendingCommitment ?? 0;
+    return { name: supp.name, balance: commitment, role: 'supplier' };
+  }
   return null;
 }
 
@@ -126,6 +136,17 @@ export function executeQuery(intent: VoiceIntent, state: ExecutorState): Executo
     case 'receivables': {
       const party = resolveParty(intent.entities.party, state);
       if (party) {
+        if (party.role === 'supplier') {
+          return {
+            kind: 'query',
+            spoken: `${party.name} کو ${fmt(party.balance)} روپے ادا کرنے ہیں۔`,
+            title: `Payable — ${party.name}`,
+            badge: 'AP Sub-ledger',
+            stats: [{ label: 'Outstanding', value: fmt(party.balance), color: 'text-amber-600' }],
+            details: 'Bound to the live supplier registry (open PO commitments).',
+            openModule: 'cashbook'
+          };
+        }
         return {
           kind: 'query',
           spoken: `${party.name} پر ${fmt(party.balance)} روپے وصولی باقی ہے۔`,
@@ -280,4 +301,151 @@ export function clarifyResult(intent: VoiceIntent): ExecutorResult {
     badge: 'Clarification',
     stats: []
   };
+}
+
+/**
+ * STAGE 2 — WRITE PREPARATION
+ * Resolves a create_* intent against live state and produces a pending
+ * payload for the spoken-confirmation loop. Pure: no network, no writes.
+ * Pricing mirrors the commit path exactly:
+ *  - sale: unitPrice = product.sellingPrice, 18% GST on subtotal
+ *  - PO:   unitPrice = product.costPrice (createPurchaseOrderDirect pricing)
+ */
+export interface PendingWrite {
+  action: 'create_sale' | 'create_purchase_order' | 'create_cash_voucher' | 'create_supplier' | 'create_customer' | 'create_product';
+  /** Urdu confirmation sentence the voice speaks and the card shows. */
+  confirmSpoken: string;
+  /** Display label for the confirmation card. */
+  label: string;
+  /** Payload consumed by the modal's commit switch. */
+  payload: Record<string, unknown>;
+}
+
+const COMMIT_SALE = { taxRate: 18, isFiler: true } as const;
+
+export function prepareWrite(intent: VoiceIntent, state: ExecutorState): { ok: true; pending: PendingWrite } | { ok: false; reason: ExecutorResult } {
+  const e = intent.entities;
+
+  switch (intent.action) {
+    case 'create_sale': {
+      const customer = resolveParty(e.party, state);
+      if (!customer || customer.role !== 'customer') {
+        return { ok: false, reason: { kind: 'clarify', spoken: 'یہ گاہک رجسٹرڈ نہیں — پہلے گاہک رجسٹر کریں۔', title: 'Customer not found', badge: 'Voice Write', stats: [] } };
+      }
+      const product = state.products.find(p =>
+        (e.product && (p.name.toLowerCase().includes(e.product.toLowerCase()) || e.product.toLowerCase().includes(p.name.toLowerCase())))
+      );
+      if (!product) {
+        return { ok: false, reason: { kind: 'clarify', spoken: 'کون سا مال بیچنا ہے؟', title: 'Product needed', badge: 'Voice Write', stats: [] } };
+      }
+      const quantity = e.quantity;
+      if (!quantity || quantity <= 0) {
+        return { ok: false, reason: { kind: 'clarify', spoken: 'کتنا مال بیچنا ہے؟', title: 'Quantity needed', badge: 'Voice Write', stats: [] } };
+      }
+      if (quantity > product.currentStock) {
+        return { ok: false, reason: { kind: 'clarify', spoken: `اسٹاک ناکافی ہے — دستیاب ${product.currentStock} ${product.unit} ہے۔`, title: 'Insufficient stock', badge: 'Voice Write', stats: [{ label: 'Available', value: `${product.currentStock} ${product.unit}`, color: 'text-red-600' }] } };
+      }
+      const subtotal = product.sellingPrice * quantity;
+      const taxAmount = Math.round((subtotal * COMMIT_SALE.taxRate) / 100);
+      const totalAmount = subtotal + taxAmount;
+      return {
+        ok: true,
+        pending: {
+          action: 'create_sale',
+          confirmSpoken: `${customer.name} کو ${quantity} ${product.unit} ${product.name}، کل ${fmt(totalAmount)} روپے (GST سمیت) — tasdeeq karein؟`,
+          label: `Sell ${quantity} ${product.unit} ${product.name} → ${customer.name}`,
+          payload: { customerKey: customer.name, productKey: product.name, quantity, subtotal, taxRate: COMMIT_SALE.taxRate, taxAmount, totalAmount, isFiler: COMMIT_SALE.isFiler }
+        }
+      };
+    }
+    case 'create_purchase_order': {
+      const supplier = resolveParty(e.party, state);
+      if (!supplier || supplier.role !== 'supplier') {
+        return { ok: false, reason: { kind: 'clarify', spoken: 'یہ سپلائر رجسٹرڈ نہیں — پہلے سپلائر رجسٹر کریں۔', title: 'Supplier not found', badge: 'Voice write', stats: [] } };
+      }
+      const product = state.products.find(p =>
+        (e.product && (p.name.toLowerCase().includes(e.product.toLowerCase()) || e.product.toLowerCase().includes(p.name.toLowerCase())))
+      );
+      if (!product) {
+        return { ok: false, reason: { kind: 'clarify', spoken: 'کون سا مال منگواؤنا ہے؟', title: 'Product needed', badge: 'Voice Write', stats: [] } };
+      }
+      const quantity = e.quantity;
+      if (!quantity || quantity <= 0) {
+        return { ok: false, reason: { kind: 'clarify', spoken: 'کتنا منگواؤنا ہے؟', title: 'Quantity needed', badge: 'Voice Write', stats: [] } };
+      }
+      const totalAmount = product.costPrice * quantity;
+      return {
+        ok: true,
+        pending: {
+          action: 'create_purchase_order',
+          confirmSpoken: `${supplier.name} سے ${quantity} ${product.unit} ${product.name}، کل ${fmt(totalAmount)} روپے — tasdeeq karein؟`,
+          label: `Order ${quantity} ${product.unit} ${product.name} ← ${supplier.name}`,
+          payload: { supplierKey: supplier.name, productKey: product.name, quantity, totalAmount }
+        }
+      };
+    }
+    case 'create_cash_voucher': {
+      const amount = e.amount;
+      if (!amount || amount <= 0) {
+        return { ok: false, reason: { kind: 'clarify', spoken: 'کتنی رقم کا واؤچر ہے؟', title: 'Amount needed', badge: 'Voice Write', stats: [] } };
+      }
+      const desc = e.product || 'Voice Cash Voucher';
+      return {
+        ok: true,
+        pending: {
+          action: 'create_cash_voucher',
+          confirmSpoken: `${fmt(amount)} روپے کا کیش واؤچر — tasdeeq karein؟`,
+          label: `Cash voucher Rs. ${amount.toLocaleString()}`,
+          payload: { amount, description: desc, type: 'outflow' }
+        }
+      };
+    }
+    case 'create_supplier': {
+      const name = e.party;
+      if (!name) {
+        return { ok: false, reason: { kind: 'clarify', spoken: 'سپلائر کا نام بتائیے۔', title: 'Supplier name needed', badge: 'Voice Write', stats: [] } };
+      }
+      return {
+        ok: true,
+        pending: {
+          action: 'create_supplier',
+          confirmSpoken: `نیا سپلائر «${name}» رجسٹر کریں؟`,
+          label: `Register supplier: ${name}`,
+          payload: { name, city: '', phone: '', email: '', leadTimeDays: 7, paymentTerms: 'Net 30' }
+        }
+      };
+    }
+    case 'create_customer': {
+      const name = e.party;
+      if (!name) {
+        return { ok: false, reason: { kind: 'clarify', spoken: 'گاہک کا نام بتائیے۔', title: 'Customer name needed', badge: 'Voice Write', stats: [] } };
+      }
+      return {
+        ok: true,
+        pending: {
+          action: 'create_customer',
+          confirmSpoken: `نیا گاہک «${name}» رجسٹر کریں؟`,
+          label: `Register customer: ${name}`,
+          payload: { name, city: '', phone: '', email: '', creditLimit: 0 }
+        }
+      };
+    }
+    case 'create_product': {
+      const name = e.product || e.party;
+      if (!name) {
+        return { ok: false, reason: { kind: 'clarify', spoken: 'پروڈکٹ کا نام بتائیے۔', title: 'Product name needed', badge: 'Voice Write', stats: [] } };
+      }
+      return {
+        ok: true,
+        pending: {
+          action: 'create_product',
+          confirmSpoken: `نیا پروڈکٹ «${name}» شامل کریں؟`,
+          label: `Register product: ${name}`,
+          payload: { name, sku: name.replace(/\s+/g, '-').toUpperCase().slice(0, 12), category: 'general', unit: (e.unit as any) || 'kg', costPrice: 0, sellingPrice: 0, reorderThreshold: 0, currentStock: 0 }
+        }
+      };
+    }
+    default:
+      return { ok: false, reason: clarifyResult(intent) };
+  }
 }
