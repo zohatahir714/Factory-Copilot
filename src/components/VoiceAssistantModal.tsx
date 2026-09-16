@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { routeVoiceIntent, VoiceRouteResult } from '../utils/voiceIntentRouter';
+import { understand, type LiveStateDigest } from '../lib/voice/mind';
+import { executeQuery, clarifyResult, type ExecutorResult } from '../lib/voice/executor';
+import { tryFastPath, tryFastPathTax, type VoiceIntent } from '../lib/voice/fastPath';
 import { calculateFBRTax, formatPKR } from '../utils/fbrTaxEngine';
 import {
   Mic,
@@ -64,6 +66,22 @@ interface LiveInspectionData {
   };
 }
 
+/** Small Urdu labels for the fast-path typing preview. */
+const FAST_LABELS: Record<string, { label: string; description: string }> = {
+  'query:cash': { label: 'لائیو کیش پوزیشن', description: 'خزانہ چیک — فوری' },
+  'query:gst': { label: 'GST وصولی', description: 'کل GST — فوری' },
+  'query:sale_tax': { label: 'سیل پر ٹیکس', description: 'FBR حساب — فوری' },
+  'navigate:dashboard': { label: 'ڈیش بورڈ', description: 'نیویگیشن' },
+  'navigate:reports': { label: 'رپورٹس', description: 'نیویگیشن' },
+  'navigate:cashbook': { label: 'کیش بک', description: 'نیویگیشن' },
+  'navigate:settings': { label: 'سیٹنگز', description: 'نیویگیشن' }
+};
+
+function fastPathPreview(intent: VoiceIntent): ExecutorResult {
+  const meta = FAST_LABELS[`${intent.action}:${intent.topic ?? intent.entities.module}`] || { label: 'کمانڈ', description: 'تلمیح شدہ' };
+  return { kind: 'query', spoken: '', title: meta.label, badge: 'Fast Path', stats: [], details: meta.description };
+}
+
 export const VoiceAssistantModal: React.FC = () => {
   const {
     activeModal,
@@ -96,27 +114,34 @@ export const VoiceAssistantModal: React.FC = () => {
   } = useApp();
 
   const [inputVal, setInputVal] = useState('');
-  const [detectedRoute, setDetectedRoute] = useState<VoiceRouteResult | null>(null);
+  const [detectedRoute, setDetectedRoute] = useState<ExecutorResult | null>(null);
+  const [isMindThinking, setIsMindThinking] = useState(false);
   const [isTestingMic, setIsTestingMic] = useState(false);
-  const [liveResult, setLiveResult] = useState<LiveInspectionData | null>(null);
+  const [liveResult, setLiveResult] = useState<ExecutorResult | null>(null);
 
   // Detect whether running in an embedded preview iframe
   const isEmbeddedIframe = typeof window !== 'undefined' && window.self !== window.top;
+
+  // Live-state digest for the mind (spec §3.3) — rebuilt per command.
+  const buildDigest = (): LiveStateDigest => ({
+    businessName: 'PakERP Textile SME',
+    customers: customers.map(c => ({ name: c.name, city: (c as any).city, balance: c.outstandingReceivables })),
+    suppliers: suppliers.map(s => ({ name: s.name, city: (s as any).city })),
+    products: products.map(p => ({ name: p.name, sku: (p as any).sku, unit: p.unit, stock: p.currentStock }))
+  });
 
   // Keep inputVal in sync with live transcript & evaluate intent preview
   useEffect(() => {
     if (recordingTranscript) {
       setInputVal(recordingTranscript);
-      const route = routeVoiceIntent(recordingTranscript);
-      setDetectedRoute(route);
     }
   }, [recordingTranscript]);
 
-  // Evaluate route when user types
+  // Evaluate route when user types (fast-path preview only — no LLM per keystroke)
   useEffect(() => {
     if (inputVal.trim()) {
-      const route = routeVoiceIntent(inputVal);
-      setDetectedRoute(route);
+      const fast = tryFastPath(inputVal) || tryFastPathTax(inputVal);
+      setDetectedRoute(fast ? fastPathPreview(fast) : null);
     } else {
       setDetectedRoute(null);
     }
@@ -125,16 +150,16 @@ export const VoiceAssistantModal: React.FC = () => {
   if (activeModal !== 'voice') return null;
 
   /**
-   * Execute voice action, inspect live system directly or route to modular workflow
+   * Execute voice action through the Voice Mind pipeline (spec §3):
+   * fast-path → Groq mind → deterministic executor. Writes/prints/navigation
+   * land here in Stage 2; Stage 1 handles queries, clarifications, and the
+   * Copilot fallback.
    */
-  const handleExecuteVoiceAction = (rawText?: string) => {
+  const handleExecuteVoiceAction = async (rawText?: string) => {
     const query = (rawText || inputVal).trim();
-    if (!query || isProcessing || isTranscribing) return;
+    if (!query || isProcessing || isTranscribing || isMindThinking) return;
 
-    // 1. Determine intended route
-    const route = routeVoiceIntent(query);
-
-    // 2. Clear input buffer immediately for maximum reliability
+    // Clear input buffer immediately
     setInputVal('');
     setRecordingTranscript('');
     setDetectedRoute(null);
@@ -144,421 +169,48 @@ export const VoiceAssistantModal: React.FC = () => {
       stopRecording();
     }
 
-    // 3. Handle LIVE SYSTEM INSPECTION QUERIES
-    if (route.type === 'live_query' && route.queryType) {
-      let resultData: LiveInspectionData | null = null;
-
-      // A. Cash Balance Inspection
-      if (route.queryType === 'cash') {
-        const totalInflow = cashbook.filter(c => c.type === 'inflow').reduce((sum, c) => sum + c.amount, 0);
-        const totalOutflow = cashbook.filter(c => c.type === 'outflow').reduce((sum, c) => sum + c.amount, 0);
-        const netCash = totalInflow - totalOutflow;
-        const spoken = `Your current net cash balance is ${formatPKR(netCash)}. Total inflows recorded are ${formatPKR(totalInflow)}, and disbursements are ${formatPKR(totalOutflow)}.`;
-
-        resultData = {
-          queryType: 'cash',
-          title: 'Live Treasury & Cash Position',
-          badge: 'Live Cashbook Ledger',
-          spokenText: spoken,
-          stats: [
-            { label: 'Net Cash Reserves', value: formatPKR(netCash), color: netCash >= 0 ? 'text-emerald-600' : 'text-red-600' },
-            { label: 'Total Inflow', value: formatPKR(totalInflow), color: 'text-emerald-700' },
-            { label: 'Total Outflow', value: formatPKR(totalOutflow), color: 'text-red-600' }
-          ],
-          details: `Verified from ${cashbook.length} verified vouchers. All cash disbursements comply with Section 21(l) banking thresholds.`,
-          actionButton: {
-            label: 'Open Cashbook & Treasury',
-            onClick: () => {
-              closeModal();
-              setActiveTab('cashbook');
-            }
-          }
-        };
+    setIsMindThinking(true);
+    let result: ExecutorResult | null = null;
+    let fellBackToCopilot = false;
+    try {
+      const { intent } = await understand(query, buildDigest());
+      if (intent.action === 'query' && intent.topic) {
+        result = executeQuery(intent, {
+          cashbook,
+          salesOrders,
+          products: products as any,
+          customers: customers as any,
+          suppliers: suppliers as any,
+          purchaseOrders
+        });
+      } else if (intent.source === 'clarify') {
+        result = clarifyResult(intent);
+      } else {
+        // Stage 2 actions (create/navigate/print/guide/compliance) — for now,
+        // hand the utterance to the Copilot with the parsed intent as context.
+        fellBackToCopilot = true;
       }
+    } catch {
+      // Mind unreachable or invalid JSON after retry — honest fallback (spec §6).
+      fellBackToCopilot = true;
+    }
+    setIsMindThinking(false);
 
-      // B. GST / Sales Tax Inspection
-      else if (route.queryType === 'gst') {
-        const totalTax = salesOrders.reduce((sum, s) => sum + (s.taxAmount || 0), 0);
-        const totalSales = salesOrders.reduce((sum, s) => sum + s.totalAmount, 0);
-        const spoken = `Total FBR 18% General Sales Tax collected is ${formatPKR(totalTax)} across ${salesOrders.length} sales tax invoices. Next statutory e-filing deadline is Annexure-C on the 10th.`;
-
-        resultData = {
-          queryType: 'gst',
-          title: 'FBR 18% GST Collection Status',
-          badge: 'Sales Tax Act 1990',
-          spokenText: spoken,
-          stats: [
-            { label: '18% GST Collected', value: formatPKR(totalTax), color: 'text-indigo-600' },
-            { label: 'Total Invoiced Volume', value: formatPKR(totalSales), color: 'text-indigo-600' },
-            { label: 'Verified Invoices', value: `${salesOrders.length} Invoices`, color: 'text-slate-800 dark:text-slate-200' }
-          ],
-          details: 'Standard 18.0% GST auto-imposed. Prepared for direct export into FBR Iris monthly sales return.',
-          actionButton: {
-            label: 'Open FBR Digital Invoicing Hub',
-            onClick: () => {
-              closeModal();
-              setActiveTab('fbr_integration' as any);
-            }
-          }
-        };
-      }
-
-      // C. FBR Tax Calculation on a Sale
-      else if (route.queryType === 'sale_tax') {
-        const amount = route.extractedAmount || 100000;
-        const taxRes = calculateFBRTax({ amount, isFiler: true, isRegisteredSalesTax: true });
-        const taxResNonFiler = calculateFBRTax({ amount, isFiler: false, isRegisteredSalesTax: false });
-
-        const spoken = `For a sale of ${formatPKR(amount)}, standard 18% GST is ${formatPKR(taxRes.gstAmount)}. Total invoice amount is ${formatPKR(taxRes.grandTotal)} for ATL active filers, or ${formatPKR(taxResNonFiler.grandTotal)} if unregistered with 4% further tax.`;
-
-        resultData = {
-          queryType: 'sale_tax',
-          title: `FBR Tax Calculation for ${formatPKR(amount)} Sale`,
-          badge: 'SRO 1805(I)/2024 Stamped',
-          spokenText: spoken,
-          stats: [
-            { label: 'Pre-Tax Supply', value: formatPKR(amount), color: 'text-slate-900 dark:text-slate-100' },
-            { label: '18% GST (STA Sec 3(1))', value: `+ ${formatPKR(taxRes.gstAmount)}`, color: 'text-indigo-600' },
-            { label: 'Filer Grand Total', value: formatPKR(taxRes.grandTotal), color: 'text-indigo-600' },
-            { label: 'Non-Filer (+4% Tax)', value: formatPKR(taxResNonFiler.grandTotal), color: 'text-amber-600' }
-          ],
-          details: `Fiscal Invoice ID: ${taxRes.fbrFiscalInvoiceNumber} • QR verification string auto-computed with SHA-256 fingerprint.`,
-          actionButton: {
-            label: '+ Record Sale with this Tax',
-            onClick: () => {
-              closeModal();
-              openModal('sale');
-            }
-          }
-        };
-      }
-
-      // D. Stock & Inventory Inspection
-      else if (route.queryType === 'inventory') {
-        const lowStock = products.filter(p => p.currentStock <= p.reorderThreshold);
-        const totalVal = products.reduce((sum, p) => sum + p.currentStock * p.costPrice, 0);
-        const spoken = `Warehouse holds ${products.length} raw material lines with total valuation of ${formatPKR(totalVal)}. ${lowStock.length > 0 ? lowStock.length + ' materials require urgent replenishment.' : 'All stock levels are above threshold.'}`;
-
-        resultData = {
-          queryType: 'inventory',
-          title: 'Live Warehouse Stock & Inventory',
-          badge: 'Real-time Stock Count',
-          spokenText: spoken,
-          stats: [
-            { label: 'Total Valuation', value: formatPKR(totalVal), color: 'text-indigo-600' },
-            { label: 'Active SKUs', value: `${products.length} Items`, color: 'text-slate-900 dark:text-slate-100' },
-            { label: 'Low Stock Alerts', value: `${lowStock.length} Items`, color: lowStock.length > 0 ? 'text-red-600' : 'text-emerald-600' }
-          ],
-          details: lowStock.length > 0
-            ? `Critical items: ${lowStock.map(p => `${p.name} (${p.currentStock} ${p.unit})`).join(', ')}`
-            : 'All inventory quantities exceed safety reorder buffers.',
-          actionButton: {
-            label: 'Open Inventory Module',
-            onClick: () => {
-              closeModal();
-              setActiveTab('inventory');
-            }
-          }
-        };
-      }
-
-      // E. Accounts Receivable Inspection
-      else if (route.queryType === 'receivables') {
-        const totalReceivables = customers.reduce((sum, c) => sum + (c.outstandingReceivables || 0), 0);
-        const topDebtor = [...customers].sort((a, b) => b.outstandingReceivables - a.outstandingReceivables)[0];
-        const spoken = `Total outstanding customer receivables is ${formatPKR(totalReceivables)}. Top balance is ${topDebtor ? topDebtor.name + ' with ' + formatPKR(topDebtor.outstandingReceivables) : 'none'}.`;
-
-        resultData = {
-          queryType: 'receivables',
-          title: 'Accounts Receivable & Credit Status',
-          badge: 'Client Ledger Audit',
-          spokenText: spoken,
-          stats: [
-            { label: 'Total Receivables', value: formatPKR(totalReceivables), color: 'text-emerald-600' },
-            { label: 'Registered Clients', value: `${customers.length} Mills`, color: 'text-slate-900 dark:text-slate-100' },
-            { label: 'Top Debtor', value: topDebtor ? topDebtor.name : 'None', color: 'text-indigo-600' }
-          ],
-          details: topDebtor ? `${topDebtor.name} owes ${formatPKR(topDebtor.outstandingReceivables)}.` : 'No outstanding balances.',
-          actionButton: {
-            label: 'View Customers & Mills',
-            onClick: () => {
-              closeModal();
-              setActiveTab('customers' as any);
-            }
-          }
-        };
-      }
-
-      // F. Pending Purchase Orders
-      else if (route.queryType === 'purchase_orders') {
-        const pendingPOs = purchaseOrders.filter(p => p.status === 'pending');
-        const committedVal = pendingPOs.reduce((sum, p) => sum + p.totalAmount, 0);
-        const spoken = `There are ${pendingPOs.length} pending purchase orders totaling ${formatPKR(committedVal)} in committed factory procurement.`;
-
-        resultData = {
-          queryType: 'purchase_orders',
-          title: 'Procurement & Pending POs',
-          badge: 'Purchase Order Pipeline',
-          spokenText: spoken,
-          stats: [
-            { label: 'Committed Spend', value: formatPKR(committedVal), color: 'text-amber-600' },
-            { label: 'Pending POs', value: `${pendingPOs.length} Orders`, color: 'text-slate-900 dark:text-slate-100' }
-          ],
-          details: pendingPOs.length > 0 ? `Earliest pending: ${pendingPOs[0].poNumber} from ${pendingPOs[0].supplierName}` : 'All procurement orders fulfilled.',
-          actionButton: {
-            label: 'View Purchase Orders',
-            onClick: () => {
-              closeModal();
-              setActiveTab('purchase');
-            }
-          }
-        };
-      }
-
-      // G2. Payables (AP) Inspection
-      else if (route.queryType === 'payables') {
-        const committedVal = purchaseOrders.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.totalAmount, 0);
-        const spoken = `Total supplier obligations committed are ${formatPKR(committedVal)} across ${purchaseOrders.filter(p => p.status === 'pending').length} open purchase orders.`;
-        resultData = {
-          queryType: 'payables',
-          title: 'Supplier Payables & Commitments',
-          badge: 'Trade Creditors (AP 2001)',
-          spokenText: spoken,
-          stats: [
-            { label: 'Open PO Commitments', value: formatPKR(committedVal), color: 'text-amber-600' },
-            { label: 'Registered Suppliers', value: `${suppliers.length} Vendors`, color: 'text-slate-900 dark:text-slate-100' },
-            { label: 'Ledger Control Head', value: '2001 · AP', color: 'text-indigo-600' }
-          ],
-          details: 'Committed value mirrors open purchase orders posted to Accounts Payable (2001) in the General Ledger.',
-          actionButton: {
-            label: 'Open Cashbook & Treasury',
-            onClick: () => { closeModal(); setActiveTab('cashbook'); }
-          }
-        };
-      }
-
-      // G3. Profit & Loss Inspection
-      else if (route.queryType === 'profit_loss') {
-        const revenue = salesOrders.reduce((s, v) => s + v.totalAmount, 0);
-        const gstOut = salesOrders.reduce((s, v) => s + (v.taxAmount || 0), 0);
-        const expenses = cashbook.filter(c => c.type === 'outflow').reduce((s, v) => s + v.amount, 0);
-        const net = revenue - gstOut - expenses;
-        const spoken = `Total revenue net of GST is ${formatPKR(revenue - gstOut)}; operating expenses ${formatPKR(expenses)}; net ${net >= 0 ? 'profit' : 'loss'} ${formatPKR(Math.abs(net))}.`;
-        resultData = {
-          queryType: 'profit_loss',
-          title: 'نفعہ و نقصان (P&L Snapshot)',
-          badge: 'Live from ledger',
-          spokenText: spoken,
-          stats: [
-            { label: 'Revenue (ex-GST)', value: formatPKR(revenue - gstOut), color: 'text-emerald-600' },
-            { label: 'Operating Expenses', value: formatPKR(expenses), color: 'text-red-600' },
-            { label: net >= 0 ? 'Net Profit' : 'Net Loss', value: formatPKR(Math.abs(net)), color: net >= 0 ? 'text-emerald-600' : 'text-red-600' }
-          ],
-          details: 'Derived live from sales invoices and cashbook vouchers; the authoritative statement lives in Reports → P&L.',
-          actionButton: {
-            label: 'Open Reports & P&L',
-            onClick: () => { closeModal(); setActiveTab('reports'); }
-          }
-        };
-      }
-
-      // G4. Parties Registry
-      else if (route.queryType === 'parties') {
-        const spoken = `${customers.length} customers and ${suppliers.length} suppliers are registered. Total receivables ${formatPKR(customers.reduce((s, c) => s + (c.outstandingReceivables || 0), 0))}.`;
-        resultData = {
-          queryType: 'parties',
-          title: 'گاہک و سپلائر رجسٹری',
-          badge: 'Master Partner Registry',
-          spokenText: spoken,
-          stats: [
-            { label: 'Customers', value: `${customers.length} Mills`, color: 'text-indigo-600' },
-            { label: 'Suppliers', value: `${suppliers.length} Vendors`, color: 'text-indigo-600' },
-            { label: 'Receivables', value: formatPKR(customers.reduce((s, c) => s + (c.outstandingReceivables || 0), 0)), color: 'text-emerald-600' }
-          ],
-          details: 'Each registered party auto-creates its AR/AP sub-ledger account in the Chart of Accounts.',
-          actionButton: {
-            label: 'Open Customers & Mills',
-            onClick: () => { closeModal(); setActiveTab('customers' as any); }
-          }
-        };
-      }
-
-      // G5. Day Book (today)
-      else if (route.queryType === 'day_book') {
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const todays = cashbook.filter(v => v.createdAt.slice(0, 10) === todayStr);
-        const inflow = todays.filter(v => v.type === 'inflow').reduce((s, v) => s + v.amount, 0);
-        const outflow = todays.filter(v => v.type === 'outflow').reduce((s, v) => s + v.amount, 0);
-        const spoken = `Aaj ki ${todays.length} entries: inflow ${formatPKR(inflow)}, outflow ${formatPKR(outflow)}.`;
-        resultData = {
-          queryType: 'day_book',
-          title: 'آج کا ڈے بک',
-          badge: todayStr,
-          spokenText: spoken,
-          stats: [
-            { label: 'Entries Today', value: `${todays.length}`, color: 'text-slate-900 dark:text-slate-100' },
-            { label: 'Inflow', value: formatPKR(inflow), color: 'text-emerald-600' },
-            { label: 'Outflow', value: formatPKR(outflow), color: 'text-red-600' }
-          ],
-          details: 'Full statement with opening/closing balances lives in Reports → Daily Cashbook.',
-          actionButton: {
-            label: 'Open Daily Cashbook',
-            onClick: () => { closeModal(); setActiveTab('reports'); }
-          }
-        };
-      }
-
-      // G. Automate FBR Compliance
-      else if (route.queryType === 'automate_tax') {
-        const spoken = 'Automated FBR compliance engine is active. Standard 18% GST, 4% further tax, and Iris Annexure-C reconciliation are auto-imposed on all transactions.';
-        resultData = {
-          queryType: 'automate_tax',
-          title: 'Automated FBR Compliance Active',
-          badge: '100% Tax Imposition Enforced',
-          spokenText: spoken,
-          stats: [
-            { label: 'Sales Tax', value: '18% GST (STA Sec 3(1))', color: 'text-indigo-600' },
-            { label: 'Further Tax', value: '4% on Non-Filers', color: 'text-amber-600' },
-            { label: 'Withholding', value: 'Sec 153 Auto-Deducted', color: 'text-emerald-600' }
-          ],
-          details: 'All sales invoices, raw material procurement, and cash disbursements are automatically stamped with digital fiscal metadata.',
-          actionButton: {
-            label: 'Inspect FBR Integration Hub',
-            onClick: () => {
-              closeModal();
-              setActiveTab('fbr_integration' as any);
-            }
-          }
-        };
-      }
-
-      // H. FBR Integration Readiness Checklist Guide
-      else if (route.queryType === 'fbr_readiness_guide') {
-        const spoken = 'Your system is fully prepared for FBR Tier-1 e-invoicing. It auto-imposes 18% GST and 4% Further Tax, generates 16-field SRO 1805(I) QR codes, and connects to the Iris Sandbox API. Tap to view the full FBR Integration Hub.';
-        resultData = {
-          queryType: 'fbr_readiness_guide',
-          title: 'FBR Integration Readiness Protocol',
-          badge: 'S.R.O. 1805(I)/2024 Ready',
-          spokenText: spoken,
-          stats: [
-            { label: 'POS Machine ID', value: 'POS-78601 (Assigned)', color: 'text-emerald-600' },
-            { label: 'Statutory GST Engine', value: '18% Auto-Enforced', color: 'text-indigo-600' },
-            { label: 'Fiscal QR Standard', value: '16-Field S.R.O. 1805', color: 'text-indigo-600' },
-            { label: 'Iris API Sandbox', value: 'Endpoint Handshake OK', color: 'text-emerald-600' }
-          ],
-          details: 'Step 1: Iris POS Registration. Step 2: Auto 18% GST + 4% Further Tax. Step 3: IMS Gateway Token. Step 4: Tax Asaan QR verification. Step 5: Monthly Annexure-C sync.',
-          actionButton: {
-            label: 'Open FBR Integration Hub',
-            onClick: () => {
-              closeModal();
-              setActiveTab('fbr_integration' as any);
-            }
-          }
-        };
-      }
-
-      if (resultData) {
-        setLiveResult(resultData);
-        addToast('success', resultData.title, resultData.stats[0]?.value || 'System inspected.');
-        if (audioVoiceEnabled) {
-          speakText(resultData.spokenText);
-        }
+    if (result) {
+      setLiveResult(result);
+      addToast('success', result.title, result.stats[0]?.value || result.spoken);
+      if (audioVoiceEnabled && result.spoken) {
+        speakText(result.spoken);
       }
       return;
     }
 
-    // 4. Handle DIRECT DOCUMENT PRINTING COMMANDS
-    if (route.type === 'print' && route.printType) {
-      closeModal();
-      if (route.printType === 'invoice') {
-        const latestInvoice = salesOrders[0] || {
-          id: 'SO-LIVE-001',
-          invoiceNumber: 'INV-2024-0042',
-          customerName: 'Al-Karam Textile Mills',
-          totalAmount: 35400,
-          subtotal: 30000,
-          taxAmount: 5400,
-          createdAt: new Date().toISOString(),
-          items: [
-            { productName: 'Combed Cotton Yarn 30/1', quantity: 50, unit: 'kg', unitPrice: 600, taxRate: 18 }
-          ]
-        };
-        openPrintDocument({ type: 'invoice', data: latestInvoice });
-        addToast('success', 'Print Dispatched via Voice', `Opening FBR Fiscal Invoice #${latestInvoice.invoiceNumber}`);
-        if (audioVoiceEnabled) {
-          speakText('Opening FBR compliant digital invoice for thermal printing.');
-        }
-        return;
-      }
-      if (route.printType === 'purchase_order') {
-        const latestPO = purchaseOrders[0] || {
-          id: 'PO-LIVE-001',
-          poNumber: 'PO-2024-0089',
-          supplierName: 'National Spinning Mills',
-          totalAmount: 180000,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-          items: [
-            { productName: 'Raw Cotton Grade-A', quantity: 300, unit: 'kg', unitPrice: 600, totalAmount: 180000 }
-          ]
-        };
-        openPrintDocument({ type: 'purchase_order', data: latestPO });
-        addToast('success', 'Print Dispatched via Voice', `Opening Purchase Order #${latestPO.poNumber}`);
-        if (audioVoiceEnabled) {
-          speakText('Opening purchase order for printing.');
-        }
-        return;
-      }
-      if (route.printType === 'cash_voucher') {
-        const latestCash = cashbook[0] || {
-          id: 'CSH-101',
-          type: 'outflow',
-          category: 'factory_utilities',
-          amount: 45000,
-          description: 'Factory electricity bill disbursement'
-        };
-        openPrintDocument({ type: 'cash_voucher', data: latestCash });
-        addToast('success', 'Print Dispatched via Voice', `Opening Cash Voucher #${latestCash.id}`);
-        if (audioVoiceEnabled) {
-          speakText('Opening cash voucher for printing.');
-        }
-        return;
-      }
-      if (route.printType === 'inventory_report') {
-        openPrintDocument({ type: 'inventory_report', data: products });
-        addToast('success', 'Print Dispatched via Voice', 'Opening Inventory Stock Valuation Report');
-        if (audioVoiceEnabled) {
-          speakText('Opening inventory stock valuation report for printing.');
-        }
-        return;
-      }
-    }
-
-    // 5. Handle MODAL OPENERS
-    if (route.type === 'modal' && route.target) {
-      closeModal();
-      openModal(route.target as any);
-      addToast('success', route.label, `Voice intent routed: ${route.description}`);
-      if (audioVoiceEnabled) {
-        speakText(`Opening ${route.label}`);
-      }
-      return;
-    }
-
-    // 6. Handle TAB NAVIGATION
-    if (route.type === 'tab' && route.target) {
-      closeModal();
-      setActiveTab(route.target as any);
-      addToast('info', route.label, route.description);
-      if (audioVoiceEnabled) {
-        speakText(`Navigating to ${route.label}`);
-      }
-      return;
-    }
-
-    // 7. Complex Conversational Query -> AI Copilot
+    // Copilot fallback (with honest notice when the mind itself failed)
     closeModal();
     setActiveTab('copilot');
+    if (fellBackToCopilot) {
+      addToast('info', 'AI کوپائلٹ', 'پیچیدہ کمانڈ — AI سپروائزر سے جاری ہے');
+    }
     sendMessage(query, 'voice');
   };
 
@@ -830,15 +482,15 @@ export const VoiceAssistantModal: React.FC = () => {
             <div className="mt-2.5 text-center relative z-10 px-4">
               <span className="text-xs font-bold uppercase tracking-wider block">
                 {isRecording
-                  ? 'Listening... Speak in English or Roman Urdu'
+                  ? 'سن رہا ہوں… اردو میں بولیں'
                   : isTranscribing
-                  ? 'Transcribing Voice with Groq Whisper...'
-                  : 'Tap Microphone or Ask System'}
+                  ? 'Groq Whisper سے ٹرانسکرائب ہو رہا ہے…'
+                  : 'مائیک دبائیں یا ٹائپ کریں'}
               </span>
               <span className="text-[11px] text-slate-500 dark:text-slate-400">
                 {isRecording
-                  ? 'e.g. "Check cash balance", "Check GST collected", or "Record a new sale"'
-                  : 'Speaks back live figures and triggers modular ERP workflows'}
+                  ? 'مثلاً «کتنا کیش ہے»، «GST کتنا وصول ہوا»، «نئی سیل درج کرو»'
+                  : 'زبان: اردو • رومان اردو — جواب صرف وہی جو پوچھا'}
               </span>
             </div>
           </div>
@@ -870,8 +522,8 @@ export const VoiceAssistantModal: React.FC = () => {
                 onChange={(e) => setInputVal(e.target.value)}
                 placeholder={
                   isRecording
-                    ? 'Listening... say "Check cash" or "Calculate tax for 100000 sale"...'
-                    : 'Speak or type (e.g. "Check cash balance", "Calculate tax for 50000 sale")...'
+                    ? 'سن رہا ہوں… «کتنا کیش ہے»…'
+                    : 'بولیں یا ٹائپ کریں… «کتنا کیش ہے»، «سبیر کو 50 کلو یارن بیچو»…'
                 }
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleExecuteVoiceAction();
