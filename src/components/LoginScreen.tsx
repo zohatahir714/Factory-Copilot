@@ -85,23 +85,28 @@ export const LoginScreen: React.FC = () => {
     }
 
     try {
-      // 1. Try Supabase Auth if configured
+      // 1. Local Auth Registry first. Every account this app provisions
+      //    (Settings module and the demo super admins) lives here, so valid
+      //    local logins resolve without touching Supabase Auth — repeated
+      //    logins with demo credentials can never produce invalid_grant 400s.
+      const localSuccess = login(trimmedEmail, trimmedPassword);
+      if (localSuccess) {
+        return;
+      }
+
+      // 2. Supabase Auth for cloud-only accounts (provisioned directly in the
+      //    Supabase dashboard and therefore absent from the local registry).
       const { isConfigured } = getSupabaseConfig();
       if (isConfigured) {
         const authRes = await supabaseSignIn(trimmedEmail, trimmedPassword);
         if (authRes.success && authRes.user) {
           setAuthUser(authRes.user);
           addToast('success', 'Authenticated via Supabase', authRes.message);
-          setIsSubmitting(false);
           return;
         }
       }
 
-      // 2. Fallback to Local Auth Registry in AppContext
-      const localSuccess = login(trimmedEmail, trimmedPassword);
-      if (!localSuccess) {
-        setError('Invalid credentials. Please contact your system administrator to provision or reset your account.');
-      }
+      setError('Invalid credentials. Please contact your system administrator to provision or reset your account.');
     } catch (err: any) {
       setError(err?.message || 'An unexpected authentication error occurred.');
     } finally {
