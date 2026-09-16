@@ -115,22 +115,36 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <main className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent overflow-y-auto transition-colors duration-200">
+    <main className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto transition-colors duration-200 bg-[var(--color-canvas)] dark:bg-[var(--color-canvas-dark)]">
+      {/* Ambient backdrop — soft indigo field (light), deep glow + hairline grid (dark) */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-32 -left-24 w-[28rem] h-[28rem] rounded-full bg-indigo-400/15 blur-[110px] dark:bg-indigo-600/10" />
+        <div className="absolute -bottom-40 -right-20 w-[32rem] h-[32rem] rounded-full bg-violet-300/20 blur-[120px] dark:bg-indigo-500/[0.07]" />
+        <div
+          className="absolute inset-0 hidden dark:block"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(99,102,241,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.045) 1px, transparent 1px)',
+            backgroundSize: '44px 44px'
+          }}
+        />
+      </div>
+
       {/* Theme Toggle in Top Right */}
       <button
         type="button"
         id="btn-login-theme-toggle"
         onClick={toggleDarkMode}
-        className="fixed top-5 right-5 p-2.5 rounded-full surface-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer z-10"
+        className="fixed top-5 right-5 p-2.5 rounded-full surface-card ring-1 ring-slate-900/5 dark:ring-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer z-10"
         title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       >
         {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
       </button>
 
-      <div className="w-full max-w-sm surface-card p-6 sm:p-7 space-y-5 transition-colors duration-200 my-auto">
+      <div className="relative w-full max-w-[400px] surface-card p-8 space-y-5 animate-bentoIn my-auto">
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center space-y-2.5">
-          <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-xs">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-500/10 dark:to-white/[0.03] border border-indigo-100 dark:border-indigo-400/20 flex items-center justify-center overflow-hidden shadow-sm">
             {branding.logoBase64 ? (
               <img src={branding.logoBase64} alt={branding.companyName} className="w-full h-full object-contain p-1.5" />
             ) : (
@@ -138,7 +152,7 @@ export const LoginScreen: React.FC = () => {
             )}
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-xl font-bold font-display tracking-tight text-slate-900 dark:text-white">
               {branding.companyName || 'PakERP & Textile OS'}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -173,7 +187,7 @@ export const LoginScreen: React.FC = () => {
 
         {/* Success Alert */}
         {successMsg && (
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-start gap-2.5 text-xs text-emerald-800 dark:text-emerald-200 animate-in fade-in">
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-start gap-2.5 text-xs text-emerald-800 dark:text-emerald-200 animate-in fade-in">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <div className="flex-1">
               <span className="font-semibold block">Notice</span>
@@ -184,7 +198,7 @@ export const LoginScreen: React.FC = () => {
 
         {/* Idle-session expiry notice (PRD §8) */}
         {sessionExpired && (
-          <div className="p-3 bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-800 rounded-xl flex items-start gap-2.5 text-xs text-amber-700 dark:text-amber-200 animate-in fade-in">
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-start gap-2.5 text-xs text-amber-700 dark:text-amber-200 animate-in fade-in">
             <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
             <div className="flex-1">
               <span className="font-semibold block">Session expired</span>
@@ -195,7 +209,7 @@ export const LoginScreen: React.FC = () => {
 
         {/* Error Alert */}
         {error && (
-          <div className="p-3 bg-red-50 dark:bg-red-950/80 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-2.5 text-xs text-red-700 dark:text-red-200 animate-in fade-in">
+          <div className="p-3 bg-red-50 dark:bg-red-950/80 border border-red-200 dark:border-red-800 rounded-2xl flex items-start gap-2.5 text-xs text-red-700 dark:text-red-200 animate-in fade-in">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
             <div className="flex-1">
               <span className="font-semibold block">Authentication Error</span>
@@ -205,10 +219,10 @@ export const LoginScreen: React.FC = () => {
         )}
 
         {/* Sign In / Password Reset Form */}
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* EMAIL FIELD */}
           <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
               Corporate Email Address
             </label>
             <div className="relative">
@@ -219,7 +233,7 @@ export const LoginScreen: React.FC = () => {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="name@company.com"
-                className="w-full pl-9 pr-3.5 py-2.5 field-input rounded-xl text-slate-900 dark:text-white font-medium"
+                className="w-full pl-9 pr-3.5 field-input"
               />
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
@@ -227,8 +241,8 @@ export const LoginScreen: React.FC = () => {
 
           {/* PASSWORD FIELD */}
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="font-semibold text-slate-700 dark:text-slate-300">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Password
               </label>
             </div>
@@ -240,7 +254,7 @@ export const LoginScreen: React.FC = () => {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-9 pr-10 py-2.5 field-input rounded-xl text-slate-900 dark:text-white font-medium"
+                className="w-full pl-9 pr-10 field-input"
               />
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <button
@@ -257,13 +271,13 @@ export const LoginScreen: React.FC = () => {
 
           {/* CHECKBOXES & OPTIONS */}
           <div className="flex items-center justify-between pt-0.5">
-            <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400 text-xs">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-[13px] text-slate-600 dark:text-slate-400">
               <input
                 type="checkbox"
                 id="checkbox-remember-me"
                 checked={rememberMe}
                 onChange={e => setRememberMe(e.target.checked)}
-                className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
               />
               <span>Remember this device</span>
             </label>
@@ -274,7 +288,7 @@ export const LoginScreen: React.FC = () => {
             type="submit"
             id="btn-auth-submit"
             disabled={isSubmitting}
-            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] disabled:bg-indigo-800 text-white rounded-full font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer mt-2"
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none text-white rounded-full font-semibold text-sm flex items-center justify-center gap-2 shadow-[0_8px_24px_-8px_rgba(99,102,241,0.55)] transition-all cursor-pointer mt-2"
           >
             {isSubmitting ? (
               <>
@@ -290,7 +304,7 @@ export const LoginScreen: React.FC = () => {
           </button>
         </form>
 
-        <div className="pt-2 text-center text-[11px] text-slate-500 dark:text-slate-400">
+        <div className="pt-2 text-center text-[12px] text-slate-400 dark:text-slate-500">
           <span>Enterprise Access Only. Accounts are provisioned by Super Administrators.</span>
         </div>
 
