@@ -64,13 +64,11 @@ import {
 } from '../lib/groqClient';
 import {
   getSupabaseClient,
-  getSupabaseConfig,
-  supabaseSignUp,
-  supabaseSignOut,
-  fetchSupabaseProfiles,
-  updateSupabaseProfile,
-  deleteSupabaseProfile
+  supabaseSignIn,
+  supabaseSignOut
 } from '../supabaseClient';
+import { hydrateFromCloud, hydrateBranding, push, pushBulk } from '../lib/cloudSync';
+import { cloudRepo } from '../lib/cloudRepo';
 
 export type AppTab =
   | 'dashboard'
@@ -195,10 +193,11 @@ interface AppContextType {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 
-  // Auth & Session (Role-Based Access Control & Supabase Auth)
+  // Auth & Session (Supabase Auth is the ONLY authentication path —
+  // there is no local/browser account registry)
   currentUser: AuthUser | null;
   isAuthenticated: boolean;
-  login: (email: string, password?: string) => boolean;
+  login: (email: string, password?: string) => Promise<boolean>;
   logout: () => void;
   setAuthUser: (user: AuthUser) => void;
   sessionExpired: boolean;
@@ -388,27 +387,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModal, setActiveModal] = useState<ActiveModal>('none');
 
-  // Auth State: Role-Based Access Control & Supabase Cloud Auth
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-    const saved = localStorage.getItem('copilot_auth_user');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed?.email) {
-          const role = parsed.role || 'Super Admin';
-          return {
-            id: parsed.id || 'usr_admin',
-            email: parsed.email,
-            name: parsed.name || parsed.email.split('@')[0],
-            role: role as UserRole,
-            permissions: getRolePermissions(role as UserRole),
-            avatarUrl: parsed.avatarUrl
-          };
-        }
-      } catch (e) {}
-    }
-    return null; // Require login screen authentication
-  });
+  // Auth State: Supabase Auth is the single source of truth. Session restore
+  // happens asynchronously from the Supabase client (see onAuthStateChange);
+  // there is deliberately no localStorage user snapshot to restore from.
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const isAuthenticated = currentUser !== null;
 
   // LOGIN ROUTING GUARD: a newly authenticated session always lands on the
@@ -428,88 +410,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [sessionExpired, setSessionExpired] = useState<boolean>(false);
   const lastActivityRef = React.useRef<number>(Date.now());
 
-  // Default Root & Super Admin accounts
-  const DEFAULT_SUPER_ADMINS: UserAccount[] = [
-    {
-      id: 'usr_adil_superadmin',
-      email: 'adil@gmail.com',
-      name: 'Adil (Super Admin)',
-      role: 'Super Admin',
-      password: 'adil123',
-      status: 'active',
-      phone: '+92 300 1234567',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'usr_root_admin',
-      email: 'admin@pakerp.com',
-      name: 'Super Administrator',
-      role: 'Super Admin',
-      password: 'admin',
-      status: 'active',
-      phone: '+92 300 0000000',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'usr_demo_admin',
-      email: 'admin@gmail.com',
-      name: 'Demo Admin (Judge Access)',
-      role: 'Super Admin',
-      password: 'admin123',
-      status: 'active',
-      phone: '+92 300 8888888',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'usr_system_owner',
-      email: 'learnthetechfirst@gmail.com',
-      name: 'System Owner (Super Admin)',
-      role: 'Super Admin',
-      password: 'admin',
-      status: 'active',
-      phone: '+92 300 9999999',
-      createdAt: new Date().toISOString()
+  // USER DIRECTORY — cloud-backed. The list comes from Supabase Auth via the
+  // admin-auth edge function (Super Admin gated); no local account registry
+  // exists anywhere in the app.
+  const [userAccounts, setUserAccounts] = useState<UserAccount[]>([]);
+
+  const refreshUserAccounts = React.useCallback(async () => {
+    try {
+      const { adminAuth } = await import('../lib/adminAuthClient');
+      const users = await adminAuth.listUsers();
+      setUserAccounts(users.map(u => ({
+        id: u.id,
+        email: u.email,
+        name: u.fullName,
+        role: (u.role as UserRole) || 'Admin',
+        status: 'active',
+        phone: '',
+        createdAt: u.createdAt
+      })));
+    } catch (e) {
+      console.warn('User directory fetch skipped:', (e as Error)?.message);
     }
-  ];
+  }, []);
 
-  // User Accounts State (Managed exclusively by Super Admin in Settings module)
-  const [userAccounts, setUserAccounts] = useState<UserAccount[]>(() => {
-    const saved = localStorage.getItem('copilot_registered_users');
-    let loadedAccounts: UserAccount[] = [];
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          loadedAccounts = parsed;
-        }
-      } catch (e) {}
+  useEffect(() => {
+    if (isAuthenticated && currentUser?.role === 'Super Admin') {
+      refreshUserAccounts();
     }
-
-    // Merge default super admins so they are always guaranteed to exist
-    const merged = [...loadedAccounts];
-    DEFAULT_SUPER_ADMINS.forEach(defAdmin => {
-      const existingIdx = merged.findIndex(u => u.email.toLowerCase() === defAdmin.email.toLowerCase());
-      if (existingIdx === -1) {
-        merged.push(defAdmin);
-      } else {
-        // Ensure password and Super Admin role are up to date
-        merged[existingIdx] = {
-          ...merged[existingIdx],
-          role: 'Super Admin',
-          status: 'active',
-          password: merged[existingIdx].password || defAdmin.password
-        };
-      }
-    });
-
-    localStorage.setItem('copilot_registered_users', JSON.stringify(merged));
-    return merged;
-  });
-
-  const saveUserAccounts = (accounts: UserAccount[]) => {
-    setUserAccounts(accounts);
-    localStorage.setItem('copilot_registered_users', JSON.stringify(accounts));
-  };
+  }, [isAuthenticated, currentUser?.role, refreshUserAccounts]);
 
   const createUserAccount = async (data: {
     name: string;
@@ -526,80 +454,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: `An account with email "${trimmedEmail}" already exists.` };
     }
 
-    const newUser: UserAccount = {
-      id: `usr_${Date.now()}`,
-      email: trimmedEmail,
-      name: data.name.trim(),
-      role: data.role,
-      password: data.password?.trim() || 'Welcome123!',
-      phone: data.phone?.trim() || '',
-      status: 'active',
-      createdAt: new Date().toISOString()
-    };
-
-    // If Supabase Cloud Auth is configured, also provision on Supabase
-    const { isConfigured } = getSupabaseConfig();
-    if (isConfigured) {
-      try {
-        await supabaseSignUp({
-          email: newUser.email,
-          password: newUser.password || 'Welcome123!',
-          fullName: newUser.name,
-          role: newUser.role,
-          phone: newUser.phone,
-          companyName: branding.companyName
-        });
-      } catch (err) {
-        console.warn('Supabase cloud provisioning note:', err);
-      }
+    // Provision the account in Supabase Auth via the admin-auth edge function
+    // (signups are disabled on the project; only Super Admins create users).
+    try {
+      const { adminAuth } = await import('../lib/adminAuthClient');
+      await adminAuth.createUser({
+        email: trimmedEmail,
+        password: data.password?.trim() || 'Welcome123!',
+        fullName: data.name.trim(),
+        role: data.role
+      });
+      await refreshUserAccounts();
+      addToast('success', 'User Account Provisioned', `Created ${data.name.trim()} with ${data.role} privileges.`);
+      return { success: true, message: `Account created for ${data.name.trim()} (${data.role}).` };
+    } catch (err) {
+      const msg = (err as Error)?.message || 'Provisioning failed.';
+      addToast('error', 'Provisioning Failed', msg);
+      return { success: false, message: msg };
     }
-
-    const updated = [newUser, ...userAccounts];
-    saveUserAccounts(updated);
-    addToast('success', 'User Account Provisioned', `Created ${newUser.name} with ${newUser.role} privileges.`);
-    return { success: true, message: `Account created for ${newUser.name} (${newUser.role}).` };
   };
 
+
   const updateUserAccount = async (id: string, updates: Partial<UserAccount>): Promise<{ success: boolean; message: string }> => {
-    const updated = userAccounts.map(u => {
-      if (u.id === id) {
-        return { ...u, ...updates };
-      }
-      return u;
-    });
-    saveUserAccounts(updated);
+    // Role / name / password changes go through the admin-auth edge function
+    // (Supabase Auth Admin API); the profiles table is updated server-side.
+    try {
+      const { adminAuth } = await import('../lib/adminAuthClient');
+      await adminAuth.updateUser({
+        userId: id,
+        role: updates.role,
+        fullName: updates.name,
+        password: updates.password
+      });
+      await refreshUserAccounts();
 
-    // Sync to Supabase profiles table if configured
-    const { isConfigured } = getSupabaseConfig();
-    if (isConfigured) {
-      try {
-        await updateSupabaseProfile(id, {
-          full_name: updates.name,
-          role: updates.role,
-          phone: updates.phone,
-          status: updates.status
+      if (currentUser && currentUser.id === id && (updates.role || updates.name)) {
+        const role = updates.role || (currentUser.role as UserRole);
+        setAuthUser({
+          ...currentUser,
+          name: updates.name || currentUser.name,
+          role,
+          permissions: getRolePermissions(role)
         });
-      } catch (err) {
-        console.warn('Supabase profile update warning:', err);
       }
-    }
 
-    if (currentUser && currentUser.id === id) {
-      const target = updated.find(u => u.id === id);
-      if (target) {
-        const newAuth: AuthUser = {
-          id: target.id,
-          email: target.email,
-          name: target.name,
-          role: target.role,
-          permissions: getRolePermissions(target.role)
-        };
-        setAuthUser(newAuth);
-      }
+      addToast('success', 'Account Updated', 'User privileges updated in Supabase Auth.');
+      return { success: true, message: 'User updated.' };
+    } catch (err) {
+      const msg = (err as Error)?.message || 'Update failed.';
+      addToast('error', 'Update Failed', msg);
+      return { success: false, message: msg };
     }
-
-    addToast('success', 'Account Updated', 'User privileges updated successfully.');
-    return { success: true, message: 'User updated.' };
   };
 
   const deleteUserAccount = async (id: string): Promise<{ success: boolean; message: string }> => {
@@ -608,94 +513,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'Cannot delete current logged-in user.' };
     }
 
-    // Delete from Supabase profiles table if configured
-    const { isConfigured } = getSupabaseConfig();
-    if (isConfigured) {
-      try {
-        await deleteSupabaseProfile(id);
-      } catch (err) {
-        console.warn('Supabase profile deletion warning:', err);
-      }
+    // Deletes the user from Supabase Auth (and their profile row) via the
+    // admin-auth edge function — Super Admin gated, server-verified.
+    try {
+      const { adminAuth } = await import('../lib/adminAuthClient');
+      await adminAuth.deleteUser(id);
+      await refreshUserAccounts();
+      addToast('info', 'Account Revoked', 'User account deleted from Supabase Auth.');
+      return { success: true, message: 'User deleted successfully.' };
+    } catch (err) {
+      const msg = (err as Error)?.message || 'Deletion failed.';
+      addToast('error', 'Deletion Failed', msg);
+      return { success: false, message: msg };
     }
-
-    const updated = userAccounts.filter(u => u.id !== id);
-    saveUserAccounts(updated);
-    addToast('info', 'Account Revoked', 'User account has been deleted.');
-    return { success: true, message: 'User deleted successfully.' };
   };
+
 
   const setAuthUser = (user: AuthUser) => {
     setSessionExpired(false);
     lastActivityRef.current = Date.now();
     setCurrentUser(user);
-    localStorage.setItem('copilot_auth_user', JSON.stringify(user));
   };
 
-  const login = (email: string, password?: string): boolean => {
+  /** Supabase-only sign-in. There is no local credential registry: if the
+   *  account does not exist in Supabase Auth, authentication fails. */
+  const login = async (email: string, password?: string): Promise<boolean> => {
     setSessionExpired(false);
     setActiveModal('none'); // fresh session never inherits a stale modal
     lastActivityRef.current = Date.now();
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPassword = (password || '').trim();
 
-    if (!trimmedEmail) {
-      addToast('error', 'Authentication Required', 'Please enter your registered email address.');
+    if (!trimmedEmail || !trimmedPassword) {
+      addToast('error', 'Authentication Required', 'Please enter your email address and password.');
       return false;
     }
 
-    // 1. Check registered user accounts registry — exact credential match required.
-    //    Empty passwords never authenticate, and no universal master password exists.
-    const match = userAccounts.find(
-      u => u.email.toLowerCase() === trimmedEmail && !!u.password && u.password === trimmedPassword
-    );
-
-    if (match) {
-      if (match.status === 'suspended') {
-        addToast('error', 'Account Suspended', 'This account has been deactivated by the Super Administrator.');
-        return false;
-      }
-      const authUser: AuthUser = {
-        id: match.id,
-        email: match.email,
-        name: match.name,
-        role: match.role,
-        permissions: getRolePermissions(match.role)
-      };
-      setCurrentUser(authUser);
-      localStorage.setItem('copilot_auth_user', JSON.stringify(authUser));
-      addToast('success', 'Authenticated', `Welcome, ${authUser.name} (${authUser.role})`);
+    const res = await supabaseSignIn(trimmedEmail, trimmedPassword);
+    if (res.success && res.user) {
+      setCurrentUser(res.user);
+      addToast('success', 'Authenticated', res.message);
       return true;
     }
 
-    // 2. Resilient Super Admin verification for master accounts —
-    //    only consulted when the account is not already in the registry, and
-    //    each master account accepts only its own documented password.
-    const knownAccount = userAccounts.some(u => u.email.toLowerCase() === trimmedEmail);
-    const defAdmin = !knownAccount
-      ? DEFAULT_SUPER_ADMINS.find(
-          d => d.email.toLowerCase() === trimmedEmail && !!d.password && d.password === trimmedPassword
-        )
-      : undefined;
-
-    if (defAdmin) {
-      const authUser: AuthUser = {
-        id: defAdmin.id,
-        email: defAdmin.email,
-        name: defAdmin.name,
-        role: 'Super Admin',
-        permissions: getRolePermissions('Super Admin')
-      };
-      // Upsert into user accounts list
-      const updated = [defAdmin, ...userAccounts.filter(u => u.email.toLowerCase() !== defAdmin.email.toLowerCase())];
-      saveUserAccounts(updated);
-
-      setCurrentUser(authUser);
-      localStorage.setItem('copilot_auth_user', JSON.stringify(authUser));
-      addToast('success', 'Authenticated as Super Admin', `Welcome, ${authUser.name}`);
-      return true;
-    }
-
-    addToast('error', 'Authentication Failed', 'Invalid email or password. Please verify credentials or contact Super Admin.');
+    addToast('error', 'Authentication Failed', res.message || 'Invalid email or password.');
     return false;
   };
 
@@ -703,7 +564,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSessionExpired(false);
     setActiveModal('none');
     setCurrentUser(null);
-    localStorage.removeItem('copilot_auth_user');
     supabaseSignOut().catch(() => {});
     addToast('info', 'Logged Out', 'Your session has been ended safely.');
   };
@@ -730,7 +590,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSessionExpired(true);
         setActiveModal('none');
         setCurrentUser(null);
-        localStorage.removeItem('copilot_auth_user');
         supabaseSignOut().catch(() => {});
       }
     }, 2 * 1000);
@@ -759,7 +618,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           permissions: getRolePermissions(role)
         };
         setCurrentUser(authUser);
-        localStorage.setItem('copilot_auth_user', JSON.stringify(authUser));
       }
     }).catch(() => {});
 
@@ -780,7 +638,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           permissions: getRolePermissions(role)
         };
         setCurrentUser(authUser);
-        localStorage.setItem('copilot_auth_user', JSON.stringify(authUser));
       }
     });
 
@@ -838,10 +695,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateBranding = (newBranding: Partial<BrandingSettings>) => {
     setBranding(prev => {
       const updated = { ...prev, ...newBranding };
-      localStorage.setItem('copilot_branding', JSON.stringify(updated));
+      push.brandingSave(updated);
       return updated;
     });
-    addToast('success', 'Branding Updated', 'Custom brand settings and logo saved to local storage.');
+    addToast('success', 'Branding Updated', 'Custom brand settings saved to Supabase.');
   };
 
   // AI & Groq API Settings (from Local Storage)
@@ -897,128 +754,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const openModal = (modal: ActiveModal) => setActiveModal(modal);
   const closeModal = () => setActiveModal('none');
 
-  // Live Manufacturing Database State with LocalStorage resilience
+  // Live Manufacturing Database State — CLOUD-FIRST. State starts empty and
+  // hydrates from Supabase on sign-in (hydrateFromCloud). localStorage is
+  // never the system of record for business data.
   const [organization] = useState<Organization>(SEED_ORGANIZATION);
   const [profile] = useState<Profile>(SEED_PROFILE);
 
-  const [products, setProducts] = useState<Product[]>(() => {
-    const s = localStorage.getItem('copilot_products');
-    if (s) {
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return LIVE_PRODUCTS;
-  });
-
-  const [suppliers, setSuppliers] = useState<Supplier[]>(() => {
-    const s = localStorage.getItem('copilot_suppliers');
-    if (s) {
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return LIVE_SUPPLIERS;
-  });
-
-  const [customers, setCustomers] = useState<Customer[]>(() => {
-    const s = localStorage.getItem('copilot_customers');
-    if (s) {
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return LIVE_CUSTOMERS;
-  });
-
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(() => {
-    const s = localStorage.getItem('copilot_pos');
-    if (s) {
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return LIVE_INITIAL_POS;
-  });
-
-  const [salesOrders, setSalesOrders] = useState<SalesOrder[]>(() => {
-    const s = localStorage.getItem('copilot_sales');
-    if (s) {
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return LIVE_INITIAL_SALES;
-  });
-
-  const [inventoryMovements, setInventoryMovements] = useState<InventoryMovement[]>(() => {
-    const s = localStorage.getItem('copilot_movements');
-    if (s) {
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return LIVE_INITIAL_MOVEMENTS;
-  });
-
-  const [accounts, setAccounts] = useState<ChartOfAccount[]>(() => {
-    const s = localStorage.getItem('copilot_chart_of_accounts');
-    if (s) {
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_CHART_OF_ACCOUNTS;
-  });
-
-  const [cashbook, setCashbook] = useState<CashbookEntry[]>(() => {
-    const s = localStorage.getItem('copilot_cashbook');
-    if (s) {
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_CASHBOOK_VOUCHERS;
-  });
+  const [products, setProducts] = useState<Product[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
+  const [inventoryMovements, setInventoryMovements] = useState<InventoryMovement[]>([]);
+  const [accounts, setAccounts] = useState<ChartOfAccount[]>([]);
+  const [cashbook, setCashbook] = useState<CashbookEntry[]>([]);
+  const [cloudHydrated, setCloudHydrated] = useState(false);
+  const [cloudError, setCloudError] = useState<string | null>(null);
 
   // Calculate live real-time Cash in Hand & Bank Balances from accounting engine
   const { cashInHand, bankBalance, totalLiquidity } = calculateLiquidTreasury(accounts, cashbook);
 
   const [complianceSources] = useState<ComplianceRAGSource[]>(SEED_COMPLIANCE_SOURCES);
 
-  // Sync state to local storage
+  // CLOUD HYDRATION — on every sign-in, load the full business dataset from
+  // Supabase. Also seeds the default Chart of Accounts once when the ledger
+  // is brand new so a fresh cloud project still boots with core accounts.
   useEffect(() => {
-    localStorage.setItem('copilot_products', JSON.stringify(products));
-  }, [products]);
-  useEffect(() => {
-    localStorage.setItem('copilot_suppliers', JSON.stringify(suppliers));
-  }, [suppliers]);
-  useEffect(() => {
-    localStorage.setItem('copilot_customers', JSON.stringify(customers));
-  }, [customers]);
-  useEffect(() => {
-    localStorage.setItem('copilot_pos', JSON.stringify(purchaseOrders));
-  }, [purchaseOrders]);
-  useEffect(() => {
-    localStorage.setItem('copilot_sales', JSON.stringify(salesOrders));
-  }, [salesOrders]);
-  useEffect(() => {
-    localStorage.setItem('copilot_movements', JSON.stringify(inventoryMovements));
-  }, [inventoryMovements]);
-  useEffect(() => {
-    localStorage.setItem('copilot_cashbook', JSON.stringify(cashbook));
-  }, [cashbook]);
-  useEffect(() => {
-    localStorage.setItem('copilot_chart_of_accounts', JSON.stringify(accounts));
-  }, [accounts]);
+    if (!isAuthenticated) {
+      setCloudHydrated(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const state = await hydrateFromCloud();
+        if (cancelled) return;
+        if (state.accounts.length === 0) {
+          // First boot on a fresh cloud project: seed core CoA and push it up.
+          for (const acc of INITIAL_CHART_OF_ACCOUNTS) {
+            await push.accountCreate(acc);
+          }
+          setAccounts(INITIAL_CHART_OF_ACCOUNTS);
+        } else {
+          setAccounts(state.accounts);
+        }
+        setProducts(state.products);
+        setSuppliers(state.suppliers);
+        setCustomers(state.customers);
+        setPurchaseOrders(state.purchaseOrders);
+        setSalesOrders(state.salesOrders);
+        setCashbook(state.cashbook);
+        setInventoryMovements(state.inventoryMovements);
+        const b = await hydrateBranding();
+        if (b && !cancelled) setBranding(prev => ({ ...prev, ...b }));
+        setCloudHydrated(true);
+        setCloudError(null);
+      } catch (e) {
+        if (!cancelled) {
+          setCloudError((e as Error)?.message || 'Cloud sync failed');
+          addToast('error', 'Cloud Sync Failed', (e as Error)?.message || 'Could not load data from Supabase.');
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
 
   // Notifications with strict 2-second auto-hide
   const [notifications, setNotifications] = useState<ToastAlert[]>([]);
@@ -1081,13 +882,19 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
     complianceSources
   });
 
+  /** Bulk state replacement from the deterministic business tools. The cloud
+      diff runs against the PREVIOUS state so only new/changed rows are pushed. */
   const applyDatabaseUpdate = (update: Partial<DatabaseState>) => {
+    const prevSnap = {
+      products, purchaseOrders, salesOrders, cashbook, inventoryMovements, customers
+    };
     if (update.products) setProducts(update.products);
     if (update.purchaseOrders) setPurchaseOrders(update.purchaseOrders);
     if (update.salesOrders) setSalesOrders(update.salesOrders);
     if (update.cashbook) setCashbook(update.cashbook);
     if (update.inventoryMovements) setInventoryMovements(update.inventoryMovements);
     if (update.customers) setCustomers(update.customers);
+    pushBulk(update as DatabaseState, prevSnap);
   };
 
   /** Double-entry postings for the trade cycle. Sales invoices and purchase
@@ -1172,7 +979,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       amount: invoice.totalAmount,
       lines
     });
-    if (voucher) setCashbook(prev => [voucher, ...prev]);
+    if (voucher) { setCashbook(prev => [voucher, ...prev]); push.cashbookCreate(voucher); }
   };
 
   /** Post a purchase order to the GL: Dr Inventory / Cr AP (on PO commitment). */
@@ -1194,7 +1001,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
         { code: '2001', debit: 0, credit: po.totalAmount, narration: `AP — ${po.supplierName} on ${po.poNumber}` }
       ]
     });
-    if (voucher) setCashbook(prev => [voucher, ...prev]);
+    if (voucher) { setCashbook(prev => [voucher, ...prev]); push.cashbookCreate(voucher); }
   };
 
   // CRUD Operations Implementation
@@ -1209,6 +1016,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       updatedAt: new Date().toISOString()
     };
     setProducts(prev => [newProduct, ...prev]);
+    push.productCreate(newProduct);
     closeModal();
     addToast('success', 'Product Registered', `${newProduct.name} (SKU: ${newProduct.sku}) added with 0 initial stock. Issue and receive a Purchase Order to restock inventory.`);
   };
@@ -1217,6 +1025,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
     // Enforce: currentStock cannot be manually overwritten; must go through PO receiving or sales dispatch
     const { currentStock: _lockedStock, ...allowedUpdates } = updated as any;
     setProducts(prev => prev.map(p => (p.id === id ? { ...p, ...allowedUpdates, updatedAt: new Date().toISOString() } : p)));
+    push.productUpdate({ id, ...allowedUpdates });
     closeEditModal();
     addToast('success', 'Product Updated', 'Changes saved successfully.');
   };
@@ -1227,6 +1036,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       return;
     }
     setProducts(prev => prev.filter(p => p.id !== id));
+    push.productDelete(id);
     closeDeleteModal();
     addToast('info', 'Product Removed', 'Item deleted from inventory catalog.');
   };
@@ -1261,6 +1071,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
 
   const updatePurchaseOrder = (id: string, updated: Partial<PurchaseOrder>) => {
     setPurchaseOrders(prev => prev.map(po => (po.id === id ? { ...po, ...updated } : po)));
+    push.poUpdate(id, updated);
     closeEditModal();
     addToast('success', 'PO Updated', 'Purchase Order details updated.');
   };
@@ -1271,6 +1082,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       return;
     }
     setPurchaseOrders(prev => prev.filter(po => po.id !== id));
+    push.poDelete(id);
     closeDeleteModal();
     addToast('info', 'PO Deleted', 'Purchase Order cancelled and deleted.');
   };
@@ -1326,6 +1138,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
 
   const updateSalesOrder = (id: string, updated: Partial<SalesOrder>) => {
     setSalesOrders(prev => prev.map(so => (so.id === id ? { ...so, ...updated } : so)));
+    push.saleUpdate(id, updated);
     closeEditModal();
     addToast('success', 'Invoice Updated', 'Sales invoice records updated.');
   };
@@ -1336,6 +1149,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       return;
     }
     setSalesOrders(prev => prev.filter(so => so.id !== id));
+    push.saleDelete(id);
     closeDeleteModal();
     addToast('info', 'Invoice Deleted', 'Sales record deleted.');
   };
@@ -1352,6 +1166,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       createdAt: new Date().toISOString()
     };
     setCashbook(prev => [newEntry, ...prev]);
+    push.cashbookCreate(newEntry);
     closeModal();
     addToast('success', 'Cash Entry Posted', `${data.type === 'inflow' ? 'Inflow' : 'Disbursement'} of Rs. ${data.amount.toLocaleString()} logged.`);
   };
@@ -1399,12 +1214,14 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
     };
 
     setCashbook(prev => [newVoucher, ...prev]);
+    push.cashbookCreate(newVoucher);
     closeModal();
     addToast('success', 'Voucher Posted', `${voucher.voucherType} #${vId} of Rs. ${totalAmount.toLocaleString()} posted to ledger.`);
   };
 
   const updateCashbookEntry = (id: string, updated: Partial<CashbookEntry>) => {
     setCashbook(prev => prev.map(c => (c.id === id ? { ...c, ...updated } : c)));
+    push.cashbookUpdate(id, updated);
     closeEditModal();
     addToast('success', 'Voucher Updated', 'Cashbook entry adjusted.');
   };
@@ -1415,6 +1232,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       return;
     }
     setCashbook(prev => prev.filter(c => c.id !== id));
+    push.cashbookDelete(id);
     closeDeleteModal();
     addToast('info', 'Entry Deleted', 'Cash voucher deleted from ledger.');
   };
@@ -1445,6 +1263,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       createdAt: new Date().toISOString()
     };
     setAccounts(prev => [...prev, newAcc]);
+    push.accountCreate(newAcc);
     addToast('info', 'Account Auto-Created', `${trimmed} (${newAcc.code}) added to Chart of Accounts.`);
     return newAcc;
   };
@@ -1457,12 +1276,14 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       createdAt: new Date().toISOString()
     };
     setAccounts(prev => [...prev, newAcc]);
+    push.accountCreate(newAcc);
     closeModal();
     addToast('success', 'Account Registered', `${newAcc.name} (${newAcc.code}) added to Chart of Accounts.`);
   };
 
   const updateAccount = (id: string, updated: Partial<ChartOfAccount>) => {
     setAccounts(prev => prev.map(a => (a.id === id ? { ...a, ...updated } : a)));
+    push.accountUpdate(id, updated);
     closeEditModal();
     addToast('success', 'Account Updated', 'Account parameters saved.');
   };
@@ -1478,6 +1299,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       return;
     }
     setAccounts(prev => prev.filter(a => a.id !== id));
+    push.accountDelete(id);
     closeDeleteModal();
     addToast('info', 'Account Removed', 'Account deleted from Chart of Accounts.');
   };
@@ -1491,6 +1313,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       createdAt: new Date().toISOString()
     };
     setSuppliers(prev => [newSupplier, ...prev]);
+    push.supplierCreate(newSupplier);
     ensurePartyAccount(newSupplier.name, 'supplier');
     closeModal();
     addToast('success', 'Supplier Registered', `${newSupplier.name} added to vendor directory.`);
@@ -1498,6 +1321,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
 
   const updateSupplier = (id: string, updated: Partial<Supplier>) => {
     setSuppliers(prev => prev.map(s => (s.id === id ? { ...s, ...updated } : s)));
+    push.supplierUpdate(id, updated);
     closeEditModal();
     addToast('success', 'Supplier Updated', 'Vendor records updated.');
   };
@@ -1508,6 +1332,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       return;
     }
     setSuppliers(prev => prev.filter(s => s.id !== id));
+    push.supplierDelete(id);
     closeDeleteModal();
     addToast('info', 'Supplier Removed', 'Vendor deleted from directory.');
   };
@@ -1521,6 +1346,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       createdAt: new Date().toISOString()
     };
     setCustomers(prev => [newCustomer, ...prev]);
+    push.customerCreate(newCustomer);
     ensurePartyAccount(newCustomer.name, 'customer');
     closeModal();
     addToast('success', 'Customer Registered', `${newCustomer.name} added to client directory.`);
@@ -1528,6 +1354,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
 
   const updateCustomer = (id: string, updated: Partial<Customer>) => {
     setCustomers(prev => prev.map(c => (c.id === id ? { ...c, ...updated } : c)));
+    push.customerUpdate(id, updated);
     closeEditModal();
     addToast('success', 'Customer Updated', 'Client records updated.');
   };
@@ -1538,6 +1365,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       return;
     }
     setCustomers(prev => prev.filter(c => c.id !== id));
+    push.customerDelete(id);
     closeDeleteModal();
     addToast('info', 'Customer Removed', 'Client deleted from directory.');
   };
@@ -1988,17 +1816,18 @@ Provide a brief, crisp professional executive summary (1-3 sentences) in natural
     setPurchaseOrders([]);
     setSalesOrders([]);
     setCashbook([]);
-    setAccounts(INITIAL_CHART_OF_ACCOUNTS);
     setInventoryMovements([]);
-    localStorage.removeItem('copilot_products');
-    localStorage.removeItem('copilot_suppliers');
-    localStorage.removeItem('copilot_customers');
-    localStorage.removeItem('copilot_pos');
-    localStorage.removeItem('copilot_sales');
-    localStorage.removeItem('copilot_cashbook');
-    localStorage.removeItem('copilot_chart_of_accounts');
-    localStorage.removeItem('copilot_movements');
+    // Wipe all business rows in the cloud, then reseed the core CoA there too.
+    cloudRepo.wipeBusinessData()
+      .then(async () => {
+        for (const acc of INITIAL_CHART_OF_ACCOUNTS) {
+          await push.accountCreate(acc);
+        }
+        setAccounts(INITIAL_CHART_OF_ACCOUNTS);
+      })
+      .catch(e => addToast('error', 'Cloud Reset Failed', (e as Error)?.message || 'Could not wipe cloud data.'));
     setBranding(DEFAULT_BRANDING);
+    push.brandingSave(DEFAULT_BRANDING);
     setAiSettings(DEFAULT_AI_SETTINGS);
     setActiveConfirmation(null);
     addToast('info', 'Ledger Reset', 'All transactions and records cleared. System is in clean production state.');

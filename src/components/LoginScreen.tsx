@@ -25,7 +25,7 @@ const IDLE_MINUTES = Math.round(SESSION_IDLE_TIMEOUT_MS / 60000);
 
 
 export const LoginScreen: React.FC = () => {
-  const { branding, login, setAuthUser, darkMode, toggleDarkMode, addToast, sessionExpired } = useApp();
+  const { branding, setAuthUser, darkMode, toggleDarkMode, addToast, sessionExpired } = useApp();
 
   // Form Fields
   const [email, setEmail] = useState(() => {
@@ -85,28 +85,16 @@ export const LoginScreen: React.FC = () => {
     }
 
     try {
-      // 1. Local Auth Registry first. Every account this app provisions
-      //    (Settings module and the demo super admins) lives here, so valid
-      //    local logins resolve without touching Supabase Auth — repeated
-      //    logins with demo credentials can never produce invalid_grant 400s.
-      const localSuccess = login(trimmedEmail, trimmedPassword);
-      if (localSuccess) {
+      // Supabase Auth is the ONLY authentication path — there is no local
+      // credential registry anywhere in the app. If the account does not
+      // exist in Supabase, sign-in fails.
+      const authRes = await supabaseSignIn(trimmedEmail, trimmedPassword);
+      if (authRes.success && authRes.user) {
+        setAuthUser(authRes.user);
+        addToast('success', 'Authenticated', authRes.message);
         return;
       }
-
-      // 2. Supabase Auth for cloud-only accounts (provisioned directly in the
-      //    Supabase dashboard and therefore absent from the local registry).
-      const { isConfigured } = getSupabaseConfig();
-      if (isConfigured) {
-        const authRes = await supabaseSignIn(trimmedEmail, trimmedPassword);
-        if (authRes.success && authRes.user) {
-          setAuthUser(authRes.user);
-          addToast('success', 'Authenticated via Supabase', authRes.message);
-          return;
-        }
-      }
-
-      setError('Invalid credentials. Please contact your system administrator to provision or reset your account.');
+      setError(authRes.message || 'Invalid email or password.');
     } catch (err: any) {
       setError(err?.message || 'An unexpected authentication error occurred.');
     } finally {
@@ -312,7 +300,7 @@ export const LoginScreen: React.FC = () => {
         <div className="pt-1 text-center">
           <div className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100/80 dark:bg-white/5 rounded-full px-3.5 py-1.5 font-mono" title="Demo credentials for evaluation">
             <KeyRound className="w-3 h-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
-            <span>Demo login:</span>
+            <span>Cloud login:</span>
             <button
               type="button"
               onClick={() => { setEmail('admin@gmail.com'); setPassword('admin123'); setError(null); setSuccessMsg(null); }}

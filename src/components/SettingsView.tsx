@@ -137,13 +137,10 @@ export const SettingsView: React.FC = () => {
     updateAISettings({ selectedModel });
   };
 
-  // Database & Supabase State
-  const [supabaseUrlInput, setSupabaseUrlInput] = useState(() => {
-    return localStorage.getItem('copilot_supabase_url') || ((import.meta as any)?.env?.VITE_SUPABASE_URL || '');
-  });
-  const [supabaseKeyInput, setSupabaseKeyInput] = useState(() => {
-    return localStorage.getItem('copilot_supabase_key') || ((import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY || '');
-  });
+  // Database & Supabase State — env-configured, read-only. Credentials are
+  // deployment settings (Vercel env vars), never browser-editable values.
+  const [supabaseUrlInput] = useState(() => ((import.meta as any)?.env?.VITE_SUPABASE_URL || ''));
+  const [supabaseKeyInput] = useState(() => (import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY ? '•••••••••••• (configured)' : '');
   const [showSupabaseKey, setShowSupabaseKey] = useState(false);
   const [isSavingDb, setIsSavingDb] = useState(false);
   const [dbHealth, setDbHealth] = useState<DatabaseHealthStatus | null>(null);
@@ -173,25 +170,7 @@ export const SettingsView: React.FC = () => {
 
   const handleSaveDatabaseConfig = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSavingDb(true);
-    try {
-      if (supabaseUrlInput.trim()) {
-        localStorage.setItem('copilot_supabase_url', supabaseUrlInput.trim());
-      } else {
-        localStorage.removeItem('copilot_supabase_url');
-      }
-
-      if (supabaseKeyInput.trim()) {
-        localStorage.setItem('copilot_supabase_key', supabaseKeyInput.trim());
-      } else {
-        localStorage.removeItem('copilot_supabase_key');
-      }
-
-      await checkHealth();
-      addToast('success', 'Database Configuration Saved', 'Supabase parameters updated.');
-    } finally {
-      setIsSavingDb(false);
-    }
+    addToast('info', 'Managed via Environment', 'Supabase credentials are configured as Vercel environment variables and cannot be changed in the browser.');
   };
 
 
@@ -220,12 +199,12 @@ export const SettingsView: React.FC = () => {
     addToast('success', 'Backup Exported', 'Downloaded complete database JSON snapshot.');
   };
 
-  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const parsed = JSON.parse(reader.result as string);
         if (parsed.products) localStorage.setItem('copilot_products', JSON.stringify(parsed.products));
@@ -239,7 +218,21 @@ export const SettingsView: React.FC = () => {
         if (parsed.branding) localStorage.setItem('copilot_branding', JSON.stringify(parsed.branding));
 
         syncDatabase();
-        addToast('success', 'Backup Restored', 'Database state successfully restored from JSON file.');
+        // Push the restored dataset to the cloud (full replace of new/changed rows).
+        try {
+          const { push } = await import('../lib/cloudSync');
+          if (parsed.products) for (const p of parsed.products) await push.productCreate(p);
+          if (parsed.suppliers) for (const s of parsed.suppliers) await push.supplierCreate(s);
+          if (parsed.customers) for (const c of parsed.customers) await push.customerCreate(c);
+          if (parsed.purchaseOrders) for (const po of parsed.purchaseOrders) await push.poCreate(po);
+          if (parsed.salesOrders) for (const so of parsed.salesOrders) await push.saleCreate(so);
+          if (parsed.cashbook) for (const e of parsed.cashbook) await push.cashbookCreate(e);
+          if (parsed.accounts) for (const a of parsed.accounts) await push.accountCreate(a);
+          if (parsed.inventoryMovements) for (const m of parsed.inventoryMovements) await push.movementCreate(m);
+        } catch (cloudErr) {
+          console.warn('Cloud restore partially failed:', cloudErr);
+        }
+        addToast('success', 'Backup Restored', 'Database state restored and synced to Supabase.');
       } catch (err: any) {
         addToast('error', 'Import Failed', 'Invalid JSON backup file format.');
       }
@@ -441,7 +434,7 @@ export const SettingsView: React.FC = () => {
                   <input
                     type="url"
                     value={supabaseUrlInput}
-                    onChange={e => setSupabaseUrlInput(e.target.value)}
+                    readOnly
                     placeholder="https://xyzcompany.supabase.co"
                     className="w-full px-3.5 py-2.5 field-input rounded-xl font-mono text-slate-900"
                   />
@@ -458,8 +451,8 @@ export const SettingsView: React.FC = () => {
                     <input
                       type={showSupabaseKey ? 'text' : 'password'}
                       value={supabaseKeyInput}
-                      onChange={e => setSupabaseKeyInput(e.target.value)}
-                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      readOnly
+                      placeholder="Configured via environment"
                       className="w-full pl-3.5 pr-10 py-2.5 field-input rounded-xl font-mono text-slate-900"
                     />
                     <button
