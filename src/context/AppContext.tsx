@@ -411,6 +411,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const isAuthenticated = currentUser !== null;
 
+  // LOGIN ROUTING GUARD: a newly authenticated session always lands on the
+  // dashboard with no modal open — never the voice dialog. The provider sits
+  // above the auth gate, so context state would otherwise survive a logout
+  // and leak an open modal into the next session. Covers every auth path:
+  // local login, Supabase sign-in, and session restore on page load.
+  useEffect(() => {
+    if (isAuthenticated) {
+      setActiveModal('none');
+      setActiveTab('dashboard');
+    }
+  }, [isAuthenticated]);
+
   // Idle-session state: true after the timeout force-signs the user out,
   // consumed by LoginScreen to show the "Session expired" notice.
   const [sessionExpired, setSessionExpired] = useState<boolean>(false);
@@ -621,6 +633,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const login = (email: string, password?: string): boolean => {
     setSessionExpired(false);
+    setActiveModal('none'); // fresh session never inherits a stale modal
     lastActivityRef.current = Date.now();
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPassword = (password || '').trim();
@@ -688,6 +701,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = () => {
     setSessionExpired(false);
+    setActiveModal('none');
     setCurrentUser(null);
     localStorage.removeItem('copilot_auth_user');
     supabaseSignOut().catch(() => {});
@@ -714,6 +728,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const idleCheck = window.setInterval(() => {
       if (Date.now() - lastActivityRef.current >= SESSION_IDLE_TIMEOUT_MS) {
         setSessionExpired(true);
+        setActiveModal('none');
         setCurrentUser(null);
         localStorage.removeItem('copilot_auth_user');
         supabaseSignOut().catch(() => {});
@@ -750,6 +765,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const { data: authListener } = client.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
+        setActiveModal('none');
         setCurrentUser(null);
         localStorage.removeItem('copilot_auth_user');
       } else if (session?.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {

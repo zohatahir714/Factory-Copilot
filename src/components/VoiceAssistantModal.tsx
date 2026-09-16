@@ -233,7 +233,6 @@ export const VoiceAssistantModal: React.FC = () => {
     if (audioVoiceEnabled) speakText('کمانڈ منسوخ۔');
   }, [addToast, speakText, audioVoiceEnabled]);
 
-  /**
   if (activeModal !== 'voice') return null;
 
   /**
