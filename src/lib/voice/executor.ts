@@ -10,6 +10,7 @@
 
 import { formatPKR, calculateFBRTax } from '../../utils/fbrTaxEngine';
 import type { VoiceIntent, QueryTopic } from './fastPath';
+import { getGuideCard } from './guides';
 
 export interface ExecutorStats {
   label: string;
@@ -18,7 +19,7 @@ export interface ExecutorStats {
 }
 
 export interface ExecutorResult {
-  kind: 'query' | 'clarify';
+  kind: 'query' | 'clarify' | 'navigate' | 'print' | 'guide';
   /** Minimal Urdu sentence — the ONLY text spoken aloud. */
   spoken: string;
   title: string;
@@ -27,6 +28,10 @@ export interface ExecutorResult {
   details?: string;
   /** Optional module to open (modal→module hand-off). */
   openModule?: string;
+  /** kind==='print' — document type to open via openPrintDocument. */
+  printType?: 'invoice' | 'purchase_order' | 'cash_voucher' | 'inventory_report';
+  /** kind==='guide' — guide card id from guides.ts. */
+  guideId?: string;
 }
 
 export interface ExecutorState {
@@ -448,4 +453,65 @@ export function prepareWrite(intent: VoiceIntent, state: ExecutorState): { ok: t
     default:
       return { ok: false, reason: clarifyResult(intent) };
   }
+}
+
+/**
+ * STAGE 2b — NAVIGATE / PRINT / GUIDE execution.
+ * These need context the pure executor lacks (modals, tabs, print payloads),
+ * so the caller supplies small callbacks; the logic stays here for tests.
+ */
+export interface NavigateDeps {
+  openModule: (module: string) => void;
+  openModal: (modal: string) => void;
+  print: (printType: 'invoice' | 'purchase_order' | 'cash_voucher' | 'inventory_report', data: any) => void;
+  state: ExecutorState;
+}
+
+const MODULE_OPENERS: Record<string, string> = {
+  inventory: 'inventory', purchase: 'purchase', sales: 'sales', cashbook: 'cashbook',
+  reports: 'reports', compliance: 'compliance', copilot: 'copilot', settings: 'settings',
+  dashboard: 'dashboard', fbr_integration: 'fbr_integration', customers: 'customers',
+  suppliers: 'suppliers', movements: 'movements'
+};
+
+export function executeNavigate(intent: VoiceIntent, deps: NavigateDeps): ExecutorResult {
+  const mod = intent.entities.module || 'dashboard';
+  const target = MODULE_OPENERS[mod] || 'dashboard';
+  deps.openModule(target);
+  return {
+    kind: 'navigate',
+    spoken: `${mod} کھل رہا ہے۔`,
+    title: 'نیویگیشن',
+    badge: target,
+    stats: []
+  };
+}
+
+export function executePrint(intent: VoiceIntent, deps: NavigateDeps): ExecutorResult {
+  const doc = (intent.entities.document || 'invoice') as 'invoice' | 'purchase_order' | 'cash_voucher' | 'inventory_report';
+  let data: any = null;
+  if (doc === 'invoice') data = deps.state.salesOrders[0] || null;
+  else if (doc === 'purchase_order') data = deps.state.purchaseOrders[0] || null;
+  else if (doc === 'cash_voucher') data = deps.state.cashbook[0] || null;
+  else if (doc === 'inventory_report') data = deps.state.products;
+  if (!data) {
+    return { kind: 'clarify', spoken: 'پرنٹ کے لیے کوئی دستاویز موجود نہیں۔', title: 'Nothing to print', badge: 'Voice Print', stats: [] };
+  }
+  deps.print(doc, data);
+  return { kind: 'print', spoken: `${doc} چھپ رہا ہے۔`, title: 'پرنٹ', badge: doc, stats: [] };
+}
+
+/** Guide-lane execution: procedural questions → deterministic walkthrough card. */
+export function executeGuide(intent: VoiceIntent): ExecutorResult {
+  const card = getGuideCard(intent.entities.module || intent.entities.product);
+  return {
+    kind: 'guide',
+    spoken: card.steps[0]?.text || 'رہنمائی کھل رہی ہے۔',
+    title: card.title,
+    badge: card.badge,
+    stats: card.steps.map((s, i) => ({ label: `${i + 1}`, value: s.text })),
+    details: card.nextStep?.prompt,
+    openModule: card.primaryModule,
+    guideId: card.id
+  };
 }

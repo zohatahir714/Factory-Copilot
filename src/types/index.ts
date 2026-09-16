@@ -268,7 +268,7 @@ export interface ChatMessage {
   toolExecution?: ToolExecutionRecord;
   confirmationRequired?: ConfirmationPayload;
   structuredData?: {
-    type: 'inventory' | 'purchase_order' | 'invoice' | 'business_summary' | 'compliance_rule' | 'expense' | 'generic';
+    type: 'inventory' | 'purchase_order' | 'invoice' | 'business_summary' | 'compliance_rule' | 'expense' | 'generic' | 'guide_card';
     data: any;
   };
 }

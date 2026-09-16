@@ -1563,6 +1563,56 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
     setIsProcessing(true);
 
     try {
+      // STAGE 3 — Mind lane: guide / navigate / compliance route deterministically
+      // before the legacy supervisor. Data/write phrasings stay with the supervisor.
+      const { understand } = await import('../lib/voice/mind');
+      const { executeGuide } = await import('../lib/voice/executor');
+      const mindResult = await understand(content, {
+        businessName: 'PakERP Textile SME',
+        customers: getDBState().customers.map(c => ({ name: c.name, balance: c.outstandingReceivables })),
+        suppliers: getDBState().suppliers.map(s => ({ name: s.name })),
+        products: getDBState().products.map(p => ({ name: p.name, sku: (p as any).sku, unit: p.unit }))
+      });
+      const intent = mindResult.intent;
+      if (intent.action === 'guide') {
+        const { getGuideCard } = await import('../lib/voice/guides');
+        const guideCard = getGuideCard(intent.entities.module || intent.entities.product);
+        setMessages(prev => [...prev, {
+          id: `msg_guide_${Date.now()}`,
+          role: 'assistant',
+          content: guideCard.title,
+          timestamp: new Date().toISOString(),
+          routedAgent: 'supervisor',
+          structuredData: { type: 'guide_card', data: guideCard }
+        }]);
+        setIsProcessing(false);
+        return;
+      }
+      if (intent.action === 'navigate' && method === 'text') {
+        const mod = (intent.entities.module || 'dashboard') as any;
+        setActiveTab(mod);
+        setMessages(prev => [...prev, {
+          id: `msg_nav_${Date.now()}`,
+          role: 'assistant',
+          content: `${mod} کھل رہا ہے۔`,
+          timestamp: new Date().toISOString(),
+          routedAgent: 'supervisor'
+        }]);
+        setIsProcessing(false);
+        return;
+      }
+      if (intent.action === 'compliance') {
+        setActiveTab('compliance');
+        setMessages(prev => [...prev, {
+          id: `msg_comp_${Date.now()}`,
+          role: 'assistant',
+          content: 'ٹیکس سوالات کا جواب کمپلائنس ماڈیول grounded RAG سے ملتا ہے — وہاں لے جا رہا ہوں۔',
+          timestamp: new Date().toISOString(),
+          routedAgent: 'compliance'
+        }]);
+        setIsProcessing(false);
+        return;
+      }
       // Execute the deterministic Supervisor first
       const turnResult = await executeSupervisorTurn(content, getDBState(), method);
 

@@ -15,8 +15,11 @@ import {
   Package,
   Scale,
   RefreshCw,
-  Truck
+  Truck,
+  Compass,
+  ArrowRight
 } from 'lucide-react';
+import type { GuideCard } from '../lib/voice/guides';
 import { AgentDomain } from '../types';
 
 export const CopilotChatView: React.FC = () => {
@@ -32,7 +35,8 @@ export const CopilotChatView: React.FC = () => {
     startRecording,
     stopRecording,
     setRecordingTranscript,
-    triggerDemoPrompt
+    triggerDemoPrompt,
+    setActiveTab
   } = useApp();
 
   const [inputVal, setInputVal] = useState('');
@@ -101,6 +105,40 @@ export const CopilotChatView: React.FC = () => {
 
       {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+        {/* NOVICE COCKPIT — welcome state with one-tap Urdu chips (spec §5.1) */}
+        {messages.filter(m => m.role === 'user').length === 0 && (
+          <div className="max-w-3xl mx-auto mb-2 animate-fadeIn">
+            <div className={`rounded-2xl border p-5 ${'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm">
+                  <Compass className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">آپ کا AI بزنس اسسٹنٹ</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">اردو میں پوچھیں — سسٹم سمجھے گا، حساب کرے گا، کام کرے گا</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {[
+                  { label: 'یہ سسٹم کیا ہے؟', prompt: 'یہ سسٹم کیا ہے؟ مکمل رہنمائی دیں', icon: Compass },
+                  { label: 'سیل کیسے درج کریں؟', prompt: 'سیل کیسے درج کریں؟', icon: Receipt },
+                  { label: 'پرچیز آرڈر کیسے؟', prompt: 'پرچیز آرڈر کیسے بنائیں؟', icon: FileText },
+                  { label: 'منافع بتاؤ', prompt: 'اس ماہ کا منافع بتاؤ', icon: BarChart3 },
+                  { label: 'GST قانون پوچھیں', prompt: 'سیل پر کیا ٹیکس قانون لاگو ہے؟', icon: Scale },
+                  { label: 'کیش واؤچر کیسے؟', prompt: 'کیش واؤچر کیسے درج کریں؟', icon: Package }
+                ].map((chip, idx) => (
+                  <button key={idx} type="button" onClick={() => triggerDemoPrompt(chip.prompt)}
+                    className="p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 bg-slate-50 border-slate-200 hover:bg-indigo-50 hover:border-indigo-300 dark:bg-slate-800/60 dark:border-slate-700/80 dark:hover:bg-slate-800 dark:hover:border-indigo-500/50">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 bg-indigo-500/10 text-indigo-600 border-indigo-500/20">
+                      <chip.icon className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{chip.label}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         {messages.map((msg) => {
           const isUser = msg.role === 'user';
           return (
@@ -153,6 +191,42 @@ export const CopilotChatView: React.FC = () => {
                   <div className="whitespace-pre-line">{msg.content}</div>
                 </div>
 
+                {/* GUIDE CARD (Stage 3 — deterministic walkthrough) */}
+                {msg.structuredData?.type === 'guide_card' && (() => {
+                  const card = (msg.structuredData.data || {}) as Partial<GuideCard>;
+                  return (
+                    <div className="mt-3 w-full max-w-md bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800/60 rounded-xl p-4 shadow-sm animate-fadeIn">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Compass className="w-4 h-4 text-indigo-600 shrink-0" />
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">{card.title}</span>
+                        <span className="ml-auto px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 text-[10px] font-bold border border-indigo-500/20">{card.badge}</span>
+                      </div>
+                      <ol className="space-y-2 mb-3">
+                        {(card.steps || []).map((step, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
+                            <span className="w-5 h-5 rounded-md bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                            <span>{step.text}</span>
+                          </li>
+                        ))}
+                      </ol>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {card.primaryModule && (
+                          <button type="button" onClick={() => setActiveTab(card.primaryModule as any)}
+                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
+                            ماڈیول کھولیں <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {card.nextStep && (
+                          <button type="button" onClick={() => triggerDemoPrompt(card.nextStep!.prompt)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
+                            اگلا قدم: {card.nextStep.label}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Confirmation Interactive Card (PRD Section 14) */}
                 {msg.confirmationRequired && msg.confirmationRequired.status === 'pending' && (
                   <div className="mt-3 bg-amber-50/90 dark:bg-amber-950/50 border-2 border-amber-300 dark:border-amber-700/60 rounded-xl p-4 shadow-sm animate-fadeIn">
@@ -166,7 +240,7 @@ export const CopilotChatView: React.FC = () => {
 
                     {/* Breakdown Details */}
                     <div className="bg-white/80 dark:bg-slate-900/60 border border-amber-200 dark:border-amber-800/40 rounded-lg p-2.5 mb-3 text-xs space-y-1 font-mono text-slate-700 dark:text-slate-300">
-                      {Object.entries(msg.confirmationRequired.details).map(([key, value]) => (
+                      {Object.entries(msg.confirmationRequired.details || {}).map(([key, value]) => (
                         <div key={key} className="flex justify-between items-center py-0.5 border-b border-amber-100 dark:border-amber-900/50 last:border-b-0">
                           <span className="text-slate-500 dark:text-slate-400 font-sans text-[11px] capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
                           <span className="font-semibold text-slate-900 dark:text-slate-100">{typeof value === 'number' ? `Rs. ${value.toLocaleString()}` : String(value)}</span>

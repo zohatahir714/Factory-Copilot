@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { understand, type LiveStateDigest } from '../lib/voice/mind';
-import { executeQuery, clarifyResult, prepareWrite, type ExecutorResult, type PendingWrite } from '../lib/voice/executor';
+import { executeQuery, clarifyResult, prepareWrite, executeNavigate, executePrint, executeGuide, type ExecutorResult, type PendingWrite } from '../lib/voice/executor';
 import { tryFastPath, tryFastPathTax, type VoiceIntent } from '../lib/voice/fastPath';
 import { calculateFBRTax, formatPKR } from '../utils/fbrTaxEngine';
 import {
@@ -288,8 +288,31 @@ export const VoiceAssistantModal: React.FC = () => {
         } else {
           result = prep.reason;
         }
+      } else if (intent.action === 'navigate') {
+        const mod = intent.entities.module || 'dashboard';
+        result = executeNavigate(intent, {
+          openModule: (m) => { closeModal(); setActiveTab(m as any); },
+          openModal: (m) => openModal(m as any),
+          print: (t, d) => openPrintDocument(t, d),
+          state: executorState
+        });
+      } else if (intent.action === 'print') {
+        result = executePrint(intent, {
+          openModule: (m) => { closeModal(); setActiveTab(m as any); },
+          openModal: (m) => openModal(m as any),
+          print: (t, d) => { openPrintDocument(t, d); closeModal(); },
+          state: executorState
+        });
+      } else if (intent.action === 'guide') {
+        result = executeGuide(intent);
+      } else if (intent.action === 'compliance') {
+        // Compliance lane: grounded RAG lives in the Compliance module.
+        closeModal();
+        setActiveTab('compliance');
+        addToast('info', 'FBR کمپلائنس RAG', 'قانونی سوالات کا جواب حوالہ شدہ دستاویزات سے');
+        return;
       } else {
-        // Navigation/print/guide/compliance land here in a later stage.
+        // Anything else falls to the Copilot with the utterance as context.
         fellBackToCopilot = true;
       }
     } catch {

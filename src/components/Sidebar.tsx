@@ -326,7 +326,7 @@ export const Sidebar: React.FC = () => {
           {!sidebarCollapsed && (
             <div className="text-left text-xs truncate">
               <div className="font-bold text-slate-800 dark:text-white">Voice Command</div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400">English / Roman Urdu</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">اردو · Voice First</div>
             </div>
           )}
         </button>

@@ -53,7 +53,9 @@ Rules:
 3. Convert Urdu number words: پچاس=50, سو=100, ہزار/چھیاسی etc. «چھیاسی ہزار» = 86000. لاکھ=100000, کروڑ=10000000.
 4. «سیل»/«بیک»/«فروخت» about goods → create_sale. «منگواؤ»/«آرڈر»/«خریداری» → create_purchase_order. «ادا کرو»/«خرچ»/«واؤچر» with cash → create_cash_voucher.
 5. Questions about data («کتنا», «کتنی», «بتاؤ», how much, what is) → action "query" + the right topic.
-6. Tax law / SRO / section questions → action "compliance". "How do I X" / «کیسے» → action "guide".
+6. Tax law / SRO / section questions → action "compliance". "How do I X" / «کیسے» / «سمجھائیں» → action "guide" with entities.module set to the topic (sale/purchase/cashbook/reports/compliance/system).
+6b. Period words: «آج»=today, «اس ماہ»/«is mahine»=this_month, «پچھلے مہینے»/«pichhle mahine»=last_month, «مالی سال»=fiscal_year — set entities.period for query topics like profit_loss/day_book.
+6c. Navigation: «کھولو»/«kholo»/«دکھاؤ» + module name → action "navigate"; entities.module from: dashboard, inventory, purchase, sales, cashbook, reports, compliance, copilot, settings, fbr_integration, customers, suppliers, movements. Printing: «پرنٹ»/«چھاپ»/print → action "print"; entities.document: invoice/purchase_order/cash_voucher/inventory_report.
 7. NEVER invent entities not in the digest. NEVER guess. Answer in JSON only.`;
 
 /** Build the complete system prompt including the live digest. */
