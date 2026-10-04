@@ -214,8 +214,14 @@ export function triggerWindowsPrintService(
     `);
     frameDoc.close();
 
-    // Give browser time to load styles and font glyphs
-    setTimeout(() => {
+    // Wait until the print document is genuinely ready before printing.
+    //
+    // This was a fixed 450ms sleep, which meant the FBR QR image and the
+    // webfont were printed whenever they happened to have loaded — a slow
+    // image produced a tax invoice with an empty box where the verification
+    // code should be. Readiness is now observed, with a ceiling so a stalled
+    // resource can never leave the button spinning forever.
+    const invokePrint = () => {
       try {
         if (printFrame.contentWindow) {
           printFrame.contentWindow.focus();
@@ -227,7 +233,23 @@ export function triggerWindowsPrintService(
         console.warn('Iframe print error, invoking main window print:', printErr);
         window.print();
       }
-    }, 450);
+    };
+
+    const fontsReady = frameDoc.fonts && frameDoc.fonts.ready ? frameDoc.fonts.ready : Promise.resolve();
+    const imagesReady = Promise.all(
+      Array.from(frameDoc.images || []).map(img =>
+        img.complete
+          ? Promise.resolve()
+          : new Promise<void>(res => {
+            img.addEventListener('load', () => res(), { once: true });
+            img.addEventListener('error', () => res(), { once: true });
+          })
+      )
+    );
+
+    const ceiling = new Promise<void>(res => setTimeout(res, 3000));
+    Promise.race([Promise.all([fontsReady, imagesReady]), ceiling])
+      .then(invokePrint, invokePrint);
 
     return true;
   } catch (err) {

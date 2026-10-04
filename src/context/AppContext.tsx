@@ -56,7 +56,7 @@ import {
   toolReceiveGoods,
   prepareReorderLowStockConfirmation
 } from '../lib/businessTools';
-import { executeSupervisorTurn } from '../lib/agentSupervisor';
+import { executeSupervisorTurn, mergeWithPendingCommand } from '../lib/agentSupervisor';
 import {
   queryGroqChat,
   transcribeWithGroqWhisper,
@@ -68,6 +68,8 @@ import {
   supabaseSignOut
 } from '../supabaseClient';
 import { hydrateFromCloud, hydrateBranding, push, pushBulk } from '../lib/cloudSync';
+import { AGENT_TICK_MS } from '../agents/realtime';
+import type { AgentProposal, AuditEntry } from '../agents/types';
 import { cloudRepo } from '../lib/cloudRepo';
 
 export type AppTab =
@@ -192,6 +194,16 @@ interface AppContextType {
   // Global Search
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+
+  // Autonomous agent runtime. Proposals are advisory; only an explicit
+  // approve writes, and a reject is remembered so it is never re-raised.
+  agentProposals: AgentProposal[];
+  agentAudit: AuditEntry[];
+  agentBusyId: string | null;
+  approveAgentProposal: (proposal: AgentProposal) => Promise<void>;
+  rejectAgentProposal: (proposal: AgentProposal) => void;
+  loadDemoFactory: () => Promise<void>;
+  resetAndSeedDemo: () => Promise<void>;
 
   // Auth & Session (Supabase Auth is the ONLY authentication path —
   // there is no local/browser account registry)
@@ -841,15 +853,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     {
       id: 'msg_welcome',
       role: 'assistant',
-      content: `Assalam-o-Alaikum! Main aapka **Industrial AI Copilot & FBR Compliance Supervisor** hoon.
-
-Aap mujhse Roman Urdu ya English mein bol kar koi bhi entry ya live factory report le saktay hain:
-- *"Kitna dye aur yarn bacha hai?"*
-- *"ColorChem se 100 kilo blue dye ka PO bana do"*
-- *"Al-Rehman ko 50 kilo cotton yarn sell karo (18% GST auto-applied)"*
-- *"Aaj ka complete business summary do"*
-
-System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
+      content: `Assalam-o-Alaikum! Main aapka **AI business copilot** hoon.\n\nUrdu, Roman Urdu ya English mein poochhein \u2014 main jawab chhota aur number wala dunga, aur har number aap ke ledger ya FBR statute se hoga. Upar demo buttons try karein, ya neeche likhein.`,
       timestamp: new Date().toISOString(),
       routedAgent: 'supervisor'
     }
@@ -886,7 +890,8 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
       diff runs against the PREVIOUS state so only new/changed rows are pushed. */
   const applyDatabaseUpdate = (update: Partial<DatabaseState>) => {
     const prevSnap = {
-      products, purchaseOrders, salesOrders, cashbook, inventoryMovements, customers
+      products, suppliers, purchaseOrders, salesOrders, cashbook,
+      inventoryMovements, customers
     };
     if (update.products) setProducts(update.products);
     if (update.purchaseOrders) setPurchaseOrders(update.purchaseOrders);
@@ -894,7 +899,174 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
     if (update.cashbook) setCashbook(update.cashbook);
     if (update.inventoryMovements) setInventoryMovements(update.inventoryMovements);
     if (update.customers) setCustomers(update.customers);
+    if (update.suppliers) setSuppliers(update.suppliers);
     pushBulk(update as DatabaseState, prevSnap);
+  };
+
+  // ─── AUTONOMOUS AGENT RUNTIME ────────────────────────────────────────────
+  // A timer wakes the supervisor, which reads live ledger state and returns
+  // PROPOSALS ONLY. Nothing here writes. A proposal becomes a transaction only
+  // through approveAgentProposal, i.e. an explicit human decision.
+  const [agentProposals, setAgentProposals] = useState<AgentProposal[]>([]);
+  const [agentAudit, setAgentAudit] = useState<AuditEntry[]>([]);
+  const [agentBusyId, setAgentBusyId] = useState<string | null>(null);
+
+  // The command the copilot is waiting on the answer to. A ref, not state: it
+  // steers the next turn's routing and must never trigger a re-render.
+  const pendingCommandRef = useRef<string | null>(null);
+
+  // Read by the interval below, which must not depend on it — otherwise every
+  // tick would tear down and rebuild the timer.
+  const agentRef = useRef({ proposals: [] as AgentProposal[] });
+  agentRef.current.proposals = agentProposals;
+
+  // The interval closes over the render that created it, so calling
+  // `getDBState()` inside would re-read state frozen at sign-in and never see
+  // a ledger change. Refresh this ref every render and tick from it.
+  const agentStateRef = useRef<DatabaseState>(getDBState());
+  agentStateRef.current = getDBState();
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+
+    const runTick = async () => {
+      try {
+        const { tick } = await import('../agents/supervisorRuntime');
+        const result = await tick(agentStateRef.current, {
+          priorProposals: agentRef.current.proposals
+        });
+        if (cancelled) return;
+
+        // Keep everything the user has already resolved so the anti-thrash
+        // filter still sees them next tick; merge in anything new.
+        setAgentProposals(prev => {
+          const resolved = prev.filter(p => p.status !== 'proposed');
+          const merged = [...resolved, ...result.proposals];
+          // Never show the same action twice in one queue.
+          const seen = new Set<string>();
+          return merged.filter(p => {
+            const key = String(p.payload.fingerprint ?? p.id);
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        });
+
+        if (result.audit.length > 0) {
+          setAgentAudit(prev => [...result.audit, ...prev].slice(0, 50));
+        }
+      } catch (e) {
+        console.warn('Agent tick failed:', e instanceof Error ? e.message : e);
+      }
+    };
+
+    runTick();
+    const id = setInterval(runTick, AGENT_TICK_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [isAuthenticated]);
+
+  const resolveAgentProposal = (proposal: AgentProposal, status: 'approved' | 'rejected') => {
+    setAgentProposals(prev => prev.map(p =>
+      p.id === proposal.id
+        ? { ...p, status, resolvedAt: new Date().toISOString() }
+        : p
+    ));
+    setAgentAudit(prev => [{
+      id: `aud_res_${proposal.id}_${Date.now().toString(36)}`,
+      agentId: proposal.agentId,
+      action: `${status === 'approved' ? 'Approved' : 'Rejected'}: ${proposal.title}`,
+      detail: proposal.rationale,
+      confidence: proposal.confidence,
+      citations: proposal.citations,
+      timestamp: new Date().toISOString()
+    }, ...prev].slice(0, 50));
+  };
+
+  const rejectAgentProposal = (proposal: AgentProposal) => {
+    resolveAgentProposal(proposal, 'rejected');
+  };
+
+  /**
+   * Wipe the cloud ledger, reseed the core chart of accounts, then load the demo
+   * factory. One action, deterministic starting state — what a demo recording
+   * needs, so the video never opens on half-finished test data.
+   */
+  const resetAndSeedDemo = async () => {
+    setAgentBusyId('reset');
+    try {
+      setProducts([]); setSuppliers([]); setCustomers([]);
+      setPurchaseOrders([]); setSalesOrders([]); setCashbook([]);
+      setInventoryMovements([]); setAgentProposals([]); setAgentAudit([]);
+
+      await cloudRepo.wipeBusinessData();
+      for (const acc of INITIAL_CHART_OF_ACCOUNTS) await push.accountCreate(acc);
+      setAccounts(INITIAL_CHART_OF_ACCOUNTS);
+
+      await loadDemoFactory();
+      addToast('success', 'Demo reset', 'Ledger wiped and reseeded from the canonical factory.');
+    } catch (e) {
+      addToast('error', 'Reset failed',
+        e instanceof Error ? e.message : 'Could not reset the cloud ledger.');
+    } finally {
+      setAgentBusyId(null);
+    }
+  };
+
+  /** Seed the canonical demo factory. Goes through the same write path as any
+      other mutation, so the cloud diff persists it like real data. */
+  const loadDemoFactory = async () => {
+    const { buildDemoFactory } = await import('../data/demoFactory');
+    const demo = buildDemoFactory();
+    applyDatabaseUpdate({
+      products: demo.products,
+      suppliers: demo.suppliers,
+      customers: demo.customers,
+      purchaseOrders: demo.purchaseOrders,
+      salesOrders: demo.salesOrders,
+      inventoryMovements: demo.inventoryMovements,
+      cashbook: demo.cashbook
+    } as Partial<DatabaseState>);
+    addToast('success', 'Demo factory loaded',
+      'Six months of trading, a below-threshold material, an overdue invoice and an unregistered buyer.');
+  };
+
+  const approveAgentProposal = async (proposal: AgentProposal) => {
+    setAgentBusyId(proposal.id);
+    try {
+      const payload = proposal.payload as Record<string, any>;
+
+      // Only a purchase order or a sale actually books anything. An anomaly is
+      // a flag for a human — approving it records the review, nothing more.
+      if (proposal.tool === 'create_purchase_order') {
+        const quantity = Number(payload.quantity) || 0;
+        const unitPrice = Number(payload.unitPricePKR) || 0;
+        const res = executeCreatePurchaseOrder(agentStateRef.current, {
+          supplierId: String(payload.supplierId ?? ''),
+          supplierName: String(payload.supplierName ?? ''),
+          productId: String(payload.productId ?? ''),
+          productName: String(payload.productName ?? ''),
+          quantity,
+          unit: String(payload.unit ?? 'kg'),
+          unitPrice,
+          totalAmount: quantity * unitPrice
+        });
+        applyDatabaseUpdate(res.updatedState);
+      }
+
+      resolveAgentProposal(proposal, 'approved');
+      addToast('success', 'Agent proposal approved',
+        `${proposal.title} — written to the ledger and stamped in the audit trail.`);
+    } catch (e) {
+      addToast('error', 'Approval failed',
+        e instanceof Error ? e.message : 'The proposal could not be applied.');
+    } finally {
+      setAgentBusyId(null);
+    }
   };
 
   /** Double-entry postings for the trade cycle. Sales invoices and purchase
@@ -1409,16 +1581,18 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
     try {
       // STAGE 3 — Mind lane: guide / navigate / compliance route deterministically
       // before the legacy supervisor. Data/write phrasings stay with the supervisor.
-      const { understand } = await import('../lib/voice/mind');
+      const { safeUnderstand } = await import('../lib/voice/safeUnderstand');
       const { executeGuide } = await import('../lib/voice/executor');
-      const mindResult = await understand(content, {
+      const mindResult = await safeUnderstand(content, {
         businessName: 'PakERP Textile SME',
         customers: getDBState().customers.map(c => ({ name: c.name, balance: c.outstandingReceivables })),
         suppliers: getDBState().suppliers.map(s => ({ name: s.name })),
         products: getDBState().products.map(p => ({ name: p.name, sku: (p as any).sku, unit: p.unit }))
       });
-      const intent = mindResult.intent;
-      if (intent.action === 'guide') {
+      // A null mind is the normal case without an API key: fall through to the
+      // deterministic supervisor rather than failing the turn.
+      const intent = mindResult?.intent;
+      if (intent?.action === 'guide') {
         const { getGuideCard } = await import('../lib/voice/guides');
         const guideCard = getGuideCard(intent.entities.module || intent.entities.product);
         setMessages(prev => [...prev, {
@@ -1432,7 +1606,7 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
         setIsProcessing(false);
         return;
       }
-      if (intent.action === 'navigate' && method === 'text') {
+      if (intent?.action === 'navigate') {
         const mod = (intent.entities.module || 'dashboard') as any;
         setActiveTab(mod);
         setMessages(prev => [...prev, {
@@ -1445,43 +1619,57 @@ System deterministic business tools aur FBR Tax Laws ke mutabiq chal raha hai.`,
         setIsProcessing(false);
         return;
       }
-      if (intent.action === 'compliance') {
-        setActiveTab('compliance');
-        setMessages(prev => [...prev, {
-          id: `msg_comp_${Date.now()}`,
-          role: 'assistant',
-          content: 'ٹیکس سوالات کا جواب کمپلائنس ماڈیول grounded RAG سے ملتا ہے — وہاں لے جا رہا ہوں۔',
-          timestamp: new Date().toISOString(),
-          routedAgent: 'compliance'
-        }]);
-        setIsProcessing(false);
-        return;
-      }
+      // A tax question is ANSWERED HERE, not redirected.
+      //
+      // This branch used to switch tabs and post "ٹیکس سوالات کا جواب کمپلائنس
+      // ماڈیول grounded RAG سے ملتا ہے — وہاں لے جا رہا ہوں۔" — it sent the
+      // user away from the copilot to ask the copilot. The demo bar's own
+      // "FBR ٹیکس رول" chip hit it, so clicking the tax button on stage produced
+      // a navigation notice instead of the cited answer sitting one line below in
+      // the supervisor, which already routes through the grounded corpus and
+      // quotes the provision. The Compliance module stays reachable from the
+      // sidebar for browsing the corpus.
       // Execute the deterministic Supervisor first
-      const turnResult = await executeSupervisorTurn(content, getDBState(), method);
+      // Execute the deterministic Supervisor first
+      //
+      // A CLARIFICATION IS A PROMISE TO LISTEN. When the supervisor asked for
+      // a party name it also returned `pendingCommand`; the next utterance is
+      // folded into it, so answering "Rahim Traders, Lahore" completes the
+      // command instead of being refused for matching no rule. The ref is
+      // cleared on every turn either way, so a half-finished question can never
+      // latch onto something the user said much later.
+      const dbState = getDBState();
+      const resolvedContent = mergeWithPendingCommand(content, pendingCommandRef.current, dbState);
+      pendingCommandRef.current = null;
+      const turnResult = await executeSupervisorTurn(resolvedContent, dbState, method);
+      pendingCommandRef.current = turnResult.pendingCommand ?? null;
 
-      // Augment the deterministic result with the server-proxied LLM summary.
-      try {
-        const groqResponse = await queryGroqChat(
-          [
-            {
-              role: 'user',
-              content: `You are an AI Industrial Copilot for a Pakistani textile SME. The deterministic rule engine resolved the following business output:
-"${turnResult.message.content}"
-User's query was: "${content}"
-Provide a brief, crisp professional executive summary (1-3 sentences) in natural bilingual Urdu/English clarifying the operational and FBR compliance outcome.`
-            }
-          ],
-          aiSettings.selectedModel || ''
-        );
-
-        if (groqResponse && groqResponse.trim()) {
-          turnResult.message.content = `${groqResponse}\n\n---\n${turnResult.message.content}`;
-        }
-      } catch (groqErr) {
-        // Expected when GROQ_API_KEY is not configured on the deployment —
-        // the deterministic result alone is authoritative.
-        console.info('LLM augmentation unavailable:', groqErr instanceof Error ? groqErr.message : groqErr);
+      // NO LLM NARRATIVE IS PREPENDED TO THIS ANSWER.
+      //
+      // It used to be. A Groq "1-3 sentence executive summary" was stacked on
+      // top of every answer, above a "---" divider, and it made things worse in
+      // exactly the way this product cannot afford. Asked "کتنے اسٹاک ہے" on a
+      // ledger where Reactive Dye Blue sits at 18 kg against a 120 kg reorder
+      // level, the paraphrase told the user the item was "**1 kg کم**" — a
+      // number the ledger does not contain, invented, and presented as fact.
+      // It also added an FBR compliance sentence nobody asked for, on a stock
+      // question, and roughly doubled the length of every reply.
+      //
+      // The deterministic answer is already grounded, already short, and already
+      // the one thing the user asked for. A second, looser rendering of it can
+      // only restate it worse. Anything the model is genuinely needed for —
+      // understanding an open-ended question, building a guide card, transcribing
+      // speech — happens upstream of this line and stays upstream of it.
+      // Side effects the supervisor decided on. Navigation and printing are COMMANDS:
+      // they must actually open the screen and the print dialog, on text and on
+      // voice alike. This lane used to carry `&& method === 'text'`, which meant
+      // the voice modal — the one surface where these commands are spoken —
+      // could never reach it.
+      const directive = turnResult.directive;
+      if (directive?.type === 'navigate') {
+        setActiveTab(directive.module as any);
+      } else if (directive?.type === 'print') {
+        openPrintDocument(directive.document, directive.data);
       }
 
       if (turnResult.directDatabaseUpdate) {
@@ -1548,7 +1736,13 @@ Provide a brief, crisp professional executive summary (1-3 sentences) in natural
         totalAmount: p.totalAmount
       });
       updatedDB = res.updatedState;
-      resultMessage = `✅ **Sales Order & 18% GST Invoice Dispatched**\n- **Invoice #**: \`${res.newInvoice.invoiceNumber}\`\n- **Customer**: ${res.newInvoice.customerName}\n- **Grand Total (inc 18% GST)**: Rs. ${res.newInvoice.totalAmount.toLocaleString()}\n- **FBR Compliance**: Annexure-C reconciled.`;
+      // The rate is read off the invoice that was just created, not written into the
+      // sentence. The old line said "18% GST" whatever the arithmetic produced,
+      // and the "Annexure-C reconciled" line claimed an FBR reconciliation that
+      // never happens here — nothing in this app talks to FBR. Both belong to
+      // the user's licensed integrator.
+      const invRate = res.newInvoice.items?.[0]?.taxRate;
+      resultMessage = `✅ **Sales Order & Invoice Dispatched**\n- **Invoice #**: \`${res.newInvoice.invoiceNumber}\`\n- **Customer**: ${res.newInvoice.customerName}\n- **Sales tax${invRate === undefined ? '' : ` (${invRate}%)`}**: Rs. ${res.newInvoice.taxAmount.toLocaleString()}\n- **Grand Total**: Rs. ${res.newInvoice.totalAmount.toLocaleString()}\n- **Fiscalisation**: Not fiscalised — no FBR integration connected.`;
     }
 
     applyDatabaseUpdate(updatedDB);
@@ -1564,7 +1758,7 @@ Provide a brief, crisp professional executive summary (1-3 sentences) in natural
         routedAgent: 'supervisor'
       }
     ]);
-    addToast('success', 'Action Executed', 'Database updated with deterministic verification.');
+    addToast('success', 'Action Executed', 'Saved to your ledger.');
 
     if (audioVoiceEnabled) {
       speakVoiceResponse(resultMessage);
@@ -1837,6 +2031,13 @@ Provide a brief, crisp professional executive summary (1-3 sentences) in natural
     <AppContext.Provider
       value={{
         activeTab,
+        agentProposals,
+        agentAudit,
+        agentBusyId,
+        approveAgentProposal,
+        rejectAgentProposal,
+        loadDemoFactory,
+        resetAndSeedDemo,
         setActiveTab,
         sidebarCollapsed,
         setSidebarCollapsed,

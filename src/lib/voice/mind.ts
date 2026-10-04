@@ -13,9 +13,9 @@
  * fixture suite can test understanding deterministically without network.
  */
 
-import { queryGroqChat } from '../groqClient';
-import { normalizeUtterance, extractAmount, extractQuantityUnit } from './normalize';
-import { tryFastPath, tryFastPathTax, EMPTY_ENTITIES, type VoiceIntent, type VoiceAction, type QueryTopic } from './fastPath';
+import { queryGroqChat } from '../groqClient.ts';
+import { normalizeUtterance, extractAmount, extractQuantityUnit } from './normalize.ts';
+import { tryFastPath, tryFastPathTax, EMPTY_ENTITIES, type VoiceIntent, type VoiceAction, type QueryTopic } from './fastPath.ts';
 
 /** Minimal live-state snapshot embedded in the mind's prompt (spec §3.3). */
 export interface LiveStateDigest {

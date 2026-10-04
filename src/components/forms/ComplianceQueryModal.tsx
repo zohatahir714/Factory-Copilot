@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { queryComplianceRAG, RAGQueryResult } from '../../lib/ragCompliance';
+import { RAG_CONFIDENCE_GATE } from '../../lib/rag/index';
 import { Scale, X, Search, BookOpen, Calendar, ShieldCheck, AlertCircle, ArrowRight } from 'lucide-react';
 
 export const ComplianceQueryModal: React.FC = () => {
@@ -82,8 +83,34 @@ export const ComplianceQueryModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Result Card */}
-          {result && (
+          {/* Refusal Card — a refusal must never wear the green verified badge. */}
+          {result && !result.found && (
+            <div className="mt-4 p-5 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-xl space-y-3 animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs font-bold text-amber-900 dark:text-amber-200 font-mono">
+                    No provision retrieved
+                  </span>
+                </div>
+                <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-bold text-[10px]">
+                  Below {(RAG_CONFIDENCE_GATE * 100).toFixed(0)}% threshold
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-700 leading-relaxed font-sans bg-white dark:bg-slate-800 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+                {result.explanation}
+              </p>
+
+              <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                No rate, deadline or citation is shown, because none was retrieved. The closest
+                provision in the index scored {(result.confidence * 100).toFixed(0)}%.
+              </p>
+            </div>
+          )}
+
+          {/* Grounded Answer Card */}
+          {result && result.found && (
             <div className="mt-4 p-5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl space-y-3 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -93,7 +120,7 @@ export const ComplianceQueryModal: React.FC = () => {
                   </span>
                 </div>
                 <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[10px]">
-                  RAG Confidence: {(result.confidence * 100).toFixed(0)}%
+                  Retrieval Score: {(result.confidence * 100).toFixed(0)}%
                 </span>
               </div>
 
@@ -104,17 +131,23 @@ export const ComplianceQueryModal: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
                 <div className="p-2.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Applicable GST</span>
-                  <span className="text-sm font-bold text-indigo-900">{result.gstRate}%</span>
+                  <span className="text-sm font-bold text-indigo-900">
+                    {result.gstRate > 0 ? `${result.gstRate}%` : 'Not in this provision'}
+                  </span>
                 </div>
 
                 <div className="p-2.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">WHT Sec 153 Rate</span>
-                  <span className="text-sm font-bold text-indigo-900">{result.withholdingRate > 0 ? `${result.withholdingRate}%` : 'Exempt'}</span>
+                  <span className="text-sm font-bold text-indigo-900">
+                    {result.withholdingRate > 0 ? `${result.withholdingRate}%` : 'Not in this provision'}
+                  </span>
                 </div>
 
                 <div className="p-2.5 bg-white rounded-lg border border-indigo-100">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Statutory Filing</span>
-                  <span className="text-xs font-semibold text-slate-800">{result.filingDeadline}</span>
+                  <span className="text-xs font-semibold text-slate-800">
+                    {result.filingDeadline || 'Not in this provision'}
+                  </span>
                 </div>
               </div>
             </div>

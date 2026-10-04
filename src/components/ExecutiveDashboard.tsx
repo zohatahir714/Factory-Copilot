@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { toolGetBusinessSummary } from '../lib/businessTools';
+import { toolGetBusinessSummary, totalOutstandingReceivables } from '../lib/businessTools';
 import { MonthlyTrendsChart } from './MonthlyTrendsChart';
 import { FirstRunGuide } from './FirstRunGuide';
+import AgentApprovalQueue from './AgentApprovalQueue';
+import { AGENT_SKILLS, SKILL_CAPABILITIES, SKILL_COUNT } from '../agents/skills.ts';
 import {
   TrendingUp,
   Wallet,
@@ -19,49 +21,6 @@ import {
   RefreshCw,
   Bot
 } from 'lucide-react';
-
-/* Perpetual micro-interaction (design-taste §9 · Command Input): the copilot card
-   cycles real example prompts with a blinking caret. Isolated mini-component so
-   the timer never re-renders the dashboard; disabled for reduced-motion users. */
-const COPILOT_PROMPTS = [
-  '"Yarn ka stock kitna hai?"',
-  '"Create a PO for 200 kg yarn"',
-  '"What is the Section 153 tax rate?"'
-];
-
-const CopilotTypewriter: React.FC = () => {
-  const [idx, setIdx] = useState(0);
-  const [len, setLen] = useState(0);
-  const [dir, setDir] = useState<1 | -1>(1);
-
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setLen(COPILOT_PROMPTS[0].length);
-      return;
-    }
-    const full = COPILOT_PROMPTS[idx].length;
-    const t = setTimeout(() => {
-      if (dir === 1) {
-        if (len < full) setLen(l => l + 1);
-        else setDir(-1);
-      } else {
-        if (len > 0) setLen(l => l - 1);
-        else {
-          setDir(1);
-          setIdx(i => (i + 1) % COPILOT_PROMPTS.length);
-        }
-      }
-    }, dir === 1 ? (len < full ? 45 : 1600) : 22);
-    return () => clearTimeout(t);
-  }, [idx, len, dir]);
-
-  return (
-    <span className="font-mono text-[13px] text-slate-600 dark:text-slate-300">
-      {COPILOT_PROMPTS[idx].slice(0, len)}
-      <span className="ml-0.5 inline-block h-3.5 w-[2px] translate-y-[2px] bg-indigo-500 animate-pulse" />
-    </span>
-  );
-};
 
 /* Compact PKR for KPI tiles: lakh/crore notation keeps nine-figure ledgers
    inside their cards (standard Pakistani business formatting). */
@@ -97,11 +56,15 @@ export const ExecutiveDashboard: React.FC = () => {
     openViewModal,
     branding,
     syncDatabase,
-    addToast
+    addToast,
+    agentProposals,
+    agentAudit,
+    agentBusyId,
+    approveAgentProposal,
+    rejectAgentProposal
   } = useApp();
 
-  const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month' | 'fy'>('today');
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
 
   // Business summary metrics
   const summary = toolGetBusinessSummary({
@@ -128,21 +91,39 @@ export const ExecutiveDashboard: React.FC = () => {
   const pendingPOs = purchaseOrders.filter(p => p.status === 'pending');
   const committedPOValue = pendingPOs.reduce((sum, p) => sum + p.totalAmount, 0);
 
-  // Total Outstanding Receivables
-  const totalReceivables = customers.reduce((sum, c) => sum + c.outstandingReceivables, 0);
+  // Total Outstanding Receivables — the SAME helper the copilot's business
+  // summary uses. Reverted to the pre-existing behaviour on purpose: this KPI
+  // had been changed to sum unpaid invoices, which left the dashboard reading
+  // Rs. 7.79 L while the copilot read Rs. 0 for the same ledger. Whether the
+  // customer balance field or the invoice ledger is the better source is a
+  // product decision to make ONCE, deliberately — not by whichever caller was
+  // last edited.
+  const totalReceivables = totalOutstandingReceivables(customers);
 
-  // Trigger sync of database and refresh chart data
-  const handleSyncData = () => {
-    setIsSyncing(true);
+  // Re-read the saved ledgers. Renamed from "Sync": `syncDatabase` reloads from
+  // localStorage, so the old toast claiming data was "refreshed from database"
+  // misdescribed what it does. It matters after a backup restore.
+  const handleReload = () => {
+    setIsReloading(true);
     syncDatabase();
     setTimeout(() => {
-      setIsSyncing(false);
-      addToast('success', 'Data Synchronized', 'Trend charts and ledger state refreshed from database.');
-    }, 750);
+      setIsReloading(false);
+      addToast('success', 'Ledgers reloaded', 'Products, orders, sales and cashbook re-read from saved storage.');
+    }, 500);
   };
 
   return (
     <div className="space-y-7 pb-14 animate-fadeIn text-slate-900 dark:text-white">
+      {/* Autonomous agent surface. Sits above everything so a proposal raised
+          on its own is visible without the user going looking for it. */}
+      <AgentApprovalQueue
+        proposals={agentProposals}
+        audit={agentAudit}
+        onApprove={approveAgentProposal}
+        onReject={rejectAgentProposal}
+        busyId={agentBusyId}
+      />
+
       {/* Workspace header: oversized display title, quiet meta, pill controls */}
       <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-5 pt-2">
         <div>
@@ -153,37 +134,29 @@ export const ExecutiveDashboard: React.FC = () => {
             Executive Overview
           </h2>
           <p className="mt-2 text-[13px] text-slate-500 dark:text-slate-400">
-            Double-entry ledger · 18% GST · FBR Iris e-filing — live, reconciled
+            Double-entry ledger · STA 1990 sales tax arithmetic · FBR-compliant payload export
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={handleSyncData}
-            disabled={isSyncing}
+            onClick={handleReload}
+            disabled={isReloading}
             className="btn-ghost border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/5 disabled:opacity-60"
-            title="Refresh trend charts & reload database state"
+            title="Re-read products, orders, sales and cashbook from saved storage"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Syncing…' : 'Sync'}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isReloading ? 'animate-spin' : ''}`} />
+            <span>{isReloading ? 'Reloading…' : 'Reload'}</span>
           </button>
 
-          <div className="flex items-center bg-white/70 dark:bg-white/5 border border-slate-200/70 dark:border-white/10 p-1 rounded-full text-xs font-semibold">
-            {(['today', 'week', 'month', 'fy'] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setTimeFilter(filter)}
-                className={`px-3 py-1 rounded-full capitalize transition-colors cursor-pointer ${
-                  timeFilter === filter
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                {filter === 'fy' ? 'FY 24-25' : filter}
-              </button>
-            ))}
-          </div>
+          {/* REMOVED: the today / week / month / FY pill group.
+              `timeFilter` was written, styled against, and then read by nothing
+              else — not one KPI below was scoped by it. Clicking "month" left
+              every number identical, so the control asserted a capability the
+              dashboard did not have. A filter that visibly does nothing is worse
+              than no filter, so it has been removed rather than shipped broken.
+              The figures below are whole-ledger totals and are labelled as such. */}
 
           <button
             onClick={() => openModal('voice')}
@@ -210,7 +183,7 @@ export const ExecutiveDashboard: React.FC = () => {
           onClick={() => setActiveTab('sales')}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setActiveTab('sales')}
           className={`${kpiShell} lg:col-span-2`}
-          title="Open Sales & 18% GST Ledger"
+          title="Open Sales & GST Ledger"
         >
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
@@ -322,7 +295,7 @@ export const ExecutiveDashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
               <ShoppingCart className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-              Procurement
+              Pending Orders
             </span>
             <span className="font-mono text-[11px] font-semibold text-slate-500 dark:text-slate-400">04</span>
           </div>
@@ -381,12 +354,36 @@ export const ExecutiveDashboard: React.FC = () => {
               <Bot className="w-3.5 h-3.5" />
               AI Copilot
             </span>
-            <span className="font-mono text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">06</span>
+            <span className="font-mono text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+              {SKILL_COUNT} skills
+            </span>
           </div>
           <div className="mt-auto pt-6 lg:pt-0 lg:flex-1 lg:mt-0">
-            <CopilotTypewriter />
+            {/* THE SKILL LAYER, COUNTED FROM CODE.
+                This card used to cycle three typed example prompts, two of them
+                in quotes, as if the user had asked them. Nothing had: they were
+                decoration — a hardcoded question about yarn stock sitting above
+                a ledger it did not describe. Every line here is now derived
+                from the registry in src/agents/skills.ts, which is the same
+                table the copilot uses to decide which skill answers you. */}
+            <div className="flex flex-wrap gap-1.5">
+              {AGENT_SKILLS.slice(0, 6).map(skill => (
+                <span
+                  key={skill.id}
+                  title={`${skill.does} (${skill.implementedIn})`}
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border border-indigo-200/70 dark:border-indigo-800/60 bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300"
+                >
+                  {skill.label}
+                </span>
+              ))}
+            </div>
+            <p className="mt-3 text-[13px] text-slate-600 dark:text-slate-400">
+              Voice or text — each answer is routed by intent and labelled with the skill that ran.
+            </p>
             <div className="mt-4 pt-4 border-t border-indigo-100 dark:border-white/5 flex items-center justify-between text-xs lg:mt-0 lg:border-t-0 lg:border-l lg:border-l-indigo-100 dark:lg:border-l-white/10 lg:pl-8 lg:shrink-0">
-              <span className="text-indigo-600 dark:text-indigo-300">Cited answers, never invented</span>
+              <span className="text-indigo-600 dark:text-indigo-300">
+                {SKILL_CAPABILITIES.join(' · ')}
+              </span>
               <span className={viewLink}>Ask now <ChevronRight className="w-3 h-3" /></span>
             </div>
           </div>
@@ -549,8 +546,10 @@ export const ExecutiveDashboard: React.FC = () => {
               <Receipt className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white">Recent Sales Orders & 18% GST Invoices</h4>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">Annexure-C e-filing compliant sales dispatches</p>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white">Recent Sales Orders & GST Invoices</h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Dispatches included in the monthly Annexure-C export
+              </p>
             </div>
           </div>
           <button
@@ -569,9 +568,9 @@ export const ExecutiveDashboard: React.FC = () => {
                 <th className="py-2.5 px-3">Customer</th>
                 <th className="py-2.5 px-3">Material Supplied</th>
                 <th className="py-2.5 px-3 text-right">Subtotal</th>
-                <th className="py-2.5 px-3 text-right">18% GST</th>
+                <th className="py-2.5 px-3 text-right">GST</th>
                 <th className="py-2.5 px-3 text-right">Grand Total</th>
-                <th className="py-2.5 px-3 text-center">FBR Status</th>
+                <th className="py-2.5 px-3 text-center">Fiscalisation</th>
                 <th className="py-2.5 px-3 text-right">Action</th>
               </tr>
             </thead>
@@ -593,9 +592,26 @@ export const ExecutiveDashboard: React.FC = () => {
                     Rs. {(so.totalAmount ?? 0).toLocaleString()}
                   </td>
                   <td className="py-2.5 px-3 text-center">
-                    <span className="chip bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
-                      <FileCheck2 className="w-3 h-3" /> Annex-C Ready
-                    </span>
+                    {/* Was an unconditional green "Annex-C Ready" chip on every
+                        row. Nothing computed it, so it claimed a filing state
+                        for every invoice in the ledger. Fiscalisation happens
+                        outside this application, so the honest reading is:
+                        a fiscal invoice number exists, or it does not yet. */}
+                    {so.fbrFiscalInvoiceNumber ? (
+                      <span
+                        className="chip bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
+                        title={`Fiscal invoice number ${so.fbrFiscalInvoiceNumber} recorded against this sale.`}
+                      >
+                        <FileCheck2 className="w-3 h-3" /> Fiscalised
+                      </span>
+                    ) : (
+                      <span
+                        className="chip bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400"
+                        title="No fiscal invoice number recorded. This sale has not been transmitted to FBR by your licensed integrator."
+                      >
+                        Not fiscalised
+                      </span>
+                    )}
                   </td>
                   <td className="py-2.5 px-3 text-right">
                     <button

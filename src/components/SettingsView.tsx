@@ -36,6 +36,8 @@ import {
   Shield
 } from 'lucide-react';
 import { UserRole } from '../types';
+import { DemoDataPanel } from './DemoDataPanel';
+import { TeachingPanel } from './TeachingPanel';
 
 export const SettingsView: React.FC = () => {
   const {
@@ -549,6 +551,10 @@ export const SettingsView: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Demo Ledger Data — moved here from the dashboard FirstRunGuide */}
+          <TeachingPanel />
+        <DemoDataPanel />
         </div>
       )}
 

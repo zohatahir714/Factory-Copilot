@@ -319,6 +319,15 @@
 }
 
 @media print {
+  /* The iframe print path injects its own @page, but the fallback path —
+     triggerWindowsPrintService falling back to window.print() on this very
+     document — had no page box at all and inherited the browser default. */
+  @page {
+    size: A4;
+    margin: 12mm 14mm;
+  }
+
+  html,
   body {
     background: white !important;
     color: black !important;
@@ -328,6 +337,12 @@
     margin: 0 !important;
     padding: 0 !important;
   }
+
+  /* Dark mode must not survive into print. The print iframe never carries the
+     .dark class so it is unaffected, but the window.print() fallback prints
+     this real document, dark-mode root class and all. */
+  [class*="dark:bg-"] { background-color: transparent !important; }
+  [class*="dark:text-"] { color: inherit !important; }
 
   .no-print,
   aside,
@@ -355,11 +370,45 @@
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    padding: 24px !important;
+    /* The page box above supplies the margin. Padding here would add to it. */
+    padding: 0 !important;
     border: none !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
-    page-break-inside: avoid;
-    break-inside: avoid;
+    min-height: 0 !important;
+  }
+
+  /* This used to carry `page-break-inside: avoid` on the whole document, which
+     asks the browser to keep an entire invoice on one sheet. Anything longer
+     than a page cannot honour that, so it either scaled down or was pushed
+     whole onto a fresh page leaving the previous one blank. Page breaks are
+     now handled per row and per block, which is what actually paginates. */
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-row-group !important;
+  }
+
+  tr,
+  img,
+  .print-keep-together {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  thead {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  table {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
   }
 
   /* Dedicated 80mm POS Thermal Receipt Print Rules */

@@ -4,6 +4,8 @@
  * Compliant with Master Build Specification PRD v3.0
  */
 
+import type { SkillId } from '../agents/skills.ts';
+
 export interface Organization {
   id: string;
   name: string;
@@ -265,6 +267,13 @@ export interface ChatMessage {
   inputMethod?: 'text' | 'voice';
   audioTranscription?: string;
   routedAgent?: AgentDomain;
+  /**
+   * The skills that actually answered this turn, decided in
+   * `src/agents/skills.ts` from the intent `analyzeUserIntent` produced.
+   * Derived, never written into the answer text, so the badge cannot claim a
+   * skill that did not run.
+   */
+  skills?: SkillId[];
   toolExecution?: ToolExecutionRecord;
   confirmationRequired?: ConfirmationPayload;
   structuredData?: {

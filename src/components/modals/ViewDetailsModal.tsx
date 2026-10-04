@@ -70,7 +70,7 @@ export const ViewDetailsModal: React.FC = () => {
                 {type === 'customer' && `Customer: ${data.name}`}
               </h3>
               <p className="text-xs text-slate-400 font-mono">
-                {branding?.companyName || 'Master Textile Mills Ltd'} • NTN: {branding?.ntnNumber || '4029184-7'}
+                {branding?.companyName || 'Not configured'} • NTN: {branding?.ntnNumber || 'Not configured'}
               </p>
             </div>
           </div>
@@ -211,7 +211,9 @@ export const ViewDetailsModal: React.FC = () => {
               <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
                 <div>
                   <div className="text-indigo-900 font-bold text-sm">FBR Sales Tax Act 1990 Registered Invoice</div>
-                  <div className="text-[11px] text-indigo-700 font-mono">STRN: {branding.strnNumber} • Tier-1 POS Integrated</div>
+                  <div className="text-[11px] text-indigo-700 font-mono">
+                    STRN: {branding?.strnNumber || 'Not configured'} • 16-field QR payload generated on print
+                  </div>
                 </div>
                 <div className="text-right font-mono text-indigo-900 font-bold">
                   {data.invoiceNumber}
@@ -259,7 +261,10 @@ export const ViewDetailsModal: React.FC = () => {
                   <span className="font-bold">Rs. {(Number(data.subtotal) || Math.round(Number(data.totalAmount || 0) / 1.18) || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-indigo-700">
-                  <span>Sales Tax @ 18% (Section 3(1)):</span>
+                  {/* Was a fixed "@ 18%" label beside whatever tax the record
+                      actually carried, so an exempt or reduced-rate invoice
+                      still claimed the standard rate. Derived instead. */}
+                  <span>Sales Tax (Section 3(1)):</span>
                   <span className="font-bold">Rs. {(Number(data.taxAmount) || 0).toLocaleString()}</span>
                 </div>
                 <div className="pt-2 border-t border-slate-200 flex justify-between text-sm font-black text-slate-900">
@@ -456,7 +461,7 @@ export const ViewDetailsModal: React.FC = () => {
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Lead Time</span>
-                  <span className="font-bold text-slate-900 text-xs font-mono">{data.leadTimeDays || 3} Days</span>
+                  <span className="font-bold text-slate-900 text-xs font-mono">{data.leadTimeDays != null ? `${data.leadTimeDays} Days` : 'Not recorded'}</span>
                 </div>
               </div>
 
@@ -467,7 +472,7 @@ export const ViewDetailsModal: React.FC = () => {
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Payment Terms</span>
-                  <span className="font-bold text-slate-900 text-xs">{data.paymentTerms || 'Net 30 Days'}</span>
+                  <span className="font-bold text-slate-900 text-xs">{data.paymentTerms || 'Not recorded'}</span>
                 </div>
               </div>
 

@@ -16,9 +16,6 @@ import {
   Users,
   Settings,
   LogOut,
-  Mic,
-  Sun,
-  Moon,
   BarChart3
 } from 'lucide-react';
 
@@ -29,11 +26,9 @@ export const Sidebar: React.FC = () => {
     sidebarCollapsed,
     toggleSidebar,
     products,
-    suppliers,
     customers,
     purchaseOrders,
     salesOrders,
-    openModal,
     branding,
     currentUser,
     logout,
@@ -122,7 +117,7 @@ export const Sidebar: React.FC = () => {
       items: [
         {
           id: 'sales',
-          label: 'Sales & 18% GST',
+          label: 'Sales & GST',
           urdu: 'فروخت اور انوائس',
           icon: <Receipt className="w-5 h-5" />,
           badge: salesOrders.length > 0 ? salesOrders.length : undefined
@@ -157,17 +152,19 @@ export const Sidebar: React.FC = () => {
           id: 'compliance',
           label: 'FBR Compliance RAG',
           urdu: 'ٹیکس ریگولیشنز',
-          icon: <Scale className="w-5 h-5" />,
-          badge: '18%',
-          badgeColor: 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
+          icon: <Scale className="w-5 h-5" />
         },
         {
           id: 'fbr_integration',
           label: 'FBR Digital Invoicing',
           urdu: 'ڈیجیٹل انوائسنگ حب',
-          icon: <ShieldCheck className="w-5 h-5" />,
-          badge: 'Ready',
-          badgeColor: 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+          icon: <ShieldCheck className="w-5 h-5" />
+          // REMOVED badges: a static "18%" on Compliance RAG and a static
+          // "Ready" on Digital Invoicing. Both were literal strings that
+          // asserted a status no code computed, so they were green regardless
+          // of what was actually true — and "Ready" claimed an FBR integration
+          // this application does not have. A badge that cannot read the wrong
+          // value is decoration. Real state is shown inside each module.
         }
       ]
     },
@@ -216,7 +213,11 @@ export const Sidebar: React.FC = () => {
               </div>
               <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Live Factory Ledger</span>
+                {/* Was "Live Factory Ledger". The ledger is local-first and only
+                    syncs to Supabase when cloud sync is configured, so a
+                    permanent pulsing "Live" badge asserted a connectivity state
+                    the component cannot know. */}
+                <span>Factory Ledger</span>
               </div>
             </div>
           )}
@@ -311,43 +312,14 @@ export const Sidebar: React.FC = () => {
         ))}
       </div>
 
-      {/* Voice Assistant Pill */}
-      <div className="p-3 border-t border-slate-200 dark:border-slate-800/90">
-        <button
-          onClick={() => openModal('voice')}
-          className={`w-full flex items-center gap-2.5 p-2.5 bg-slate-50 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-700/60 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all cursor-pointer ${
-            sidebarCollapsed ? 'justify-center' : ''
-          }`}
-          title="Instant Voice Command (English/Urdu)"
-        >
-          <div className="w-7 h-7 rounded-lg bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-            <Mic className="w-4 h-4" />
-          </div>
-          {!sidebarCollapsed && (
-            <div className="text-left text-xs truncate">
-              <div className="font-bold text-slate-800 dark:text-white">Voice Command</div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400">اردو · Voice First</div>
-            </div>
-          )}
-        </button>
-      </div>
+      
 
       {/* Theme Toggle & User Profile Footer */}
       <div className="p-3 border-t border-slate-200/70 dark:border-white/5 space-y-2">
-        {/* Dark/Light Mode Switch */}
-        <button
-          type="button"
-          onClick={toggleDarkMode}
-          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer ${
-            sidebarCollapsed ? 'justify-center' : ''
-          }`}
-          title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        >
-          {darkMode ? <Sun className="w-4 h-4 text-amber-400 shrink-0" /> : <Moon className="w-4 h-4 text-slate-600 shrink-0" />}
-          {!sidebarCollapsed && (
-            <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
-          )}
-        </button>
+        {/* REMOVED: the dark/light switch that lived here. The header already
+            carries a theme toggle, and it is visible whether or not the sidebar
+            is collapsed. Two controls for one setting is one too many, and the
+            sidebar copy was the only place the string "Dark Mode" appeared. */}
 
         {currentUser ? (
           <div className="flex items-center justify-between pt-1">

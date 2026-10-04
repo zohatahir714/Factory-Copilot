@@ -6,5 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+supabase/.temp/
 .freebuff/
 *.zip

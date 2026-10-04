@@ -427,8 +427,20 @@ export const push = {
 };
 
 /** Full replace-set sync for the business-tools path (applyDatabaseUpdate). */
-export function pushBulk(update: {
+/**
+ * Push a batch to the cloud.
+ *
+ * Async because the party writes must COMPLETE before any document write is
+ * issued. `push.*` returns promises that are not awaited by the caller, so
+ * merely calling `supplierCreate` first is not enough — the insert has to land
+ * before `poCreate` fires or the foreign key rejects it.
+ *
+ * Callers may ignore the returned promise; the inner `push.*` calls already
+ * swallow and report their own errors.
+ */
+export async function pushBulk(update: {
   products?: Product[];
+  suppliers?: Supplier[];
   purchaseOrders?: PurchaseOrder[];
   salesOrders?: SalesOrder[];
   cashbook?: CashbookEntry[];
@@ -436,12 +448,33 @@ export function pushBulk(update: {
   customers?: Customer[];
 }, prev: {
   products: Product[];
+  suppliers: Supplier[];
   purchaseOrders: PurchaseOrder[];
   salesOrders: SalesOrder[];
   cashbook: CashbookEntry[];
   inventoryMovements: InventoryMovement[];
   customers: Customer[];
 }) {
+  // Parties FIRST. `purchase_orders.supplier_id` and `sales_orders.customer_id`
+  // are real foreign keys, so inserting a document before its supplier or
+  // customer exists fails the whole batch with a 409 and silently loses the
+  // document.
+  if (update.suppliers) {
+    const prevIds = new Set(prev.suppliers.map(x => x.id));
+    for (const s of update.suppliers) if (!prevIds.has(s.id)) await push.supplierCreate(s);
+  }
+  if (update.customers) {
+    const prevById = new Map(prev.customers.map(c => [c.id, c]));
+    for (const c of update.customers) {
+      const before = prevById.get(c.id);
+      if (!before) await push.customerCreate(c);
+      else if (before.outstandingReceivables !== c.outstandingReceivables
+        || before.creditLimit !== c.creditLimit) {
+        await push.customerUpdate(c.id, { outstandingReceivables: c.outstandingReceivables, creditLimit: c.creditLimit });
+      }
+    }
+  }
+
   // Products: diff by id, then by updatedAt for stock changes
   if (update.products) {
     const prevById = new Map(prev.products.map(p => [p.id, p]));

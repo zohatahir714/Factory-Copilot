@@ -8,9 +8,9 @@
  * renders in the modal for eyes.
  */
 
-import { formatPKR, calculateFBRTax } from '../../utils/fbrTaxEngine';
-import type { VoiceIntent, QueryTopic } from './fastPath';
-import { getGuideCard } from './guides';
+import { formatPKR, calculateFBRTax } from '../../utils/fbrTaxEngine.ts';
+import type { VoiceIntent, QueryTopic } from './fastPath.ts';
+import { getGuideCard } from './guides.ts';
 
 export interface ExecutorStats {
   label: string;

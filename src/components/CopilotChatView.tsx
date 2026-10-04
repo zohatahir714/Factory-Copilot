@@ -14,13 +14,99 @@ import {
   Receipt,
   Package,
   Scale,
-  RefreshCw,
   Truck,
   Compass,
   ArrowRight
 } from 'lucide-react';
 import type { GuideCard } from '../lib/voice/guides';
 import { AgentDomain } from '../types';
+import { skillById, type SkillId } from '../agents/skills.ts';
+
+/**
+ * Confirmation rows carry mixed units — money, counts, rates and codes — under
+ * camelCase keys. Formatting EVERY number as "Rs." made the card say
+ * "Quantity: Rs. 100", "Current Stock: Rs. 1,450" and "Gst Rate Percent: Rs. 18",
+ * i.e. it priced 1,450 kg of yarn at 1,450 rupees. Currency is now decided by
+ * the key, not by the type.
+ */
+const MONEY_KEYS = new Set([
+  'subtotal', 'subtotalPKR', 'totalAmount', 'totalAmountPKR', 'unitPrice', 'unitPricePKR',
+  'gstAmount', 'gstAmountPKR', 'taxAmount', 'amount', 'creditLimit', 'outstandingReceivables',
+  'totalCost', 'costAmount', 'totalPayable', 'advanceAmount'
+]);
+const PERCENT_KEYS = new Set(['gstRatePercent', 'taxRatePercent', 'gstRate', 'taxRate']);
+
+/** "unitPricePKR" → "Unit Price PKR", not "Unit Price P K R". */
+function labelFor(key: string): string {
+  const spaced = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function valueFor(key: string, value: unknown): string {
+  if (typeof value === 'number') {
+    if (MONEY_KEYS.has(key)) return `Rs. ${value.toLocaleString()}`;
+    if (PERCENT_KEYS.has(key) && key.endsWith('Percent')) return `${value}%`;
+    return value.toLocaleString();
+  }
+  return String(value ?? '—');
+}
+
+/**
+ * Render the agent's answer.
+ *
+ * Every answer carries `**bold**` and backtick spans, and the bubble used to
+ * print them raw — the judge read "**1,450 kg**" with the asterisks showing.
+ * The deterministic text is generated once and rendered identically wherever it
+ * appears, so the markup is stripped here, at the edge, rather than being
+ * deleted from the generators where the briefing still needs it.
+ *
+ * Deliberately not a markdown library: bold, inline code and bullet lines are
+ * all the format the agents emit, and a 40-line parser is smaller than the
+ * dependency that would do the same job.
+ */
+function MessageBody({ content }: { content: string }) {
+  const inline = (line: string, li: number): React.ReactNode[] =>
+    line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean).map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <strong key={`${li}-${i}`} className="font-bold text-slate-900 dark:text-white">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return (
+          <code key={`${li}-${i}`} className="font-mono text-[0.9em] bg-slate-100 dark:bg-slate-900 px-1 py-0.5 rounded">
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      return <span key={`${li}-${i}`}>{part}</span>;
+    });
+
+  const lines = content.split('\n');
+
+  return (
+    <div className="space-y-1">
+      {lines.map((raw, li) => {
+        const line = raw.trim();
+        if (!line) return <div key={li} className="h-1" />;
+        const bullet = line.match(/^[•\-*]\s+(.*)$/);
+        if (bullet) {
+          return (
+            <div key={li} className="flex items-start gap-2">
+              <span className="text-indigo-500 dark:text-indigo-400 leading-5 select-none">•</span>
+              <span className="flex-1">{inline(bullet[1], li)}</span>
+            </div>
+          );
+        }
+        return <div key={li}>{inline(line, li)}</div>;
+      })}
+    </div>
+  );
+}
 
 export const CopilotChatView: React.FC = () => {
   const {
@@ -71,13 +157,41 @@ export const CopilotChatView: React.FC = () => {
     );
   };
 
-  const demoScripts = [
-    { label: 'اسٹاک کتنا ہے؟', prompt: 'کتنے اسٹاک ہے', urdu: 'کتنا مال بچا ہے؟', icon: Package },
-    { label: 'پرچیز آرڈر', prompt: '100 کلو ڈائی کا پرچیز آرڈر بنا دو', urdu: 'پرچیز آرڈر بنا دو', icon: FileText },
-    { label: 'سیل انوئس (18% GST)', prompt: '50 کلو یارن سیل کرو', urdu: 'سیل ریکارڈ کرو', icon: Receipt },
-    { label: 'بزنس سمری', prompt: 'آج کا مکمل بزنس سمری دو', urdu: 'آج کا حساب بتاؤ', icon: BarChart3 },
-    { label: 'FBR ٹیکس رول', prompt: 'اس ٹرانزیکشن پر کیا ٹیکس قانون لاگو ہے؟', urdu: 'ایف بی آر ٹیکس کا کیا قانون ہے؟', icon: Scale },
-    { label: 'گڈز ریسیو', prompt: 'پی او کے گڈز ریسیو کرو', urdu: 'مال وصول کرو', icon: Truck }
+  /** The skills that actually ran, rendered from the registry — never typed here. */
+  const renderSkillBadges = (skills?: SkillId[]) => {
+    if (!skills || skills.length === 0) return null;
+    return (
+      <>
+        {skills.map(id => {
+          const s = skillById(id);
+          if (!s) return null;
+          return (
+            <span
+              key={id}
+              title={`${s.does} · ${s.implementedIn}`}
+              className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
+            >
+              {s.label}
+            </span>
+          );
+        })}
+      </>
+    );
+  };
+
+  // DEMO FLOWS — the one action bar, always visible.
+//
+// Each chip carries only `label` and `prompt`. A third `urdu` field used to sit
+// beside them holding a DIFFERENT Urdu sentence from both the label and the
+// prompt, and nothing ever rendered it. Three strings for one chip, two of them
+// dead, is how a demo drifts from what the code actually does.
+const demoScripts = [
+    { label: 'اسٹاک کتنا ہے؟', prompt: 'کتنے اسٹاک ہے', icon: Package },
+    { label: 'پرچیز آرڈر', prompt: '100 کلو ڈائی کا پرچیز آرڈر بنا دو', icon: FileText },
+    { label: 'سیل انوئس', prompt: '50 کلو یارن سیل کرو', icon: Receipt },
+    { label: 'بزنس سمری', prompt: 'آج کا مکمل بزنس سمری دو', icon: BarChart3 },
+    { label: 'FBR ٹیکس رول', prompt: 'اس ٹرانزیکشن پر کیا ٹیکس قانون لاگو ہے؟', icon: Scale },
+    { label: 'گڈز ریسیو', prompt: 'پی او کے گڈز ریسیو کرو', icon: Truck }
   ];
 
   return (
@@ -120,11 +234,10 @@ export const CopilotChatView: React.FC = () => {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {[
+                  // Onboarding questions only. The four that duplicated an action
+                  // above it — "profit", "GST law", "record a sale", "purchase
+                  // order" — were removed; the demo bar already does those.
                   { label: 'یہ سسٹم کیا ہے؟', prompt: 'یہ سسٹم کیا ہے؟ مکمل رہنمائی دیں', icon: Compass },
-                  { label: 'سیل کیسے درج کریں؟', prompt: 'سیل کیسے درج کریں؟', icon: Receipt },
-                  { label: 'پرچیز آرڈر کیسے؟', prompt: 'پرچیز آرڈر کیسے بنائیں؟', icon: FileText },
-                  { label: 'منافع بتاؤ', prompt: 'اس ماہ کا منافع بتاؤ', icon: BarChart3 },
-                  { label: 'GST قانون پوچھیں', prompt: 'سیل پر کیا ٹیکس قانون لاگو ہے؟', icon: Scale },
                   { label: 'کیش واؤچر کیسے؟', prompt: 'کیش واؤچر کیسے درج کریں؟', icon: Package }
                 ].map((chip, idx) => (
                   <button key={idx} type="button" onClick={() => triggerDemoPrompt(chip.prompt)}
@@ -165,6 +278,7 @@ export const CopilotChatView: React.FC = () => {
                 {!isUser && (
                   <div className="flex flex-wrap items-center gap-2">
                     {renderAgentBadge(msg.routedAgent)}
+                    {renderSkillBadges(msg.skills)}
                     {msg.toolExecution && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                         <span className="text-indigo-600 font-bold">tool:</span>
@@ -188,7 +302,7 @@ export const CopilotChatView: React.FC = () => {
                       : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-none'
                   }`}
                 >
-                  <div className="whitespace-pre-line">{msg.content}</div>
+                  <MessageBody content={msg.content} />
                 </div>
 
                 {/* GUIDE CARD (Stage 3 — deterministic walkthrough) */}
@@ -242,8 +356,8 @@ export const CopilotChatView: React.FC = () => {
                     <div className="bg-white/80 dark:bg-slate-900/60 border border-amber-200 dark:border-amber-800/40 rounded-lg p-2.5 mb-3 text-xs space-y-1 font-mono text-slate-700 dark:text-slate-300">
                       {Object.entries(msg.confirmationRequired.details || {}).map(([key, value]) => (
                         <div key={key} className="flex justify-between items-center py-0.5 border-b border-amber-100 dark:border-amber-900/50 last:border-b-0">
-                          <span className="text-slate-500 dark:text-slate-400 font-sans text-[11px] capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">{typeof value === 'number' ? `Rs. ${value.toLocaleString()}` : String(value)}</span>
+                          <span className="text-slate-500 dark:text-slate-400 font-sans text-[11px]">{labelFor(key)}:</span>
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">{valueFor(key, value)}</span>
                         </div>
                       ))}
                     </div>
@@ -262,7 +376,7 @@ export const CopilotChatView: React.FC = () => {
                         className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
-                        <span>Confirm & Commit to Database</span>
+                        <span>Confirm & Save to Ledger</span>
                       </button>
                     </div>
                   </div>
@@ -284,7 +398,7 @@ export const CopilotChatView: React.FC = () => {
             </div>
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 shadow-xs flex items-center gap-2 text-xs text-slate-600 font-medium">
               <div className="w-2 h-2 rounded-full bg-indigo-600 animate-ping"></div>
-              <span>Supervisor routing intent to domain agent & executing validated tools...</span>
+              <span>سمجھ رہا ہے…</span>
             </div>
           </div>
         )}
@@ -361,7 +475,12 @@ export const CopilotChatView: React.FC = () => {
         </form>
         <div className="max-w-4xl mx-auto mt-1.5 flex items-center justify-between text-[11px] text-slate-400 px-1">
           <span>زبان: اردو • رومان اردو — آواز اور تحریر دونوں</span>
-          <span>قطعی کاروباری اجرا • بغیر کسی گمراہی کے</span>
+          {/* Was "قطعی کاروباری اجرا • بغیر کسی گمراہی کے" — "without any
+              mistake". An absolute claim of zero errors sits under every
+              answer on the screen, including the ones the copilot refuses. The
+              defensible claim is the one we can actually keep: it says where
+              its numbers come from, and refuses rather than guessing. */}
+          <span>ہر جواب آپ کے لیجر اور FBR قانون سے — اندازاً نہیں</span>
         </div>
       </div>
     </div>

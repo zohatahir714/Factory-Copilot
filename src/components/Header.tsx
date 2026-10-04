@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   Search,
-  Mic,
   Plus,
   Building2,
   ShieldCheck,
@@ -15,10 +14,8 @@ import {
   ChevronDown,
   Command,
   Settings,
-  User,
   Sun,
-  Moon,
-  RefreshCw
+  Moon
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -36,14 +33,11 @@ export const Header: React.FC = () => {
     complianceSources,
     currentUser,
     darkMode,
-    toggleDarkMode,
-    syncDatabase,
-    addToast
+    toggleDarkMode
   } = useApp();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const quickMenuRef = useRef<HTMLDivElement>(null);
 
@@ -61,14 +55,13 @@ export const Header: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSync = () => {
-    setIsSyncing(true);
-    syncDatabase();
-    setTimeout(() => {
-      setIsSyncing(false);
-      addToast('success', 'Data Refreshed', 'Database ledgers and trend metrics synchronized.');
-    }, 700);
-  };
+  // REMOVED: handleSync + isSyncing + the syncDatabase destructure.
+  //
+  // That handler had no button wired to it. It was left over from a sync
+  // control that no longer exists, and it dragged `isSyncing`, `syncDatabase`
+  // and the RefreshCw import along with it — dead code that reads as though a
+  // feature were wired up. The dashboard's own Reload button covers the one
+  // real use (re-reading saved data after an import).
 
   // Filter items based on searchQuery
   const q = searchQuery.toLowerCase().trim();
@@ -289,16 +282,14 @@ export const Header: React.FC = () => {
             {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
           </button>
 
-          {/* Voice Assistant Shortcut */}
-          <button
-            type="button"
-            onClick={() => openModal('voice')}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-50 dark:bg-indigo-500/15 hover:bg-indigo-100 dark:hover:bg-indigo-500/25 text-indigo-700 dark:text-indigo-300 rounded-full text-xs font-bold transition-all cursor-pointer"
-            title="Speak command in Urdu or English"
-          >
-            <Mic className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Voice</span>
-          </button>
+          {/* REMOVED: the Voice pill that sat here.
+              Voice was reachable three ways — this header pill, the dashboard's
+              "Voice command" button, and the floating action bar in App.tsx.
+              All three opened the same modal. The floating action bar is visible
+              on every page, so it is the one entry point that is never missing;
+              this pill was the least discoverable of the three and made the
+              header look busier than it was. The dashboard's own Voice command
+              button remains as the contextual entry point. */}
 
           {/* Quick Create Dropdown Menu */}
           <div ref={quickMenuRef} className="relative">
@@ -345,7 +336,7 @@ export const Header: React.FC = () => {
                   className="w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200 cursor-pointer"
                 >
                   <Receipt className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>Record Sale (18% GST Invoice)</span>
+                  <span>Record Sale (GST Invoice)</span>
                 </button>
                 <button
                   type="button"

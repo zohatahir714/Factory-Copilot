@@ -35,10 +35,14 @@ export const SalesOrderCreateModal: React.FC = () => {
     brandingSettings
   } = useApp();
 
+  // Same reasoning as the print modal: the SELLER-side identity was a made-up
+  // NTN/STRN pair in three places across the app, and this modal passed it
+  // straight into `recordSaleDirect`. Absent branding is now passed through
+  // empty so the engine's `NOT CONFIGURED` sentinel applies.
   const activeBranding = branding || brandingSettings || {
-    companyName: 'Master Textile Mills Ltd',
-    ntnNumber: '4029184-7',
-    strnNumber: '32-77-8761-234-19'
+    companyName: '',
+    ntnNumber: '',
+    strnNumber: ''
   };
 
   const [customerId, setCustomerId] = useState(customers[0]?.id || '');
@@ -52,8 +56,14 @@ export const SalesOrderCreateModal: React.FC = () => {
   const [taxCategory, setTaxCategory] = useState<FBRTaxCategory>('standard_18');
 
   // Buyer Tax Identifier State (NTN or CNIC)
-  const [buyerNTN, setBuyerNTN] = useState<string>('1928471-2');
-  const [buyerCNIC, setBuyerCNIC] = useState<string>('35201-9876543-1');
+  //
+  // These used to be pre-filled with '1928471-2' / '35201-9876543-1'. That is
+  // not a harmless default: an operator who left the fields alone saved a
+  // fabricated buyer's national ID onto the invoice, and it then flowed into
+  // the printed document and the FBR QR payload. Empty means "not recorded",
+  // which the print layer reports as a gap instead of inventing an identity.
+  const [buyerNTN, setBuyerNTN] = useState<string>('');
+  const [buyerCNIC, setBuyerCNIC] = useState<string>('');
 
   // Derived Filer State based on Category
   const isFiler = taxCategory !== 'unregistered_buyer';
@@ -291,7 +301,7 @@ export const SalesOrderCreateModal: React.FC = () => {
                   type="text"
                   value={buyerNTN}
                   onChange={(e) => setBuyerNTN(e.target.value)}
-                  placeholder="e.g. 1928471-2"
+                  placeholder="7 or 8 digits, e.g. 1234567-8"
                   className={`w-full px-3 py-2 text-xs font-mono font-bold bg-white border rounded-lg outline-none ${
                     ntnValidation.valid
                       ? 'border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
@@ -313,7 +323,7 @@ export const SalesOrderCreateModal: React.FC = () => {
                   type="text"
                   value={buyerCNIC}
                   onChange={(e) => setBuyerCNIC(e.target.value)}
-                  placeholder="e.g. 35201-9876543-1"
+                  placeholder="13 digits, e.g. 35201-1234567-1"
                   className={`w-full px-3 py-2 text-xs font-mono font-bold bg-white border rounded-lg outline-none ${
                     cnicValidation.valid
                       ? 'border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
@@ -392,7 +402,7 @@ export const SalesOrderCreateModal: React.FC = () => {
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 text-xs">
             <div className="flex items-center justify-between font-semibold text-slate-500 text-[10px] uppercase tracking-wider border-b border-slate-200 pb-1.5">
               <span>Statutory Tax Breakdown</span>
-              <span className="font-mono text-emerald-700">FBR SRO 1805(I)/2024 Verified</span>
+              <span className="font-mono text-emerald-700">STA 1990 rates applied</span>
             </div>
 
             <div className="flex items-center justify-between text-slate-600">

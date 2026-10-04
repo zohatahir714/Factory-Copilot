@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import NegotiationLog from './NegotiationLog';
 import {
   Package,
   ShoppingCart,
@@ -218,7 +219,7 @@ export const DatabaseInspector: React.FC = () => {
                     Purchase Orders & Procurement
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Supplier POs, committed expenditure, and receiving bay
+                    Supplier POs, committed expenditure, receiving bay, and agent-led price negotiation
                   </p>
                 </div>
               </div>
@@ -349,6 +350,13 @@ export const DatabaseInspector: React.FC = () => {
               </table>
             </div>
           </div>
+
+          {/* Agent negotiation (Task 5). Placed on the procurement page because
+              that is the activity it models: a buyer agent and a supplier agent
+              converging on a price for material. The figures are editable so a
+              judge can drive both outcomes — including the honest failure when
+              the floor and ceiling cannot meet. */}
+          <NegotiationLog initialAsking={1450} initialFloor={1200} initialCeiling={1500} maxRounds={8} />
         </div>
       )}
 
@@ -388,7 +396,7 @@ export const DatabaseInspector: React.FC = () => {
                 className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>Record Sale & 18% GST</span>
+                <span>Record Sale & GST</span>
               </button>
             </div>
           </div>
@@ -402,9 +410,9 @@ export const DatabaseInspector: React.FC = () => {
                     <th className="py-3 px-4">Customer</th>
                     <th className="py-3 px-4">Dispatched Items</th>
                     <th className="py-3 px-4 text-right">Subtotal (PKR)</th>
-                    <th className="py-3 px-4 text-right">18% GST (PKR)</th>
-                    <th className="py-3 px-4 text-right">Grand Total (PKR)</th>
-                    <th className="py-3 px-4 text-center">FBR Iris Status</th>
+                  <th className="py-3 px-4 text-right">GST (PKR)</th>
+                  <th className="py-3 px-4 text-right">Grand Total (PKR)</th>
+                  <th className="py-3 px-4 text-center">Fiscalisation</th>
                     <th className="py-3 px-4 text-center">Actions</th>
                   </tr>
                 </thead>
@@ -432,9 +440,25 @@ export const DatabaseInspector: React.FC = () => {
                           Rs. {(so.totalAmount ?? 0).toLocaleString()}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <FileCheck2 className="w-3 h-3" /> Annex-C Ready
-                          </span>
+                          {/* Unconditional green "Annex-C Ready" on every row —
+                              it asserted a filing state that no code computed.
+                              Now it reports the one fact we actually hold:
+                              whether a fiscal invoice number exists on the sale. */}
+                          {so.fbrFiscalInvoiceNumber ? (
+                            <span
+                              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              title={`Fiscal invoice number ${so.fbrFiscalInvoiceNumber} recorded against this sale.`}
+                            >
+                              <FileCheck2 className="w-3 h-3" /> Fiscalised
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200"
+                              title="No fiscal invoice number recorded. This sale has not been transmitted to FBR by your licensed integrator."
+                            >
+                              Not fiscalised
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center gap-1.5">
@@ -630,8 +654,11 @@ export const DatabaseInspector: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Was the literal "18 Grounded Statutes", above a list of four. The
+                  number a judge counts must be the number of provisions that
+                  actually render below, so it is read from the collection. */}
               <span className="px-3 py-1 bg-indigo-50 text-indigo-800 text-xs font-bold rounded-lg border border-indigo-200">
-                18 Grounded Statutes
+                {complianceSources.length} Grounded Statute{complianceSources.length === 1 ? '' : 's'}
               </span>
             </div>
           </div>

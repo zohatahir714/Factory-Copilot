@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
-import { understand, type LiveStateDigest } from '../lib/voice/mind';
-import { executeQuery, clarifyResult, prepareWrite, executeNavigate, executePrint, executeGuide, type ExecutorResult, type PendingWrite } from '../lib/voice/executor';
-import { tryFastPath, tryFastPathTax, type VoiceIntent } from '../lib/voice/fastPath';
 import { calculateFBRTax, formatPKR } from '../utils/fbrTaxEngine';
 import {
   Mic,
@@ -67,21 +64,6 @@ interface LiveInspectionData {
 }
 
 /** Small Urdu labels for the fast-path typing preview. */
-const FAST_LABELS: Record<string, { label: string; description: string }> = {
-  'query:cash': { label: 'لائیو کیش پوزیشن', description: 'خزانہ چیک — فوری' },
-  'query:gst': { label: 'GST وصولی', description: 'کل GST — فوری' },
-  'query:sale_tax': { label: 'سیل پر ٹیکس', description: 'FBR حساب — فوری' },
-  'navigate:dashboard': { label: 'ڈیش بورڈ', description: 'نیویگیشن' },
-  'navigate:reports': { label: 'رپورٹس', description: 'نیویگیشن' },
-  'navigate:cashbook': { label: 'کیش بک', description: 'نیویگیشن' },
-  'navigate:settings': { label: 'سیٹنگز', description: 'نیویگیشن' }
-};
-
-function fastPathPreview(intent: VoiceIntent): ExecutorResult {
-  const meta = FAST_LABELS[`${intent.action}:${intent.topic ?? intent.entities.module}`] || { label: 'کمانڈ', description: 'تلمیح شدہ' };
-  return { kind: 'query', spoken: '', title: meta.label, badge: 'Fast Path', stats: [], details: meta.description };
-}
-
 export const VoiceAssistantModal: React.FC = () => {
   const {
     activeModal,
@@ -120,26 +102,12 @@ export const VoiceAssistantModal: React.FC = () => {
   } = useApp();
 
   const [inputVal, setInputVal] = useState('');
-  const [detectedRoute, setDetectedRoute] = useState<ExecutorResult | null>(null);
   const [isMindThinking, setIsMindThinking] = useState(false);
   const [isTestingMic, setIsTestingMic] = useState(false);
-  // STAGE 2 — pending write awaiting spoken confirmation (60s TTL)
-  const [pendingWrite, setPendingWrite] = useState<PendingWrite | null>(null);
-  const pendingWriteRef = useRef<PendingWrite | null>(null);
-  const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const executorState = { cashbook, salesOrders, products: products as any, customers: customers as any, suppliers: suppliers as any, purchaseOrders };
-  const [liveResult, setLiveResult] = useState<ExecutorResult | null>(null);
 
   // Detect whether running in an embedded preview iframe
   const isEmbeddedIframe = typeof window !== 'undefined' && window.self !== window.top;
 
-  // Live-state digest for the mind (spec §3.3) — rebuilt per command.
-  const buildDigest = (): LiveStateDigest => ({
-    businessName: 'PakERP Textile SME',
-    customers: customers.map(c => ({ name: c.name, city: (c as any).city, balance: c.outstandingReceivables })),
-    suppliers: suppliers.map(s => ({ name: s.name, city: (s as any).city })),
-    products: products.map(p => ({ name: p.name, sku: (p as any).sku, unit: p.unit, stock: p.currentStock }))
-  });
 
   // Keep inputVal in sync with live transcript & evaluate intent preview
   useEffect(() => {
@@ -147,91 +115,6 @@ export const VoiceAssistantModal: React.FC = () => {
       setInputVal(recordingTranscript);
     }
   }, [recordingTranscript]);
-
-  // Evaluate route when user types (fast-path preview only — no LLM per keystroke)
-  useEffect(() => {
-    if (inputVal.trim()) {
-      const fast = tryFastPath(inputVal) || tryFastPathTax(inputVal);
-      setDetectedRoute(fast ? fastPathPreview(fast) : null);
-    } else {
-      setDetectedRoute(null);
-    }
-  }, [inputVal]);
-
-  /** Actions that produce a pending write instead of an immediate result. */
-  const WRITE_ACTIONS = new Set([
-    'create_sale', 'create_purchase_order', 'create_cash_voucher',
-    'create_supplier', 'create_customer', 'create_product'
-  ]);
-
-  /** Arm a pending write: speak the confirmation, start the 60s TTL. */
-  const armPendingWrite = (pending: PendingWrite) => {
-    if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
-    setPendingWrite(pending);
-    pendingWriteRef.current = pending;
-    if (audioVoiceEnabled) speakText(pending.confirmSpoken);
-    pendingTimerRef.current = setTimeout(() => {
-      setPendingWrite(null);
-      pendingWriteRef.current = null;
-      addToast('info', 'کمانڈ منسوخ', 'تصدیق کا وقت ختم ہو گیا');
-    }, 60000);
-  };
-
-  /** Commit the armed pending write through the AppContext mutations. */
-  const commitPendingWrite = useCallback(() => {
-    const pending = pendingWriteRef.current;
-    if (!pending) return;
-    if (pendingTimerRef.current) { clearTimeout(pendingTimerRef.current); pendingTimerRef.current = null; }
-    setPendingWrite(null);
-    pendingWriteRef.current = null;
-    const p = pending.payload as any;
-    switch (pending.action) {
-      case 'create_sale': {
-        const customer = customers.find(c => c.name === p.customerKey) || (customers as any).find((c: any) => c.name.toLowerCase().includes(String(p.customerKey).toLowerCase()));
-        const product = products.find(pr => pr.name === p.productKey) || (products as any).find((pr: any) => pr.name.toLowerCase().includes(String(p.productKey).toLowerCase()));
-        if (customer && product) {
-          recordSaleDirect({ customerId: customer.id, productId: product.id, quantity: p.quantity, subtotal: p.subtotal, taxRate: p.taxRate, taxAmount: p.taxAmount, totalAmount: p.totalAmount, isFiler: p.isFiler });
-          addToast('success', 'سیل درج ہو گئی', `${p.quantity} × ${product.name} → ${customer.name}`);
-        }
-        break;
-      }
-      case 'create_purchase_order': {
-        const supplier = suppliers.find(s => s.name === p.supplierKey) || (suppliers as any).find((s: any) => s.name.toLowerCase().includes(String(p.supplierKey).toLowerCase()));
-        const product = products.find(pr => pr.name === p.productKey) || (products as any).find((pr: any) => pr.name.toLowerCase().includes(String(p.productKey).toLowerCase()));
-        if (supplier && product) {
-          createPurchaseOrderDirect({ supplierId: supplier.id, productId: product.id, quantity: p.quantity });
-          addToast('success', 'پرچیز آرڈر جاری ہوا', `${p.quantity} × ${product.name} ← ${supplier.name}`);
-        }
-        break;
-      }
-      case 'create_cash_voucher':
-        recordExpenseDirect({ amount: p.amount, category: 'misc', description: p.description, type: p.type });
-        addToast('success', 'واؤچر درج ہو گیا', `Rs. ${p.amount.toLocaleString()}`);
-        break;
-      case 'create_supplier':
-        createSupplierDirect({ name: p.name, city: p.city, phone: p.phone, email: p.email, leadTimeDays: p.leadTimeDays, paymentTerms: p.paymentTerms });
-        addToast('success', 'سپلائر رجسٹرڈ', p.name);
-        break;
-      case 'create_customer':
-        createCustomerDirect({ name: p.name, city: p.city, phone: p.phone, email: p.email, creditLimit: p.creditLimit });
-        addToast('success', 'گاہک رجسٹرڈ', p.name);
-        break;
-      case 'create_product':
-        createProductDirect({ name: p.name, sku: p.sku, category: p.category, unit: p.unit, costPrice: p.costPrice, sellingPrice: p.sellingPrice, reorderThreshold: p.reorderThreshold, currentStock: p.currentStock });
-        addToast('success', 'پروڈکٹ شامل', p.name);
-        break;
-    }
-    if (audioVoiceEnabled) speakText('ہو گیا۔');
-  }, [customers, products, suppliers, recordSaleDirect, createPurchaseOrderDirect, recordExpenseDirect, createSupplierDirect, createCustomerDirect, createProductDirect, audioVoiceEnabled, addToast, speakText]);
-
-  /** Cancel the armed pending write. */
-  const cancelPendingWrite = useCallback(() => {
-    if (pendingTimerRef.current) { clearTimeout(pendingTimerRef.current); pendingTimerRef.current = null; }
-    setPendingWrite(null);
-    pendingWriteRef.current = null;
-    addToast('info', 'کمانڈ منسوخ', 'تصدیق منسوخ کر دی گئی');
-    if (audioVoiceEnabled) speakText('کمانڈ منسوخ۔');
-  }, [addToast, speakText, audioVoiceEnabled]);
 
   if (activeModal !== 'voice') return null;
 
@@ -245,25 +128,9 @@ export const VoiceAssistantModal: React.FC = () => {
     const query = (rawText || inputVal).trim();
     if (!query || isProcessing || isTranscribing || isMindThinking) return;
 
-    // STAGE 2 — spoken confirmation/cancel of an armed write (spec §4)
-    if (pendingWriteRef.current) {
-      if (/^(?:ہاں|جی|جی ہاں|haan|han|yes|confirm|tasdeeq|کرو|کر دو)\b/i.test(query)) {
-        setInputVal(''); setRecordingTranscript(''); setDetectedRoute(null);
-        commitPendingWrite();
-        return;
-      }
-      if (/^(?:نہیں|nahi|no|cancel|کینسل|منسوخ)\b/i.test(query)) {
-        setInputVal(''); setRecordingTranscript(''); setDetectedRoute(null);
-        cancelPendingWrite();
-        return;
-      }
-      // Any other utterance leaves the pending write armed (60s TTL expires it).
-    }
 
-    // Clear input buffer immediately
     setInputVal('');
     setRecordingTranscript('');
-    setDetectedRoute(null);
     clearMicErrorNotice();
 
     if (isRecording) {
@@ -271,70 +138,22 @@ export const VoiceAssistantModal: React.FC = () => {
     }
 
     setIsMindThinking(true);
-    let result: ExecutorResult | null = null;
-    let fellBackToCopilot = false;
-    try {
-      const { intent } = await understand(query, buildDigest());
-      if (intent.action === 'query' && intent.topic) {
-        result = executeQuery(intent, executorState);
-      } else if (intent.source === 'clarify') {
-        result = clarifyResult(intent);
-      } else if (WRITE_ACTIONS.has(intent.action)) {
-        const prep = prepareWrite(intent, executorState);
-        if ('pending' in prep) {
-          armPendingWrite(prep.pending);
-          result = { kind: 'query', spoken: prep.pending.confirmSpoken, title: prep.pending.label, badge: 'Confirm?', stats: [] };
-        } else {
-          result = prep.reason;
-        }
-      } else if (intent.action === 'navigate') {
-        const mod = intent.entities.module || 'dashboard';
-        result = executeNavigate(intent, {
-          openModule: (m) => { closeModal(); setActiveTab(m as any); },
-          openModal: (m) => openModal(m as any),
-          print: (t, d) => openPrintDocument(t, d),
-          state: executorState
-        });
-      } else if (intent.action === 'print') {
-        result = executePrint(intent, {
-          openModule: (m) => { closeModal(); setActiveTab(m as any); },
-          openModal: (m) => openModal(m as any),
-          print: (t, d) => { openPrintDocument(t, d); closeModal(); },
-          state: executorState
-        });
-      } else if (intent.action === 'guide') {
-        result = executeGuide(intent);
-      } else if (intent.action === 'compliance') {
-        // Compliance lane: grounded RAG lives in the Compliance module.
-        closeModal();
-        setActiveTab('compliance');
-        addToast('info', 'FBR کمپلائنس RAG', 'قانونی سوالات کا جواب حوالہ شدہ دستاویزات سے');
-        return;
-      } else {
-        // Anything else falls to the Copilot with the utterance as context.
-        fellBackToCopilot = true;
-      }
-    } catch {
-      // Mind unreachable or invalid JSON after retry — honest fallback (spec §6).
-      fellBackToCopilot = true;
-    }
     setIsMindThinking(false);
 
-    if (result) {
-      setLiveResult(result);
-      addToast('success', result.title, result.stats[0]?.value || result.spoken);
-      if (audioVoiceEnabled && result.spoken) {
-        speakText(result.spoken);
-      }
-      return;
-    }
-
-    // Copilot fallback (with honest notice when the mind itself failed)
+    // ONE OWNER. Every command from this surface now goes to the same path the
+    // copilot screen uses: `sendMessage` -> safeUnderstand (guides and module
+    // navigation only) -> `executeSupervisorTurn`.
+    //
+    // It used to stop here. This modal ran its own interpreter — mind.ts for
+    // intent, executor.ts for the tools, fastPath.ts for a per-keystroke route
+    // preview — and the audit found the three disagreeing: "پرچیز آرڈر بناو"
+    // answered "Supplier? dEMO" in the copilot and "Supplier not found" here.
+    // The answer depended on which button was pressed. The supervisor owns
+    // interpretation now because it is deterministic (mind.ts needs an API key
+    // and returns null without one, so the modal silently lost every command),
+    // and because it is where the clarification behaviour and its tests live.
     closeModal();
     setActiveTab('copilot');
-    if (fellBackToCopilot) {
-      addToast('info', 'AI کوپائلٹ', 'پیچیدہ کمانڈ — AI سپروائزر سے جاری ہے');
-    }
     sendMessage(query, 'voice');
   };
 
@@ -436,7 +255,6 @@ export const VoiceAssistantModal: React.FC = () => {
                 setInputVal('');
                 setRecordingTranscript('');
                 clearMicErrorNotice();
-                setLiveResult(null);
                 closeModal();
               }}
               className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
@@ -512,82 +330,8 @@ export const VoiceAssistantModal: React.FC = () => {
             </div>
           )}
 
-          {/* STAGE 2 — PENDING WRITE CONFIRMATION CARD */}
-          {pendingWrite && (
-            <div className={`p-4 rounded-2xl border shadow-sm space-y-3 animate-fadeIn ${darkMode ? 'bg-amber-950/40 border-amber-700/60' : 'bg-amber-50 border-amber-300'}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-600" />
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">{pendingWrite.label}</h4>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-mono text-[10px] font-bold border border-amber-500/30">تصدیق؟</span>
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{pendingWrite.confirmSpoken}</p>
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={commitPendingWrite} className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" /> ہاں — درج کریں
-                </button>
-                <button type="button" onClick={cancelPendingWrite} className="flex-1 px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5">
-                  <X className="w-4 h-4" /> نہیں — منسوخ
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* LIVE SYSTEM INSPECTION RESULT CARD */}
-          {liveResult && (
-            <div
-              className={`p-4 rounded-2xl border shadow-sm space-y-3 animate-fadeIn ${
-                darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
-              }`}
-            >
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-600" />
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
-                    {liveResult.title}
-                  </h4>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/20">
-                  {liveResult.badge}
-                </span>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {liveResult.stats.map((stat, idx) => (
-                  <div key={idx} className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
-                      {stat.label}
-                    </span>
-                    <span className={`text-xs sm:text-sm font-mono font-bold block mt-0.5 ${stat.color || 'text-slate-900 dark:text-slate-100'}`}>
-                      {stat.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {liveResult.details && (
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                  {liveResult.details}
-                </p>
-              )}
-
-              {/* Action Button */}
-              {liveResult.actionButton && (
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={liveResult.actionButton.onClick}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>{liveResult.actionButton.label}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Voice Recording Center */}
           <div
@@ -651,7 +395,6 @@ export const VoiceAssistantModal: React.FC = () => {
                   onClick={() => {
                     setInputVal('');
                     setRecordingTranscript('');
-                    setDetectedRoute(null);
                   }}
                   className="text-slate-400 hover:text-red-500 text-[11px] cursor-pointer"
                 >
@@ -692,25 +435,6 @@ export const VoiceAssistantModal: React.FC = () => {
               </button>
             </div>
 
-            {/* Live Intent Route Detection Preview */}
-            {detectedRoute && (
-              <div className="flex items-center justify-between p-2.5 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl text-xs animate-fadeIn">
-                <div className="flex items-center gap-2 truncate pr-2">
-                  <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                  <span className="font-semibold text-indigo-900 dark:text-indigo-200 truncate">
-                    Recognized: <strong>{detectedRoute.label}</strong> ({detectedRoute.description})
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleExecuteVoiceAction()}
-                  className="text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
-                >
-                  <span>Execute</span>
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              </div>
-            )}
           </div>
 
           {/* One-Tap Voice Command Chips */}

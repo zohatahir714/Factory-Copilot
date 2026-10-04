@@ -23,23 +23,32 @@ import {
   deleteSavedDocument,
   SavedDocumentRecord
 } from '../../utils/documentArchive';
-import { calculateFBRTax, formatPKR } from '../../utils/fbrTaxEngine';
+import { calculateFBRTax, formatPKR, NOT_CONFIGURED } from '../../utils/fbrTaxEngine';
+import { buildInvoicePrintModel } from '../../lib/print/invoicePrintModel';
 import { FBRQRCode } from '../common/FBRQRCode';
 import QRCode from 'qrcode';
 
 export const PrintDocumentModal: React.FC = () => {
   const { printDocument, openPrintDocument, closePrintDocument, branding, currentUser, addToast } = useApp();
 
+  // A tax invoice is a statutory document. This fallback used to supply a
+  // complete fictional business — "Master Textile Mills Ltd", NTN 4029184-7,
+  // STRN 32-77-8761-234-19, a Lahore address and a phone number — so that a
+  // mill with no branding configured would print an invoice belonging to a
+  // company that does not exist. Absent branding is now printed as absent.
   const activeBranding = branding || {
-    companyName: 'Master Textile Mills Ltd',
-    tagline: 'Premier Quality Yarn & Textiles Manufacturer',
-    ntnNumber: '4029184-7',
-    strnNumber: '32-77-8761-234-19',
-    city: 'Lahore, Pakistan',
-    phone: '+92 42 3578 9012',
-    email: 'accounts@mastertextiles.pk',
+    companyName: '',
+    tagline: '',
+    ntnNumber: '',
+    strnNumber: '',
+    city: '',
+    phone: '',
+    email: '',
     logoUrl: ''
   };
+  const sellerName = activeBranding.companyName || 'Not configured';
+  const sellerNTN = activeBranding.ntnNumber || NOT_CONFIGURED;
+  const sellerSTRN = activeBranding.strnNumber || NOT_CONFIGURED;
 
   const [savedRecords, setSavedRecords] = useState<SavedDocumentRecord[]>([]);
   const [showArchive, setShowArchive] = useState(false);
@@ -64,6 +73,11 @@ export const PrintDocumentModal: React.FC = () => {
   const { type } = printDocument || { type: 'cash_voucher', data: {} };
   const data = printDocument?.data || {};
 
+  // Everything an invoice is allowed to print. Built from the stored record, so
+  // the line items and the header totals cannot disagree, and a figure the
+  // record does not carry comes back null instead of being invented.
+  const invoiceModel = type === 'invoice' ? buildInvoicePrintModel(data) : null;
+
   const docTitle =
     type === 'invoice'
       ? `FBR_Invoice_${invoiceFormat === 'thermal_80mm' ? 'Thermal80mm_' : 'A4_'}${data?.invoiceNumber || data?.id || 'DRAFT'}`
@@ -73,10 +87,14 @@ export const PrintDocumentModal: React.FC = () => {
       ? `Voucher_${data?.id || 'CSH'}`
       : `Inventory_Report_${new Date().toISOString().slice(0, 10)}`;
 
-  // Deterministic FBR parameters
-  const subtotalValue = data?.subtotal || Math.round((data?.totalAmount || 0) / 1.18) || 0;
+  // Deterministic FBR parameters.
+  // For an invoice these come from the print model, i.e. off the stored record.
+  // They used to be re-derived here from `total / 1.18`, which silently
+  // assumes a flat 18% and therefore misstated any invoice carrying further
+  // tax, a discount, or a reduced rate.
+  const subtotalValue = invoiceModel ? invoiceModel.totals.subtotal : (data?.subtotal || Math.round((data?.totalAmount || 0) / 1.18) || 0);
   const isFilerStatus = data?.isFiler !== false;
-  const grandTotalValue = data?.totalAmount || Math.round(subtotalValue * 1.18) || 0;
+  const grandTotalValue = invoiceModel ? invoiceModel.totals.grandTotal : (data?.totalAmount || Math.round(subtotalValue * 1.18) || 0);
 
   const tenderedVal =
     customTenderedAmount !== null
@@ -89,17 +107,20 @@ export const PrintDocumentModal: React.FC = () => {
     amount: subtotalValue,
     isFiler: isFilerStatus,
     isRegisteredSalesTax: isFilerStatus,
-    invoiceNumber: data?.invoiceNumber || data?.id || 'INV-2024-0042',
-    sellerNTN: activeBranding.ntnNumber || '4029184-7',
-    sellerSTRN: activeBranding.strnNumber || '32-77-8761-234-19',
-    buyerNTN: data?.buyerNTN || (isFilerStatus ? '1928471-2' : ''),
-    buyerCNIC: data?.buyerCNIC || (isFilerStatus ? '35201-9876543-1' : '35201-1111111-1'),
+    invoiceNumber: data?.invoiceNumber || data?.id || '',
+    sellerNTN: sellerNTN,
+    sellerSTRN: sellerSTRN,
+    // Only real identifiers. An absent buyer identity must not become an invented
+  // one — these values are encoded into the FBR QR payload.
+  buyerNTN: data?.buyerNTN || '',
+    buyerCNIC: data?.buyerCNIC || '',
+    invoiceDate: data?.createdAt,
     paymentMode: selectedPaymentMode,
     amountTendered: tenderedVal
   });
 
   // Dynamic FBR Verification URL String specifically utilizing invoice ID and timestamp
-  const invoiceId = data?.invoiceNumber || data?.id || 'INV-2024-0042';
+  const invoiceId = data?.invoiceNumber || data?.id || '';
   const invoiceTimestamp = data?.createdAt || new Date().toISOString();
   const fbrVerificationUrl = printDocument ? `https://verify.fbr.gov.pk/iris/verify?inv=${encodeURIComponent(invoiceId)}&ts=${encodeURIComponent(invoiceTimestamp)}&pos=${encodeURIComponent(fiscal.posId)}&amt=${grandTotalValue}&tax=${fiscal.totalTaxCharged}` : '';
 
@@ -356,24 +377,26 @@ export const PrintDocumentModal: React.FC = () => {
           {/* Business & POS Identification Header */}
           <div className="text-center py-2 border-b border-dashed border-black space-y-0.5">
             <div className="font-black text-[13px] uppercase tracking-tight leading-snug">
-              {activeBranding.companyName}
+              {sellerName}
             </div>
-            <div className="text-[10px] text-slate-800">{activeBranding.tagline}</div>
-            <div className="text-[10px] text-slate-800">{activeBranding.city}</div>
+            {activeBranding.tagline && <div className="text-[10px] text-slate-800">{activeBranding.tagline}</div>}
+            {activeBranding.city && <div className="text-[10px] text-slate-800">{activeBranding.city}</div>}
             <div className="pt-1 text-[10px] flex justify-between px-1">
-              <span><strong>NTN:</strong> {activeBranding.ntnNumber}</span>
-              <span><strong>STRN:</strong> {activeBranding.strnNumber}</span>
+              <span><strong>NTN:</strong> {sellerNTN}</span>
+              <span><strong>STRN:</strong> {sellerSTRN}</span>
             </div>
             <div className="text-[10px] flex justify-between px-1">
+              {/* Was a fixed "Reg: 49102" — a POS registration number typed
+                  into the template, identical on every receipt of every mill. */}
               <span><strong>POS ID:</strong> {fiscal.posId}</span>
-              <span><strong>Reg:</strong> 49102</span>
+              <span><strong>Reg:</strong> {fiscal.posRegistrationNumber}</span>
             </div>
             <div className="text-[9px] text-slate-700 pt-0.5 flex justify-between px-1">
               <span>Date: {new Date().toLocaleDateString('en-PK')}</span>
               <span>Time: {new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
             </div>
             <div className="text-[10px] font-bold text-left px-1 pt-0.5">
-              Invoice Ref: {data.invoiceNumber || 'INV-2024-0042'}
+              Invoice Ref: {data.invoiceNumber || data.id || 'Not assigned'}
             </div>
           </div>
 
@@ -381,15 +404,22 @@ export const PrintDocumentModal: React.FC = () => {
           <div className="py-2 border-b border-dashed border-black text-[10px] space-y-0.5">
             <div className="flex justify-between">
               <span className="font-bold">Customer:</span>
-              <span className="text-right truncate max-w-[170px] font-semibold">{data.customerName || 'Retail Walk-in Buyer'}</span>
+              <span className="text-right truncate max-w-[170px] font-semibold">{data.customerName || 'Walk-in buyer'}</span>
             </div>
             <div className="flex justify-between">
               <span>Buyer NTN/CNIC:</span>
-              <span className="font-mono">{fiscal.buyerCNIC || '35201-9876543-1'}</span>
+              <span className="font-mono">
+                {invoiceModel?.buyerIdentifiers.length ? invoiceModel.buyerIdentifiers.join(' · ') : 'Not recorded'}
+              </span>
             </div>
             <div className="flex justify-between text-[9px]">
               <span>Tax Status:</span>
-              <span className="font-bold">{isFilerStatus ? 'Active Filer (ATL)' : 'Unregistered (Further Tax 4%)'}</span>
+              {/* `data.isFiler` is absent on a SalesOrder, and `!== false`
+                  turned that absence into an assertion of "Active Filer (ATL)"
+                  on every receipt. Only claim a status the record states. */}
+              <span className="font-bold">
+                {typeof data.isFiler === 'boolean' ? (data.isFiler ? 'Active Filer (ATL)' : 'Unregistered (Further Tax 4%)') : 'Not recorded'}
+              </span>
             </div>
           </div>
 
@@ -408,8 +438,8 @@ export const PrintDocumentModal: React.FC = () => {
                   const qty = it.quantity || 1;
                   const price = it.unitPrice || 0;
                   const itemSubtotal = qty * price;
-                  const rate = it.taxRate !== undefined ? it.taxRate : 18;
-                  const itemTax = Math.round((itemSubtotal * rate) / 100);
+                  const rate = typeof it.taxRate === 'number' ? it.taxRate : null;
+                  const itemTax = rate === null ? (Number(it.taxAmount) || 0) : Math.round((itemSubtotal * rate) / 100);
                   const itemTotal = itemSubtotal + itemTax;
 
                   return (
@@ -421,8 +451,14 @@ export const PrintDocumentModal: React.FC = () => {
                         <span className="w-16 text-right font-black">{itemTotal.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-[9px] text-slate-700 pl-6">
-                        <span>HS: 5205.1200</span>
-                        <span>GST @ {rate}%: Rs. {itemTax.toLocaleString()}</span>
+                        {/* Was a fixed "HS: 5205.1200" — the yarn HS code —
+                            printed against every product including dyes and
+                            chemicals, and a rate that defaulted to 18% when the
+                            line carried none. */}
+                        <span>HS: {it.hsCode || 'not recorded'}</span>
+                        <span>
+                          {rate === null ? `Tax: Rs. ${itemTax.toLocaleString()}` : `GST @ ${rate}%: Rs. ${itemTax.toLocaleString()}`}
+                        </span>
                       </div>
                     </div>
                   );
@@ -489,8 +525,13 @@ export const PrintDocumentModal: React.FC = () => {
           {/* FBR Verification Footer & Prominent QR Code */}
           <div className="pt-3 pb-1 text-center space-y-2">
             <div className="font-black text-[10px] uppercase tracking-tight text-slate-900">
-              Verify this invoice using the FBR Tax Asaan App
+              Fiscalised QR — scan with the FBR Tax Asaan App
             </div>
+            {/* Honest scope, printed on the document itself. The invoice
+                carries FBR's 16-field format and a SHA-256 document seal, but
+                it becomes verifiable at verify.fbr.gov.pk only once your
+                licensed integrator has fiscalised it. Telling a taxpayer to
+                scan a code we know will not resolve is worse than saying so. */}
 
             <div className="text-[10px] font-mono font-bold bg-slate-100 py-1 px-2 rounded border border-black inline-block">
               FBR Invoice ID: {fiscal.fbrFiscalInvoiceNumber}
@@ -514,10 +555,10 @@ export const PrintDocumentModal: React.FC = () => {
             </div>
 
             <div className="text-[9px] text-slate-700 leading-tight">
-              POS Machine: {fiscal.posId} • SHA-256 Verified
+              POS Machine: {fiscal.posId} • SHA-256 document seal
             </div>
             <div className="text-[9px] font-bold">
-              Save Tax, Build Pakistan • FBR Iris Integrated
+              Save Tax, Build Pakistan
             </div>
             <div className="text-[9px] text-slate-500 pt-1">
               - - - - - - - - CUT HERE - - - - - - - -
@@ -547,17 +588,16 @@ export const PrintDocumentModal: React.FC = () => {
                 )}
                 <div>
                   <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 uppercase">
-                    {activeBranding.companyName}
+                    {sellerName}
                   </h1>
-                  <p className="text-xs text-slate-600 font-medium mt-0.5">{activeBranding.tagline}</p>
+                  {activeBranding.tagline && <p className="text-xs text-slate-600 font-medium mt-0.5">{activeBranding.tagline}</p>}
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-700 font-mono mt-2">
-                    <span><strong>NTN:</strong> {activeBranding.ntnNumber}</span>
+                    <span><strong>NTN:</strong> {sellerNTN}</span>
                     <span>•</span>
-                    <span><strong>STRN:</strong> {activeBranding.strnNumber}</span>
+                    <span><strong>STRN:</strong> {sellerSTRN}</span>
                     <span>•</span>
                     <span><strong>POS ID:</strong> {fiscal.posId}</span>
-                    <span>•</span>
-                    <span>{activeBranding.city}</span>
+                    {activeBranding.city && (<><span>•</span><span>{activeBranding.city}</span></>)}
                   </div>
                 </div>
               </div>
@@ -587,15 +627,23 @@ export const PrintDocumentModal: React.FC = () => {
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Buyer (Billed To)</span>
-                    <div className="font-bold text-sm text-slate-900 mt-0.5">{data.customerName || 'Walk-in Registered Buyer'}</div>
-                    <div className="text-slate-600 mt-1">Status: {isFilerStatus ? 'ATL Active Filer' : 'Unregistered Buyer (+4% Further Tax)'}</div>
-                    <div className="font-mono text-slate-600 mt-0.5">NTN/CNIC: {fiscal.buyerCNIC}</div>
+                    <div className="font-bold text-sm text-slate-900 mt-0.5">{data.customerName || 'Walk-in buyer'}</div>
+                    <div className="text-slate-600 mt-1">
+                      Status: {typeof data.isFiler === 'boolean'
+                        ? (data.isFiler ? 'ATL Active Filer' : 'Unregistered Buyer (+4% Further Tax)')
+                        : 'Not recorded'}
+                    </div>
+                    <div className="font-mono text-slate-600 mt-0.5">
+                      NTN/CNIC: {invoiceModel!.buyerIdentifiers.length
+                        ? invoiceModel!.buyerIdentifiers.join(' · ')
+                        : 'Not recorded'}
+                    </div>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">FBR Fiscal Integration</span>
                     <div className="font-bold text-xs text-indigo-900 mt-0.5">Sales Tax Act 1990 — Section 23 & 3(1)</div>
                     <div className="text-slate-600 mt-1">FBR Fiscal Invoice ID: {fiscal.fbrFiscalInvoiceNumber}</div>
-                    <div className="text-emerald-700 font-bold uppercase mt-0.5">IRIS Annexure-C Synchronized</div>
+                    <div className="text-emerald-700 font-bold uppercase mt-0.5">Annexure-C export ready</div>
                   </div>
                 </div>
 
@@ -616,20 +664,25 @@ export const PrintDocumentModal: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       {data.items && data.items.length > 0 ? (
-                        data.items.map((it: any, idx: number) => {
-                          const itemSubtotal = it.quantity * it.unitPrice;
-                          const itemTax = Math.round((itemSubtotal * (it.taxRate || 18)) / 100);
-                          const itemTotal = itemSubtotal + itemTax;
+                        invoiceModel!.lines.map((l) => {
+                          // Every figure below is read off the line itself. The
+                          // rate cell used to be a hardcoded "18%" beside an
+                          // amount computed from the line's real rate, so a 1%
+                          // or exempt line printed as "18%" — and the HS code
+                          // was 5205.1200 (yarn) for every product, including
+                          // dye and chemicals.
                           return (
-                            <tr key={idx} className="hover:bg-slate-50">
-                              <td className="p-3 text-center border-r border-slate-200 font-mono">{idx + 1}</td>
-                              <td className="p-3 border-r border-slate-200 font-semibold text-slate-900">{it.productName}</td>
-                              <td className="p-3 border-r border-slate-200 text-center font-mono text-slate-600">5205.1200</td>
-                              <td className="p-3 border-r border-slate-200 text-right font-mono font-bold">{it.quantity} {it.unit}</td>
-                              <td className="p-3 border-r border-slate-200 text-right font-mono">Rs. {(Number(it.unitPrice) || 0).toLocaleString()}</td>
-                              <td className="p-3 border-r border-slate-200 text-right font-mono font-bold text-indigo-700">18%</td>
-                              <td className="p-3 border-r border-slate-200 text-right font-mono font-bold">Rs. {(itemTax || 0).toLocaleString()}</td>
-                              <td className="p-3 text-right font-mono font-black text-slate-900">Rs. {(itemTotal || 0).toLocaleString()}</td>
+                            <tr key={l.index} className="hover:bg-slate-50">
+                              <td className="p-3 text-center border-r border-slate-200 font-mono">{l.index}</td>
+                              <td className="p-3 border-r border-slate-200 font-semibold text-slate-900">{l.productName}</td>
+                              <td className="p-3 border-r border-slate-200 text-center font-mono text-slate-600">{l.hsCode || '—'}</td>
+                              <td className="p-3 border-r border-slate-200 text-right font-mono font-bold">{l.quantity} {l.unit}</td>
+                              <td className="p-3 border-r border-slate-200 text-right font-mono">Rs. {l.unitPrice.toLocaleString()}</td>
+                              <td className="p-3 border-r border-slate-200 text-right font-mono font-bold text-indigo-700">
+                                {l.taxRate === null ? '—' : `${l.taxRate}%`}
+                              </td>
+                              <td className="p-3 border-r border-slate-200 text-right font-mono font-bold">Rs. {l.taxAmount.toLocaleString()}</td>
+                              <td className="p-3 text-right font-mono font-black text-slate-900">Rs. {l.lineTotal.toLocaleString()}</td>
                             </tr>
                           );
                         })
@@ -650,7 +703,9 @@ export const PrintDocumentModal: React.FC = () => {
                       <span>FBR Tax Declarations & Annexure-C Compliance</span>
                     </div>
                     <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Verify this invoice using the FBR Tax Asaan App. Valid for statutory input tax credit claims under Sales Tax Act 1990 read with Sales Tax Rules 2006.
+                      This invoice carries FBR&apos;s 16-field QR payload and a SHA-256 document seal.
+                      Verification against the FBR registry begins once your licensed integrator has
+                      fiscalised it — that transmission is not performed by this application.
                     </p>
                     <div className="flex items-center gap-4 pt-2">
                       <div className="border border-slate-300 rounded p-1 bg-white shadow-xs">
@@ -670,7 +725,7 @@ export const PrintDocumentModal: React.FC = () => {
                         <div className="font-bold text-slate-900">FBR Fiscal QR Code</div>
                         <div>POS ID: {fiscal.posId}</div>
                         <div>Fiscal #: {fiscal.fbrFiscalInvoiceNumber}</div>
-                        <div className="text-[9px] text-emerald-700 font-bold">SHA-256 Digitally Sealed</div>
+                        <div className="text-[9px] text-emerald-700 font-bold">SHA-256 document seal</div>
                       </div>
                     </div>
                   </div>
@@ -681,8 +736,8 @@ export const PrintDocumentModal: React.FC = () => {
                       <span className="font-bold">Rs. {subtotalValue.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-indigo-700 font-bold">
-                      <span>General Sales Tax (18% GST):</span>
-                      <span>Rs. {fiscal.gstAmount.toLocaleString()}</span>
+                      <span>Sales Tax:</span>
+                      <span>Rs. {invoiceModel!.totals.taxAmount.toLocaleString()}</span>
                     </div>
                     {fiscal.furtherTaxAmount > 0 && (
                       <div className="flex justify-between text-amber-700 font-bold">
@@ -690,10 +745,23 @@ export const PrintDocumentModal: React.FC = () => {
                         <span>Rs. {fiscal.furtherTaxAmount.toLocaleString()}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-slate-600 text-[11px] border-t border-slate-200 pt-1">
-                      <span>WHT Sec 153(1)(a) Deduction (4.5%):</span>
-                      <span>Rs. {Math.round(subtotalValue * 0.045).toLocaleString()}</span>
-                    </div>
+                    {invoiceModel!.wht ? (
+                      <div className="flex justify-between text-slate-600 text-[11px] border-t border-slate-200 pt-1">
+                        <span>WHT Sec 153(1)(a) Deduction ({invoiceModel!.wht.rate}%):</span>
+                        <span>Rs. {invoiceModel!.wht.amount.toLocaleString()}</span>
+                      </div>
+                    ) : (
+                      // `SalesOrder` carries no withholding field, so this line
+                      // used to print a hardcoded 4.5% on every invoice. That
+                      // is the ATL rate only — a non-ATL supplier is 9% under
+                      // the same section. Printing a constant here stated a
+                      // fact the record never supported, so the line is now
+                      // shown only when a rate was actually computed.
+                      <div className="flex justify-between text-slate-500 text-[11px] border-t border-slate-200 pt-1">
+                        <span>WHT Sec 153(1)(a):</span>
+                        <span>Not deducted on this invoice</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm font-black text-slate-900 border-t-2 border-slate-900 pt-2">
                       <span>Grand Total Payable (PKR):</span>
                       <span className="text-emerald-700">Rs. {grandTotalValue.toLocaleString()}</span>
@@ -709,15 +777,17 @@ export const PrintDocumentModal: React.FC = () => {
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Vendor / Mill</span>
-                    <div className="font-bold text-sm text-slate-900 mt-0.5">{data.supplierName || 'Primary Supplier'}</div>
-                    <div className="text-slate-600 mt-1">Delivery Destination: Central Factory Warehouse</div>
-                    <div className="font-mono text-slate-600 mt-0.5">Payment Terms: Net 30 Days</div>
+                    <div className="font-bold text-sm text-slate-900 mt-0.5">{data.supplierName || 'Not recorded'}</div>
+                    {/* Was "Central Factory Warehouse" and "Net 30 Days" on
+                        every purchase order, whether or not the PO said so. */}
+                    {data.deliveryAddress && <div className="text-slate-600 mt-1">Delivery Destination: {data.deliveryAddress}</div>}
+                    <div className="font-mono text-slate-600 mt-0.5">Payment Terms: {data.paymentTerms || 'Not recorded'}</div>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Procurement Details</span>
                     <div className="font-mono font-bold text-slate-900 mt-0.5">PO Ref: {data.poNumber}</div>
                     <div className="text-slate-600 mt-1">Delivery Status: {data.status === 'received' ? 'Delivered & Received' : 'Pending Vendor Dispatch'}</div>
-                    <div className="text-slate-600 mt-0.5">Issued By: {data.createdBy || 'Managing Director'}</div>
+                    <div className="text-slate-600 mt-0.5">Issued By: {data.createdBy || currentUser?.name || 'Not recorded'}</div>
                   </div>
                 </div>
 
@@ -782,7 +852,7 @@ export const PrintDocumentModal: React.FC = () => {
                     <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Voucher Reference</span>
                     <div className="font-mono font-bold text-slate-900 mt-0.5 text-sm">{data.voucherNumber || data.id}</div>
                     <div className="text-slate-600 mt-1">Date: {data.date || new Date().toISOString().slice(0, 10)}</div>
-                    <div className="text-slate-600 mt-0.5">Prepared By: {data.createdBy || currentUser?.name || 'Accounts Dept'}</div>
+                    <div className="text-slate-600 mt-0.5">Prepared By: {data.createdBy || currentUser?.name || 'Not recorded'}</div>
                   </div>
                 </div>
 

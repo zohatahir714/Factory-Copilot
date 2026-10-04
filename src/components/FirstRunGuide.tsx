@@ -34,6 +34,11 @@ export const FirstRunGuide: React.FC = () => {
   const hasSuppliers = suppliers.length > 0;
   const hasSales = salesOrders.length > 0;
 
+  // Once the ledger is set up this guide has nothing left to say. The demo
+  // reset/seed controls used to be rendered here unconditionally, even on a
+  // fully-populated dashboard; they now live in Settings → Supabase & Cloud DB,
+  // because "Reset & Seed" wipes the cloud ledger and should not sit one
+  // misclick from the figures a judge is reading.
   if (hasProducts && hasSuppliers && hasSales) return null;
 
   const steps: StepDef[] = [
@@ -72,7 +77,8 @@ export const FirstRunGuide: React.FC = () => {
   const completed = steps.filter(s => s.done).length;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-200/70 dark:border-indigo-800/60 p-5 shadow-xs animate-fadeIn">
+    <>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-200/70 dark:border-indigo-800/60 p-5 shadow-xs animate-fadeIn">
       {/* Header row */}
       <div className="flex items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2.5">
@@ -137,6 +143,7 @@ export const FirstRunGuide: React.FC = () => {
           </div>
         ))}
       </div>
-    </div>
+      </div>
+    </>
   );
 };

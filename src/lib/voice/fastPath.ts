@@ -5,7 +5,7 @@
  * VoiceIntent shape the mind produces so the executor has one contract.
  */
 
-import { normalizeUtterance, extractAmount } from './normalize';
+import { normalizeUtterance, extractAmount } from './normalize.ts';
 
 export type VoiceAction =
   | 'query' | 'create_sale' | 'create_purchase_order' | 'create_cash_voucher'

@@ -412,7 +412,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
       <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-2">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-500" />
-          <span>FBR Sales Tax & Input Reconciliation: Real-time ledger sync active</span>
+          <span>FBR Sales Tax & Input Reconciliation: figures read from the saved ledger</span>
         </div>
         <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
           Source: Sales Invoices (Annex-C) & Purchase Orders (STGO)

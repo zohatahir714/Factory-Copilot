@@ -16,6 +16,27 @@ import {
   ComplianceRAGSource
 } from '../types';
 
+/**
+ * The single owner of the receivables figure.
+ *
+ * Both surfaces that report money owed — the dashboard KPI and the copilot's
+ * business summary — call this. They previously did not: the summary summed
+ * `Customer.outstandingReceivables` and the dashboard summed unpaid SALES
+ * ORDERS, so the same ledger showed Rs. 7.79 L in one place and Rs. 0 in the
+ * other. Two derivations of one number is one too many; a finance manager
+ * checks receivables first, and a product that disagrees with itself about it
+ * has nothing else left to defend.
+ *
+ * The definition is the customer balance field, because that is the field the
+ * rest of the ledger maintains — `executeRecordSale` increments it when an
+ * invoice is raised. Note that the demo factory seeds every customer at zero
+ * rather than deriving it from the unpaid invoices it also creates, so a
+ * freshly seeded ledger legitimately reads Rs. 0 until a sale is recorded.
+ */
+export function totalOutstandingReceivables(customers: Customer[]): number {
+  return customers.reduce((sum, c) => sum + (c.outstandingReceivables || 0), 0);
+}
+
 export interface DatabaseState {
   products: Product[];
   suppliers: Supplier[];
@@ -621,7 +642,10 @@ export function prepareRecordSaleConfirmation(
   const taxRate = 18;
   const taxAmount = Math.round((subtotal * taxRate) / 100);
   const totalAmountPKR = subtotal + taxAmount;
-  const nextInvNum = `INV-2024-${String(40 + state.salesOrders.length + 1).padStart(4, '0')}`;
+  // The year is read, not typed. "INV-2024-0047" was being issued in 2026,
+  // which puts a two-year-old date on every tax invoice the copilot raises.
+  const invYear = new Date().getFullYear();
+  const nextInvNum = `INV-${invYear}-${String(40 + state.salesOrders.length + 1).padStart(4, '0')}`;
 
   const confirmation: ConfirmationPayload = {
     id: `conf_${Date.now()}`,
@@ -638,7 +662,10 @@ export function prepareRecordSaleConfirmation(
       unit: product.unit,
       unitPricePKR: unitPrice,
       subtotalPKR: subtotal,
-      gstRate: '18% Standard GST (FBR Section 3(1))',
+      // Numeric, not a sentence. The confirmation card used to print
+      // "Gst Rate: 18% Standard GST (FBR Section 3(1))" next to "Gst Rate
+      // Percent: 18%" — the same fact twice, one of them formatted as money.
+      gstRatePercent: taxRate,
       gstAmountPKR: taxAmount,
       totalAmountPKR,
       currentStock: product.currentStock,
@@ -704,7 +731,10 @@ export function executeRecordSale(
     throw new Error('Database integrity check failed: Stock insufficient at commit time.');
   }
 
-  const nextInvNum = `INV-2024-${String(40 + state.salesOrders.length + 1).padStart(4, '0')}`;
+  // The year is read, not typed. "INV-2024-0047" was being issued in 2026,
+  // which puts a two-year-old date on every tax invoice the copilot raises.
+  const invYear = new Date().getFullYear();
+  const nextInvNum = `INV-${invYear}-${String(40 + state.salesOrders.length + 1).padStart(4, '0')}`;
   const newOrderId = `so_${Date.now()}`;
   const newStock = targetProduct.currentStock - params.quantity;
 
@@ -882,7 +912,7 @@ export function toolGetBusinessSummary(state: DatabaseState): {
   const pendingPOs = state.purchaseOrders.filter(p => p.status === 'pending');
 
   // Receivables
-  const outstandingReceivablesPKR = state.customers.reduce((sum, c) => sum + c.outstandingReceivables, 0);
+  const outstandingReceivablesPKR = totalOutstandingReceivables(state.customers);
 
   // Inventory value
   const totalInventoryValuePKR = state.products.reduce((sum, p) => sum + p.currentStock * p.costPrice, 0);
@@ -922,11 +952,18 @@ export function executeCreateSupplier(
     id: `sup_${Date.now()}`,
     organizationId: state.suppliers[0]?.organizationId || 'org_sme_01',
     name: params.name.trim(),
-    city: params.city?.trim() || 'Pakistan',
+    // NOTHING IS INVENTED HERE. Every one of these fields used to carry a
+    // default that was then displayed as if the supplier had agreed to it: the
+    // city "Pakistan", a 3-day lead time and "Net 30 Days" terms, for any
+    // supplier whose name alone was enough to create the record. A blank field
+    // is honest; a plausible default is a fabrication that drives purchasing.
+    // The reorder engine already treats a 0 lead time as its own 7-day fallback
+    // (`Number(supplier.leadTimeDays) || 7`), so this does not skew proposals.
+    city: params.city?.trim() || '',
     phone: params.phone?.trim() || '',
     email: params.email?.trim() || '',
-    leadTimeDays: params.leadTimeDays || 3,
-    paymentTerms: params.paymentTerms || 'Net 30 Days',
+    leadTimeDays: params.leadTimeDays ?? 0,
+    paymentTerms: params.paymentTerms || '',
     createdAt: new Date().toISOString()
   };
   return {
@@ -956,10 +993,14 @@ export function executeCreateCustomer(
     id: `cust_${Date.now()}`,
     organizationId: state.customers[0]?.organizationId || 'org_sme_01',
     name: params.name.trim(),
-    city: params.city?.trim() || 'Pakistan',
+    // As with the supplier city: an unset city is blank, not "Pakistan".
+    city: params.city?.trim() || '',
     phone: params.phone?.trim() || '',
     email: params.email?.trim() || '',
-    creditLimit: params.creditLimit || 500000,
+    // As with the supplier city: no invented 500,000. `creditLimit` is display
+    // only — it gates no sale — so an unset limit reading as 0 is both safe and
+    // true, where the old default asserted a commercial term nobody agreed to.
+    creditLimit: params.creditLimit ?? 0,
     outstandingReceivables: params.outstandingReceivables || 0,
     createdAt: new Date().toISOString()
   };

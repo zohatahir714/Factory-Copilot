@@ -1,0 +1,409 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "PakERP Cloud Suite — Hackathon 2 Target Architecture",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1290,
+      450
+    ],
+    "views": [
+      {
+        "id": "shipped",
+        "label": "Shipped today",
+        "focus": [
+          "appcontext",
+          "reorder",
+          "anomaly",
+          "supabase"
+        ],
+        "note": "Cloud-first data plus Zoha's reorder and anomaly engines, both test-covered and green."
+      },
+      {
+        "id": "autonomy",
+        "label": "The autonomy gap",
+        "focus": [
+          "supervisor",
+          "reorder",
+          "anomaly",
+          "approval",
+          "audit"
+        ],
+        "note": "The agents compute proposals, but nothing ticks, collects, or asks a human to approve them."
+      },
+      {
+        "id": "grounding",
+        "label": "The grounding gap",
+        "focus": [
+          "rag_gate",
+          "corpus",
+          "appcontext",
+          "groq"
+        ],
+        "note": "Keyword matching with hardcoded confidence stands in for real retrieval and a refusal gate."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "app_shell",
+      "type": "frontend",
+      "label": "React app shell",
+      "sublabel": "Vite 6 · Tailwind 4",
+      "pos": [
+        80,
+        70
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "appcontext",
+      "type": "frontend",
+      "label": "AppContext",
+      "sublabel": "auth · state · chat · voice",
+      "tag": "2,129 lines",
+      "pos": [
+        315,
+        70
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "supervisor",
+      "type": "backend",
+      "label": "Supervisor runtime",
+      "sublabel": "proposes, never writes",
+      "tag": "NOT BUILT",
+      "pos": [
+        550,
+        70
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "rag_gate",
+      "type": "backend",
+      "label": "Grounded RAG gate",
+      "sublabel": "refuses below 0.6",
+      "tag": "NOT BUILT",
+      "pos": [
+        785,
+        70
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "corpus",
+      "type": "database",
+      "label": "Statutory corpus",
+      "sublabel": "chunked acts, cited",
+      "tag": "NOT BUILT",
+      "pos": [
+        1020,
+        70
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "groq",
+      "type": "external",
+      "label": "Groq API",
+      "sublabel": "behind a seam",
+      "tag": "must stay optional",
+      "pos": [
+        80,
+        194
+      ],
+      "size": [
+        180,
+        62
+      ]
+    },
+    {
+      "id": "reorder",
+      "type": "backend",
+      "label": "Reorder agent",
+      "sublabel": "moving-average demand",
+      "tag": "shipped · 14 tests",
+      "pos": [
+        315,
+        194
+      ],
+      "size": [
+        180,
+        62
+      ]
+    },
+    {
+      "id": "anomaly",
+      "type": "backend",
+      "label": "Anomaly agent",
+      "sublabel": "FBR citations, real engine",
+      "tag": "shipped · 18 tests",
+      "pos": [
+        550,
+        194
+      ],
+      "size": [
+        180,
+        62
+      ]
+    },
+    {
+      "id": "approval",
+      "type": "frontend",
+      "label": "Approval queue",
+      "sublabel": "human approval required",
+      "tag": "NOT BUILT",
+      "pos": [
+        785,
+        194
+      ],
+      "size": [
+        180,
+        62
+      ]
+    },
+    {
+      "id": "fbr",
+      "type": "backend",
+      "label": "FBR payload builder",
+      "sublabel": "SN001 · SN008 · SN009",
+      "tag": "NOT BUILT",
+      "pos": [
+        1020,
+        194
+      ],
+      "size": [
+        180,
+        62
+      ]
+    },
+    {
+      "id": "supabase",
+      "type": "cloud",
+      "label": "Supabase",
+      "sublabel": "auth + 10 tables",
+      "tag": "shipped · RLS open",
+      "pos": [
+        550,
+        318
+      ],
+      "size": [
+        180,
+        62
+      ]
+    },
+    {
+      "id": "audit",
+      "type": "database",
+      "label": "Agent audit trail",
+      "sublabel": "agent · confidence · cite",
+      "tag": "NOT BUILT",
+      "pos": [
+        785,
+        318
+      ],
+      "size": [
+        180,
+        62
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "PakERP Cloud Suite",
+      "wraps": [
+        "app_shell",
+        "appcontext",
+        "supervisor",
+        "rag_gate",
+        "corpus",
+        "groq",
+        "reorder",
+        "anomaly",
+        "approval",
+        "fbr",
+        "supabase",
+        "audit"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "shell-to-context",
+      "from": "app_shell",
+      "to": "appcontext",
+      "label": "render",
+      "labelAt": [
+        287,
+        84
+      ]
+    },
+    {
+      "id": "context-to-supervisor",
+      "from": "appcontext",
+      "to": "supervisor",
+      "label": "30s tick",
+      "variant": "emphasis",
+      "labelAt": [
+        522,
+        84
+      ]
+    },
+    {
+      "id": "supervisor-to-rag",
+      "from": "supervisor",
+      "to": "rag_gate",
+      "label": "grounds",
+      "labelAt": [
+        757,
+        84
+      ]
+    },
+    {
+      "id": "rag-to-corpus",
+      "from": "rag_gate",
+      "to": "corpus",
+      "label": "retrieves",
+      "variant": "dashed",
+      "labelAt": [
+        992,
+        84
+      ]
+    },
+    {
+      "id": "context-to-groq",
+      "from": "appcontext",
+      "to": "groq",
+      "label": "optional",
+      "variant": "dashed",
+      "labelAt": [
+        240,
+        146
+      ]
+    },
+    {
+      "id": "supervisor-to-reorder",
+      "from": "supervisor",
+      "to": "reorder",
+      "label": "propose",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        520,
+        146
+      ]
+    },
+    {
+      "id": "supervisor-to-anomaly",
+      "from": "supervisor",
+      "to": "anomaly",
+      "label": "propose",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        700,
+        146
+      ]
+    },
+    {
+      "id": "supervisor-to-approval",
+      "from": "supervisor",
+      "to": "approval",
+      "label": "proposals",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        870,
+        146
+      ]
+    },
+    {
+      "id": "corpus-to-fbr",
+      "from": "corpus",
+      "to": "fbr",
+      "label": "scenarios",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        1160,
+        146
+      ]
+    },
+    {
+      "id": "approval-to-audit",
+      "from": "approval",
+      "to": "audit",
+      "label": "append outcome",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        940,
+        286
+      ]
+    },
+    {
+      "id": "approval-to-db",
+      "from": "approval",
+      "to": "supabase",
+      "label": "replay on approve",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        640,
+        286
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Verified green",
+      "items": [
+        "npm test 32 pass · lint exit 0 · build exit 0",
+        "Supabase-only auth and data",
+        "Zoha's reorder and anomaly engines, test-covered"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Blocking the demo",
+      "items": [
+        "understand() throws on any query the fast path misses",
+        "Dashboard opens on all zeros — no demo data",
+        "voice-fixture-test.mjs still exits 127",
+        "No runtime, so nothing is ever proactive"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Credibility rules",
+      "items": [
+        "Demo must run with zero API keys",
+        "Bundle leaks one user-facing 'Simulated' string",
+        "Say 'payload for your licensed integrator', never 'we file'",
+        "11 RLS policies still read USING (true)"
+      ]
+    }
+  ]
+}
