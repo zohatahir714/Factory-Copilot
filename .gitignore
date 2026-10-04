@@ -7,5 +7,10 @@ coverage/
 .env*
 !.env.example
 supabase/.temp/
+# Editor/agent tooling installed into the workspace — not part of the app.
+# These appeared mid-project and would otherwise be swept in by `git add -A`.
+.agents/
+.claude/
+skills-lock.json
 .freebuff/
 *.zip
