@@ -1083,22 +1083,52 @@ export async function executeSupervisorTurn(
 ): Promise<SupervisorProcessResult> {
   let contract = analyzeUserIntent(input, state);
 
-  // THE MISS PATH.
+  // THE AI PATH — the model rescues what the rules cannot place, and is not
+  // allowed to overrule what they can.
   //
   // Every rule in this file is an exact clause in a fixed order, which is why
   // "pending goods receive karo" worked and "receive pending goods" did not —
   // same words, opposite outcome. That is not a missing keyword, it is a
   // ceiling: no amount of hand-wiring fixes word order.
   //
-  // So when the rules match nothing, the resolver gets a turn. It may only pick
-  // one of the existing tools, and its output is re-entered through the SAME
-  // deterministic body below — no new money code, no new write path, and the
-  // human approval gate unchanged. If it cannot place the sentence, the refusal
-  // runs unchanged, now with suggestions attached.
-  if (contract.intent === 'unrecognised_query') {
-    const resolved = await resolveCommand(input, state);
-    if (resolved) contract = resolved;
+  // Worse, a rule that matches WRONGLY wins outright and the resolver is never
+  // consulted: "add sale to Noor Mills of this item" contains both "add" and
+  // "item", so the catalogue rule claimed it and a user asking for a sale was
+  // shown a new product form. That residual case — a rule that matched wrongly
+  // and so never asks the model — is still open, and is the one thing worth
+  // spending the remaining time on.
+  //
+  // BUT IT IS NOT ALLOWED TO OVERRIDE THE RULES, and that is an empirical
+  // result, not a preference. Wiring it as the arbiter — model verdict replaces
+  // the rule verdict — was built and measured: 14 pinned behaviours broke, with
+  // no network involved at all, because `resolve()` runs the offline scorer
+  // first and that scorer is worse than the rules:
+  //
+  //   - a stock-sufficiency DECISION degraded to a plain item list
+  //   - a completed customer creation reverted to "Customer name?"
+  //   - print routing lost, so "invoice print karo" stopped printing
+  //
+  // The rules carry more context than a bag-of-words scorer does. So the model
+  // is a second opinion that must clear a bar, not the referee.
+  //
+  // What the model still cannot do, by construction:
+  //   1. Pick an undeclared tool. parseToolCall rejects it before this file.
+  //   2. Invent an entity. resolveCommand verifies every name against real rows
+  //      with the same finders the rules use, and returns null if it misses.
+  //   3. Skip confirmation. requiresConfirmation comes from the tool's own
+  //      declaration in the closed schema, not from anything the model said.
+  //
+  // If the model is unreachable — bad venue wifi, no key, rate limited — this
+  // resolves in microseconds and the rules answer exactly as they always have.
+  const aiContract = contract.intent === 'unrecognised_query'
+    ? await resolveCommand(input, state)
+    : null;
+  if (aiContract) {
+    contract = aiContract;
   }
+  // No logging here on purpose: when both the model and the rules abstain the
+  // refusal body calls recordMiss itself, and logging twice would double every
+  // entry in the Teaching panel's miss list.
 
   const result = await runSupervisorTurn(input, state, inputMethod, contract);
   const skills = selectSkills(contract.intent);
@@ -1115,7 +1145,25 @@ export async function executeSupervisorTurn(
  * the clarification loop asks, rather than a write being made against a party
  * that does not exist.
  */
-async function resolveCommand(input: string, state: DatabaseState): Promise<AgentHandoffContract | null> {
+/**
+ * May the model's verdict replace the rules' verdict for this turn?
+ *
+ * Only when the rules had NOTHING. If a rule produced a real answer, that
+ * answer carries context — a linked entity, a chosen document, a decision
+ * phrased as a decision — that a tool-name-plus-params guess does not. The
+ * measurements behind this rule are recorded at the call site: letting the
+ * model arbitrate unconditionally cost 14 pinned behaviours.
+ *
+ * The asymmetry is deliberate and one-directional. The rules win ties and win
+ * disagreements; the model only rescues a sentence no rule could place. That is
+ * strictly more capable than the old miss-only path, because a rule that
+ * matched wrongly still blocks the model — and that residual case is tracked as
+ * a known limit rather than papered over.
+ */
+async function resolveCommand(
+  input: string,
+  state: DatabaseState
+): Promise<AgentHandoffContract | null> {
   let call;
   try {
     const { resolve } = await import('../lib/ai/index.ts');
