@@ -830,3 +830,105 @@ describe('no answer ever leaks a placeholder', () => {
     });
   }
 });
+/**
+ * WORD ORDER, NOT WORD LIST.
+ *
+ * WHY THIS SUITE
+ *   Three phrasings a customer actually said on stage were answered wrongly,
+ *   and none of them was a missing word — every word in them was already in the
+ *   rule lists. They were wrong because the rules read the sentence in one
+ *   fixed order:
+ *
+ *     "add sale to Noor Mills of this item"  -> add_product  (catalogue form)
+ *     "is item ki sale Noor Mills ko kar do"  -> REFUSED
+ *     "supplier add karo"                     -> miss path, not the rule
+ *
+ *   The first is the dangerous one. It contains "add" and "item", so the
+ *   catalogue rule claimed it and the user asking for a sale was shown a new
+ *   product form. A command that silently does something else is worse than one
+ *   that is rejected, which is why this suite asserts the intent, not just that
+ *   the reply is non-empty.
+ *
+ *   Fixing the routing then exposed a second defect that had been hidden
+ *   BECAUSE the phrasings never reached those rules: "supplier add karo"
+ *   reduces to the bare noun "supplier", and a party literally named
+ *   "supplier" was written to the ledger with a real-looking record id. These
+ *   tests pin both halves, because fixing one exposed the other.
+ */
+describe('word order does not change the command', () => {
+  const SALES: [string, string][] = [
+    ['add sale to Noor Mills of this item', 'add + item must not read as add_product'],
+    ['is item ki sale Noor Mills ko kar do', 'noun-first sale with a trailing verb'],
+    ['Noor Mills ko sale add karo', 'verb-last sale'],
+    ['sale of 50 kg cotton yarn to Noor Mills', 'sale of <item>']
+  ];
+
+  for (const [phrase, why] of SALES) {
+    it(`routes to record_sale: "${phrase}"`, () => {
+      const got = analyzeUserIntent(phrase, demoState()).intent;
+      assert.equal(got, 'record_sale', `${phrase} (${why}) routed to ${got}`);
+    });
+  }
+
+  it('does not steal a compliance question that mentions a sale', () => {
+    // SALE_CUE excludes "sale tax"/"sales tax" on purpose: those are RAG
+    // questions about a rate, not instructions to sell something.
+    for (const phrase of ['what is the sales tax rate', 'GST on sale in Pakistan']) {
+      const got = analyzeUserIntent(phrase, demoState()).intent;
+      assert.notEqual(got, 'record_sale', `"${phrase}" must not be read as a sale`);
+      assert.notEqual(got, 'add_product', `"${phrase}" must not be read as a catalogue edit`);
+    }
+  });
+});
+
+describe('a bare entity noun is not a party name', () => {
+  // The trailing-verb strip turns "supplier add karo" into "supplier". If that
+  // word is accepted as the name, the ledger gains a supplier called "supplier".
+  for (const phrase of ['supplier add karo', 'vendor create karo', 'customer add karo']) {
+    it(`asks for the name instead of inventing one: "${phrase}"`, () => {
+      const c = analyzeUserIntent(phrase, demoState());
+      const e = c.entities as { name?: string; missing?: string[] };
+      assert.equal(e.name, undefined, `"${phrase}" invented the name "${e.name}"`);
+      assert.ok(
+        (e.missing || []).includes('name'),
+        `"${phrase}" must ask for a name, missing=${JSON.stringify(e.missing)}`
+      );
+    });
+  }
+
+  it('still accepts a real name after the verb', async () => {
+    const c = analyzeUserIntent('supplier add karo Nova Chemicals', demoState());
+    const e = c.entities as { name?: string };
+    assert.equal(e.name, 'Nova Chemicals', 'the party name was lost, not just a verb');
+  });
+});
+
+describe('every module can be opened by name', () => {
+  // Two of the twelve modules — sales and the copilot — had no NAVIGABLE entry
+  // at all, and the inventory entry had no "products"/"materials" synonym, so
+  // "go to sales" and "go to products" were the two most natural navigation
+  // requests in the app and both were refused. A screen you cannot open by the
+  // name people use for it is a broken screen.
+  const NAV: [string, string][] = [
+    ['go to products', 'inventory'],
+    ['open inventory', 'inventory'],
+    ['open materials', 'inventory'],
+    ['go to sales', 'sales'],
+    ['open the copilot', 'copilot'],
+    ['open customers', 'customers'],
+    ['open suppliers', 'suppliers'],
+    ['open dashboard', 'dashboard'],
+    ['open settings', 'settings']
+  ];
+
+  for (const [phrase, module] of NAV) {
+    it(`"${phrase}" opens ${module}`, () => {
+      const c = analyzeUserIntent(phrase, demoState());
+      assert.equal(c.intent, 'navigate', `"${phrase}" routed to ${c.intent}`);
+      assert.equal(
+        (c.entities as { module?: string }).module, module,
+        `"${phrase}" opened the wrong module`
+      );
+    });
+  }
+});

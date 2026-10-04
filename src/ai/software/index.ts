@@ -44,7 +44,11 @@ export const MODULE_REGISTRY: readonly SoftwareModule[] = [
     id: 'inventory',
     label: 'Inventory & Materials',
     does: 'Every SKU with on-hand quantity, reorder level and price.',
-    matches: 'inventory|materials|stock list|warehouse|godown',
+    // "products" belongs here, not as a module of its own: the catalogue screen IS
+  // the inventory screen. Without it "go to products" and "open products" — the
+  // two most natural ways to ask for that screen — matched no module at all and
+  // were refused, which reads as a broken copilot rather than a missing synonym.
+  matches: 'inventory|materials|products?|stock list|warehouse|godown',
     skills: ['ledger_reader', 'stock_sufficiency']
   },
   {

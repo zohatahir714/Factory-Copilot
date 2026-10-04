@@ -168,10 +168,18 @@ const NAVIGABLE: ReadonlyArray<readonly [string, RegExp]> = [
   ['cashbook', /\bcashbook\b|\bcash book\b|کیش بک/],
   ['dashboard', /\bdashboard\b|\bhome page\b|\boverview\b|ڈیش بورڈ/],
   ['compliance', /\bcompliance\b|کمپلائنس/],
-  ['inventory', /\binventory\b|انوینٹری|مواد کی فہرست/],
+  // "products"/"materials" are how people actually ask for this screen. The
+  // catalogue and the stock list are the same screen, so the synonyms point at
+  // the same module rather than adding a fake one.
+  ['inventory', /\binventory\b|\bproducts?\b|\bmaterials?\b|انوینٹری|مواد کی فہرست/],
   ['customers', /\bcustomers\b|\bclients\b|کسٹمر/],
   ['suppliers', /\bsuppliers\b|\bvendors\b|سپلائر/],
   ['purchase', /\bpurchase orders?\b|\bpo list\b|خریداری/],
+  // Two of the twelve modules had no entry at all, so "go to sales" and "open
+  // the copilot" were the only modules in the app that could not be opened by
+  // name. Every other screen was reachable; these two were not.
+  ['sales', /\bsales\b|\bsale invoices?\b|فروخت/],
+  ['copilot', /\bcopilot\b|\bassistant\b|\bchat\b/],
   ['settings', /\bsettings\b|سیٹنگز/]
 ];
 
@@ -197,6 +205,20 @@ const PRINTABLE: ReadonlyArray<readonly [string, RegExp]> = [
   ['cash_voucher', /\bcash voucher\b|\bvoucher\b|واؤچر/],
   ['inventory_report', /\bstock report\b|\binventory report\b|\bstock list\b|اسٹاک رپورٹ/]
 ];
+
+/**
+ * What makes a sentence a SALE rather than a catalogue edit or a purchase.
+ *
+ * Held as one shared predicate because "sale" appears in three different
+ * orders in real speech — "add sale to X", "X ko sale karo", "sale of 50 kg" —
+ * and each order has to win the same argument against the other rules. Keeping
+ * the list in one place is what stops a cue being added to the sale rule while
+ * a competing rule still claims the same sentence.
+ *
+ * Deliberately does NOT match "sale tax", "sales tax" or "sale return", which
+ * are compliance questions and must stay on the RAG path.
+ */
+const SALE_CUE = /(\bsale\b(?!\s*(tax|order|return|price|rate))|\bsell\b|\bbech\b|\binvoice\b|\bdispatch\b|سیل|انوئس|انویس|فروخت)/i;
 
 /**
  * Parses user input in English or Roman Urdu, extracts domain and entities
@@ -399,9 +421,25 @@ export function analyzeUserIntent(input: string, state?: DatabaseState): AgentHa
     // "شامل کریں" alone means "add" and must not steal "نیا کسٹمر شامل کریں",
     // which is rule 2 — a supplier rule matching a customer prompt writes a
     // supplier row the user never asked for.
-    (lower.includes('شامل') && lower.includes('کریں') && !lower.includes('کسٹمر') && !lower.includes('گاہک'))
+    (lower.includes('شامل') && lower.includes('کریں') && !lower.includes('کسٹمر') && !lower.includes('گاہک')) ||
+    // ORDER-INDEPENDENT SUPPLIER. The list above is all noun-FIRST
+    // ("add supplier", "supplier banao"); "supplier add karo" is verb-LAST and
+    // matched none of them, so it fell to the miss path. The reply was right
+    // but it was reached by the resolver rather than the rule, which also
+    // filed the phrase as a miss and offered to teach it — teaching the user
+    // something the copilot already knew. The customer rule below must keep
+    // its own equivalent, and neither may fire on the other's noun.
+    (/\b(supplier|vendor)\b/.test(lower) &&
+      /\b(add|new|create|register|banayein|banao)\b/.test(lower) &&
+      !lower.includes('customer') && !lower.includes('کسٹمر') && !lower.includes('گاہک'))
   ) {
     let name = effectiveInput.replace(/add\s+supplier|new\s+supplier|register\s+supplier|naya\s+supplier|supplier\s+banao|add\s+vendor/i, '').trim();
+    // Same verb-LAST problem on the name side: for "supplier add karo" the strip
+    // above removes nothing, and the whole sentence — verb included — was about
+    // to be written into the ledger as a party called "supplier add karo". Strip
+    // the noun+verb shell in either order before deciding what the name is.
+    name = name.replace(/^\s*(supplier|vendor)\s+(add|new|create|register|banao|banayein)\b/i, '');
+    name = name.replace(/\b(add|new|create|register|banao|banayein)\s+(supplier|vendor)\b/i, '');
     // Strip the Urdu lead-in so "نیا سپلائر شامل کریں Nova Chemicals" registers
     // "Nova Chemicals" rather than the whole sentence.
     name = name.replace(/^[\s\S]*?(?:شامل\s*کر[یی]ں|شامل\s*کریں|کریں)\s*/, '');
@@ -409,8 +447,32 @@ export function analyzeUserIntent(input: string, state?: DatabaseState): AgentHa
     // "new supplier add karo" leaves the verb behind as the party name, which
     // wrote a supplier called "add karo" into the ledger. A name that is only a
     // verb is no name at all.
-    if (/^(add|karo|kro|do|create|banao|banayein|register|new|naya)/i.test(name) && name.split(/\s+/).length <= 2) {
+    if (/^(add|karo|kro|do|create|banao|banayein|register|new|naya)\b/i.test(name) && name.split(/\s+/).length <= 2) {
       name = '';
+    }
+    // The trailing-verb strip at the top of this function reduces a verb-LAST
+    // phrasing to the bare ENTITY NOUN: "supplier add karo" becomes
+    // "supplier". The verb guard above cannot catch that — "supplier" is not a
+    // verb — so a party literally called "supplier" was written into the ledger
+    // with a record ID that looks real, and the reply announced it as added.
+    // A name made only of the word naming the thing being added is the command
+    // echoed back, not a name. Same answer as a bare verb: ask.
+    if (/^(supplier|vendor|customer|client)$/i.test(name.trim())) {
+      name = '';
+    }
+    // The trailing-verb strip removes a verb AND everything after it, so
+    // "supplier add karo Nova Chemicals" was reduced to "supplier" and the one
+    // part the user cared about — the name — was thrown away with it. When the
+    // strips above leave nothing, recover the name from the ORIGINAL utterance
+    // by deleting the command WORDS rather than the text following them.
+    // Nothing is invented: every surviving word was typed by the user, and an
+    // utterance that is only commands still recovers to nothing.
+    if (!name) {
+      const recovered = input
+        .replace(/\b(supplier|vendor|customer|client|add|new|naya|create|register|banao|banayein|karo|kro|kar|do)\b/gi, ' ')
+        .replace(/[،,\s]+/g, ' ')
+        .trim();
+      if (recovered) name = recovered;
     }
     // NO DEFAULT CITY. This block used to seed a supplier described only by name
     // with the country name as its city, then print that back as "City / Hub"
@@ -447,7 +509,15 @@ export function analyzeUserIntent(input: string, state?: DatabaseState): AgentHa
     lower.includes('add client') ||
     // Urdu script: "نیا کسٹمر شامل کریں Alpha Mills"
     lower.includes('کسٹمر') ||
-    lower.includes('گاہک')
+    lower.includes('گاہک') ||
+    // ORDER-INDEPENDENT CUSTOMER, mirroring the supplier rule above. Without it
+    // "customer add karo" matched nothing here and fell to the miss path, so
+    // the user was asked for a name by the resolver instead of by the rule —
+    // and the phrase was filed as a miss, offering to teach the copilot
+    // something it already knew.
+    (/\b(customer|client)\b/.test(lower) &&
+      /\b(add|new|create|register|banayein|banao)\b/.test(lower) &&
+      !lower.includes('supplier') && !lower.includes('vendor') && !lower.includes('سپلائر') && !lower.includes('وینڈر'))
   ) {
     let name = effectiveInput.replace(/add\s+customer|new\s+customer|register\s+customer|naya\s+customer|customer\s+banao|add\s+client/i, '').trim();
     name = name.replace(/^[\s\S]*?(?:شامل\s*کریں|شامل\s*کر[یی]ں|کریں)\s*/, '');
@@ -455,8 +525,32 @@ export function analyzeUserIntent(input: string, state?: DatabaseState): AgentHa
     // "new supplier add karo" leaves the verb behind as the party name, which
     // wrote a supplier called "add karo" into the ledger. A name that is only a
     // verb is no name at all.
-    if (/^(add|karo|kro|do|create|banao|banayein|register|new|naya)/i.test(name) && name.split(/\s+/).length <= 2) {
+    if (/^(add|karo|kro|do|create|banao|banayein|register|new|naya)\b/i.test(name) && name.split(/\s+/).length <= 2) {
       name = '';
+    }
+    // The trailing-verb strip at the top of this function reduces a verb-LAST
+    // phrasing to the bare ENTITY NOUN: "supplier add karo" becomes
+    // "supplier". The verb guard above cannot catch that — "supplier" is not a
+    // verb — so a party literally called "supplier" was written into the ledger
+    // with a record ID that looks real, and the reply announced it as added.
+    // A name made only of the word naming the thing being added is the command
+    // echoed back, not a name. Same answer as a bare verb: ask.
+    if (/^(supplier|vendor|customer|client)$/i.test(name.trim())) {
+      name = '';
+    }
+    // The trailing-verb strip removes a verb AND everything after it, so
+    // "supplier add karo Nova Chemicals" was reduced to "supplier" and the one
+    // part the user cared about — the name — was thrown away with it. When the
+    // strips above leave nothing, recover the name from the ORIGINAL utterance
+    // by deleting the command WORDS rather than the text following them.
+    // Nothing is invented: every surviving word was typed by the user, and an
+    // utterance that is only commands still recovers to nothing.
+    if (!name) {
+      const recovered = input
+        .replace(/\b(supplier|vendor|customer|client|add|new|naya|create|register|banao|banayein|karo|kro|kar|do)\b/gi, ' ')
+        .replace(/[،,\s]+/g, ' ')
+        .trim();
+      if (recovered) name = recovered;
     }
     // Same as the supplier rule above: no invented "Pakistan".
     let city: string | undefined;
@@ -661,6 +755,14 @@ export function analyzeUserIntent(input: string, state?: DatabaseState): AgentHa
     // was answered with a warehouse stock report. A sale verb anywhere in the
     // sentence is still a sale.
     (/\bsale\b/.test(lower) && /\b(record|karo|kro|banao|register|likho|chalo)\b/.test(lower)) ||
+    // ORDER-INDEPENDENT SALE. The clause above only recognises the verb list
+    // {record, karo, kro, banao, register, likho, chalo}, so a real sale that
+    // phrased the verb differently, or put it at the end, matched nothing:
+    // "is item ki sale noor mills ko kar do" was REFUSED, and "add sale to
+    // Noor Mills of this item" fell through to the catalogue rule. Every other
+    // clause in this file is order-dependent for the same reason. SALE_CUE plus
+    // any ordinary imperative verb is a sale in whatever order it was spoken.
+    (SALE_CUE.test(lower) && /\b(add|record|kar|karo|kro|kardo|do|banao|banayein|likho|chalo|register|create)\b/.test(lower)) ||
     // "سیل انوئس (18% GST)" — the dashboard demo chip. Without this it fell
     // through to rule 9 on the word "GST" and returned withholding rules for a
     // question about raising a sales invoice.
@@ -806,10 +908,16 @@ export function analyzeUserIntent(input: string, state?: DatabaseState): AgentHa
   const asksProfit =
     lower.includes('profit') || lower.includes('munafa') || lower.includes('net profit') ||
     lower.includes('faida') || lower.includes('نفع');
+  // "add" + "item" is the shape of a catalogue entry, but it is ALSO the shape
+  // of a sale: "add sale to Noor Mills of this item" is a sale that mentions a
+  // generic item, and it used to be routed to the catalogue because both halves
+  // of this condition were true. The user asked for a sale and was offered a
+  // new product form. A sale cue outranks a catalogue cue wherever both appear.
   const asksAddProduct =
     (lower.includes('add') || lower.includes('new') || lower.includes('naya') || lower.includes('add karo') ||
       lower.includes('add kro') || lower.includes('creat')) &&
-    (lower.includes('product') || lower.includes('material') || lower.includes('item') || lower.includes('sku'));
+    (lower.includes('product') || lower.includes('material') || lower.includes('item') || lower.includes('sku')) &&
+    !SALE_CUE.test(lower);
 
   if (asksReceivables || asksPayables || asksProfit) {
     return {
