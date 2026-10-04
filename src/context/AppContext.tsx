@@ -21,7 +21,6 @@ import {
   AuthUser,
   UserAccount,
   UserRole,
-  RolePermissions,
   BrandingSettings,
   AISettings,
   ViewableItemType,
@@ -54,11 +53,11 @@ import {
   executeCreatePurchaseOrder,
   executeRecordSale,
   toolReceiveGoods,
+  toolRecordExpense,
   prepareReorderLowStockConfirmation
 } from '../lib/businessTools';
 import { executeSupervisorTurn, mergeWithPendingCommand } from '../lib/agentSupervisor';
 import {
-  queryGroqChat,
   transcribeWithGroqWhisper,
   speakVoiceResponse
 } from '../lib/groqClient';
@@ -71,6 +70,7 @@ import { hydrateFromCloud, hydrateBranding, push, pushBulk } from '../lib/cloudS
 import { AGENT_TICK_MS } from '../agents/realtime';
 import type { AgentProposal, AuditEntry } from '../agents/types';
 import { cloudRepo } from '../lib/cloudRepo';
+import { getRolePermissions } from '../lib/rolePermissions';
 
 export type AppTab =
   | 'dashboard'
@@ -95,67 +95,6 @@ export interface ToastAlert {
   title: string;
   message: string;
 }
-
-export const getRolePermissions = (role: UserRole): RolePermissions => {
-  switch (role) {
-    case 'Super Admin':
-      return {
-        canManageUsers: true,
-        canDeleteRecords: true,
-        canEditSettings: true,
-        canManageInventory: true,
-        canManageProcurement: true,
-        canManageSalesAndTax: true,
-        canManageCashbook: true,
-        canPrintDocuments: true
-      };
-    case 'Admin':
-      return {
-        canManageUsers: false,
-        canDeleteRecords: false,
-        canEditSettings: false,
-        canManageInventory: true,
-        canManageProcurement: true,
-        canManageSalesAndTax: true,
-        canManageCashbook: true,
-        canPrintDocuments: true
-      };
-    case 'Head Accountant':
-      return {
-        canManageUsers: false,
-        canDeleteRecords: false,
-        canEditSettings: false,
-        canManageInventory: false,
-        canManageProcurement: false,
-        canManageSalesAndTax: true,
-        canManageCashbook: true,
-        canPrintDocuments: true
-      };
-    case 'Factory Supervisor':
-      return {
-        canManageUsers: false,
-        canDeleteRecords: false,
-        canEditSettings: false,
-        canManageInventory: true,
-        canManageProcurement: true,
-        canManageSalesAndTax: false,
-        canManageCashbook: false,
-        canPrintDocuments: true
-      };
-    case 'Tax Auditor':
-    default:
-      return {
-        canManageUsers: false,
-        canDeleteRecords: false,
-        canEditSettings: false,
-        canManageInventory: false,
-        canManageProcurement: false,
-        canManageSalesAndTax: false,
-        canManageCashbook: false,
-        canPrintDocuments: true
-      };
-  }
-};
 
 // Clean wipe check for production state with zero demo seed data.
 // v7: also purges any Groq API key previously stored in the browser —
@@ -865,7 +804,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Real Voice & Groq Whisper state
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
-  const [recordingTranscript, setRecordingTranscript] = useState<string>('');
+  const [recordingTranscript, setRecordingTranscriptState] = useState<string>('');
+  const recordingTranscriptRef = useRef<string>('');
+  const setRecordingTranscript = (text: string) => {
+    recordingTranscriptRef.current = text;
+    setRecordingTranscriptState(text);
+  };
   const [audioVoiceEnabled, setAudioVoiceEnabled] = useState<boolean>(true);
   const [micErrorNotice, setMicErrorNotice] = useState<string | null>(null);
   const clearMicErrorNotice = () => setMicErrorNotice(null);
@@ -1040,8 +984,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const payload = proposal.payload as Record<string, any>;
 
-      // Only a purchase order or a sale actually books anything. An anomaly is
-      // a flag for a human — approving it records the review, nothing more.
+      let ledgerWritten = true;
+
       if (proposal.tool === 'create_purchase_order') {
         const quantity = Number(payload.quantity) || 0;
         const unitPrice = Number(payload.unitPricePKR) || 0;
@@ -1056,11 +1000,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           totalAmount: quantity * unitPrice
         });
         applyDatabaseUpdate(res.updatedState);
+      } else if (proposal.tool === 'record_sale') {
+        const p = (payload.executeParams ?? payload) as Record<string, any>;
+        const res = executeRecordSale(agentStateRef.current, {
+          customerId: String(p.customerId ?? ''),
+          customerName: String(p.customerName ?? ''),
+          productId: String(p.productId ?? ''),
+          productName: String(p.productName ?? ''),
+          quantity: Number(p.quantity) || 0,
+          unit: String(p.unit ?? 'kg'),
+          unitPrice: Number(p.unitPrice ?? p.unitPricePKR) || 0,
+          subtotal: Number(p.subtotal ?? p.subtotalPKR) || 0,
+          taxRate: Number(p.taxRate ?? p.gstRatePercent) || 0,
+          taxAmount: Number(p.taxAmount ?? p.gstAmountPKR) || 0,
+          totalAmount: Number(p.totalAmount ?? p.totalAmountPKR) || 0
+        });
+        applyDatabaseUpdate(res.updatedState);
+      } else if (proposal.tool === 'record_expense') {
+        const p = (payload.executeParams ?? payload) as Record<string, any>;
+        const { updatedState } = toolRecordExpense(agentStateRef.current, {
+          amount: Number(p.amount) || 0,
+          category: String(p.category ?? 'utilities'),
+          description: String(p.description ?? 'Factory operating disbursement')
+        });
+        applyDatabaseUpdate(updatedState);
+      } else if (proposal.tool === 'flag_anomaly') {
+        // An anomaly is a flag for a human — approving it records the review,
+        // nothing more. There is no execute function for it, so no ledger
+        // write happens and the toast must not claim one.
+        ledgerWritten = false;
       }
 
       resolveAgentProposal(proposal, 'approved');
       addToast('success', 'Agent proposal approved',
-        `${proposal.title} — written to the ledger and stamped in the audit trail.`);
+        ledgerWritten
+          ? `${proposal.title} — written to the ledger and stamped in the audit trail.`
+          : `${proposal.title} — marked reviewed; no ledger write was performed.`);
     } catch (e) {
       addToast('error', 'Approval failed',
         e instanceof Error ? e.message : 'The proposal could not be applied.');
@@ -1582,9 +1557,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // STAGE 3 — Mind lane: guide / navigate / compliance route deterministically
       // before the legacy supervisor. Data/write phrasings stay with the supervisor.
       const { safeUnderstand } = await import('../lib/voice/safeUnderstand');
-      const { executeGuide } = await import('../lib/voice/executor');
       const mindResult = await safeUnderstand(content, {
-        businessName: 'PakERP Textile SME',
+        businessName: branding.companyName,
         customers: getDBState().customers.map(c => ({ name: c.name, balance: c.outstandingReceivables })),
         suppliers: getDBState().suppliers.map(s => ({ name: s.name })),
         products: getDBState().products.map(p => ({ name: p.name, sku: (p as any).sku, unit: p.unit }))
@@ -1683,7 +1657,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setMessages(prev => [...prev, turnResult.message]);
 
       // Spoken voice feedback
-      if (audioVoiceEnabled && (method === 'voice' || turnResult.message.content)) {
+      if (audioVoiceEnabled && method === 'voice') {
         speakVoiceResponse(turnResult.message.content);
       }
     } catch (err: any) {
@@ -1928,7 +1902,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         } else {
           setIsTranscribing(false);
-          if (audioBlob.size <= 100 && !recordingTranscript.trim()) {
+          if (audioBlob.size <= 100 && !recordingTranscriptRef.current.trim()) {
             addToast('info', 'Recording Too Short', 'No audible speech captured for transcription.');
           }
         }
@@ -1966,7 +1940,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     setProducts(reconciledProducts);
-    localStorage.setItem('copilot_products', JSON.stringify(reconciledProducts));
 
     const totalValuation = reconciledProducts.reduce((sum, p) => sum + (p.currentStock * p.costPrice), 0);
     const lowStockCount = reconciledProducts.filter(p => p.currentStock <= p.reorderThreshold).length;

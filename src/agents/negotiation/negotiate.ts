@@ -51,6 +51,12 @@ export interface NegotiateInput {
   maxRounds: number;
 }
 
+// This driver always plays the same three beats (buyer opens, supplier
+// counters, buyer decides), so no budget above 3 can change the outcome.
+// Larger requests are clamped to 3 rather than honoured, and the effective
+// value is echoed back in the result so the clamp is visible, not silent.
+const MAX_PLAYABLE_ROUNDS = 3;
+
 export interface NegotiateResult {
   agreed: boolean;
   /** The agreed price, or null. Never populated when `agreed` is false. */
@@ -58,7 +64,7 @@ export interface NegotiateResult {
   rounds: NegotiationRound[];
   /** Why it failed. Null on success. Written for a human, not a machine. */
   reason: string | null;
-  /** Rounds the budget allowed, for the UI to show progress against. */
+  /** Rounds the budget allowed, for the UI to show progress against. Clamped to the rounds this driver can actually play. */
   maxRounds: number;
 }
 
@@ -68,12 +74,14 @@ export function negotiate(input: NegotiateInput): NegotiateResult {
   const { asking, floor, ceiling, maxRounds } = input;
   const rounds: NegotiationRound[] = [];
 
+  const roundBudget = Math.min(maxRounds, MAX_PLAYABLE_ROUNDS);
+
   const refuse = (reason: string): NegotiateResult => ({
     agreed: false,
     agreedPrice: null,
     rounds,
     reason,
-    maxRounds
+    maxRounds: roundBudget
   });
 
   // --- Input validation. Every one of these is a brief the caller got wrong. ---
@@ -89,7 +97,6 @@ export function negotiate(input: NegotiateInput): NegotiateResult {
   if (maxRounds < 1) {
     return refuse('At least one round must be allowed.');
   }
-
   const opening = buyerAgent.open({ theirCeiling: ceiling, asking });
   if (opening.price === null) {
     return refuse(opening.reason);
@@ -99,10 +106,10 @@ export function negotiate(input: NegotiateInput): NegotiateResult {
   let supplierPrice = floor;
   rounds.push({ round: 1, by: 'buyer', price: buyerPrice, reason: opening.reason });
 
-  // Round 2 — the supplier counters. No seller accepts the opening offer.
-  if (rounds.length >= maxRounds) {
+  // Round 2 — the supplier answers the opening.
+  if (rounds.length >= roundBudget) {
     return refuse(
-      `No agreement was reached within ${maxRounds} round${maxRounds === 1 ? '' : 's'}. ` +
+      `No agreement was reached within ${roundBudget} round${roundBudget === 1 ? '' : 's'}. ` +
         `Allow more rounds, or revisit the floor and ceiling.`
     );
   }
@@ -116,9 +123,9 @@ export function negotiate(input: NegotiateInput): NegotiateResult {
   rounds.push({ round: rounds.length + 1, by: 'supplier', price: supplierPrice, reason: supplierMove.reason });
 
   // Round 3 — the buyer decides.
-  if (rounds.length >= maxRounds) {
+  if (rounds.length >= roundBudget) {
     return refuse(
-      `No agreement was reached within ${maxRounds} round${maxRounds === 1 ? '' : 's'}. ` +
+      `No agreement was reached within ${roundBudget} round${roundBudget === 1 ? '' : 's'}. ` +
         `Allow more rounds, or revisit the floor and ceiling.`
     );
   }
@@ -151,6 +158,6 @@ export function negotiate(input: NegotiateInput): NegotiateResult {
     agreedPrice: buyerMove.price,
     rounds,
     reason: null,
-    maxRounds
+    maxRounds: roundBudget
   };
 }

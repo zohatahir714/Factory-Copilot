@@ -1,10 +1,12 @@
 /**
  * The AI seam — one door, two resolvers, no failures.
  *
- * `resolve()` is the only thing the rest of the app calls. It asks the live
- * resolver first, falls back to the offline one, and returns `null` rather than
- * throwing if both decline. It NEVER rejects: a copilot that reports an error
- * instead of answering is the failure mode this whole layer exists to remove.
+ * `resolve()` is the only thing the rest of the app calls. It runs the offline
+ * resolver first and only asks the live resolver when the offline one finds no
+ * confident match. It never throws: on total failure it returns a
+ * `{ reason }` result rather than crashing. It NEVER rejects: a copilot that
+ * reports an error instead of answering is the failure mode this whole layer
+ * exists to remove.
  *
  * The order is deliberate. The offline resolver runs on the LEARNED bank first,
  * because a phrase the user taught in Settings is a stronger instruction than
@@ -22,6 +24,7 @@ export {
   clearLearnedPhrases,
   recentMisses,
   recordMiss,
+  forgetMiss,
   clearMisses,
   type LearnedPhrase
 } from './misses.ts';

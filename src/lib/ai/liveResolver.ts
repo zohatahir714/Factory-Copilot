@@ -37,7 +37,7 @@ export const LIVE_SYSTEM_PROMPT = SYSTEM_PROMPT.replace('{{TOOLS}}', toolSchemaF
  */
 export async function resolveLive(utterance: string): Promise<ResolverResult> {
   try {
-    const { queryGroqChat } = await import('../groqClient');
+    const { queryGroqChat } = await import('../groqClient.ts');
     const raw = await queryGroqChat(
       [{ role: 'user', content: utterance }],
       '',

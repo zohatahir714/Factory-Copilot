@@ -13,7 +13,10 @@
  */
 
 import type { AgentProposal } from './types';
+import type { DatabaseState } from '../lib/businessTools';
 import { calculateFBRTaxByCategory } from '../utils/fbrTaxEngine';
+
+export type { DatabaseState };
 
 const DAY_MS = 86_400_000;
 
@@ -59,11 +62,6 @@ export interface AnomalyProduct {
   currentStock?: number;
   unit?: string;
   reorderThreshold?: number;
-}
-
-export interface DatabaseState {
-  salesOrders?: AnomalySalesOrder[];
-  products?: AnomalyProduct[];
 }
 
 export interface DetectOptions {
@@ -177,8 +175,8 @@ export function detectAnomalies(
   const createdAt = now.toISOString();
   const found: AgentProposal[] = [];
 
-  const salesOrders = Array.isArray(state?.salesOrders) ? state.salesOrders : [];
-  const products = Array.isArray(state?.products) ? state.products : [];
+  const salesOrders = (Array.isArray(state?.salesOrders) ? state.salesOrders : []) as AnomalySalesOrder[];
+  const products = (Array.isArray(state?.products) ? state.products : []) as AnomalyProduct[];
 
   for (const product of products) {
     if (!product) continue;

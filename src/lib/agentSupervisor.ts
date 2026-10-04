@@ -1308,7 +1308,7 @@ async function resolveCommand(
 ): Promise<AgentHandoffContract | null> {
   let call;
   try {
-    const { resolve } = await import('../lib/ai/index.ts');
+    const { resolve } = await import('./ai/index.ts');
     call = (await resolve(input)).call;
   } catch {
     return null;

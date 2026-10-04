@@ -522,15 +522,4 @@ export async function pushBulk(update: {
     const prevIds = new Set(prev.inventoryMovements.map(x => x.id));
     for (const m of update.inventoryMovements) if (!prevIds.has(m.id)) push.movementCreate(m);
   }
-  if (update.customers) {
-    const prevIds = new Set(prev.customers.map(x => x.id));
-    for (const c of update.customers) if (!prevIds.has(c.id)) push.customerCreate(c);
-    const newIds = new Set(update.customers.map(x => x.id));
-    for (const c of prev.customers) {
-      if (newIds.has(c.id)) {
-        const now = update.customers.find(x => x.id === c.id)!;
-        if (now.outstandingReceivables !== c.outstandingReceivables) push.customerUpdate(c.id, { outstandingReceivables: now.outstandingReceivables });
-      } else push.customerDelete(c.id);
-    }
-  }
 }

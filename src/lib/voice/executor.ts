@@ -1,9 +1,13 @@
 /**
- * VOICE MIND — executor.ts (Stage 1: queries)
+ * VOICE MIND — executor.ts
+ * Legacy. The Stage 1/Stage 2 mind→executor pipeline described below is no
+ * longer run by the app. This module is exercised by
+ * scripts/voice-fixture-test.mjs only.
+ *
  * Deterministic dispatch. The mind understands; the executor computes from
  * live state — it NEVER calls the LLM and never writes in Stage 1.
  *
- * Response discipline (spec §3.5): the spoken answer is ONE Urdu sentence
+ * Response discipline (spec A3.5): the spoken answer is ONE Urdu sentence
  * with just the asked figure, from templates. The rich stat card still
  * renders in the modal for eyes.
  */

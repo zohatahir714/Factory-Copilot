@@ -54,9 +54,6 @@ const SIGNALS: readonly Signal[] = [
   { tool: 'print', words: ['print', 'printer', 'printout'], strong: ['print'] }
 ];
 
-/** Write verbs that turn a read-shaped question into a write. */
-const WRITE_VERBS = /\b(save|record|add|create|register|banayein|banao|karo|kro|enter|post|insert)\b/i;
-
 const tokenize = (text: string): string[] =>
   text.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean);
 
@@ -114,10 +111,10 @@ export function resolveOffline(utterance: string): ResolverResult {
   const best = scored[0];
   const runnerUp = scored[1];
 
-  // Agreement between two tools raises confidence; a close runner-up lowers it,
-  // because "pending goods receive karo" genuinely is both "pending orders" and
-  // "receive goods" and the write must win — which it does, because WRITE_VERBS
-  // and the strong match push it clear.
+  // Two tools scoring equal on the same utterance is agreement, worth +0.1
+  // confidence; a clear single winner scores higher on its own without it.
+  // "pending goods receive karo" genuinely is both "pending orders" and
+  // "receive goods", and the strong receipt-side matches push receive_goods clear.
   const agreement = runnerUp && runnerUp.score === best.score ? 0.1 : 0;
   const confidence = Math.min(0.9, 0.35 + best.score * 0.15 + agreement);
 
@@ -135,5 +132,3 @@ export function resolveOffline(utterance: string): ResolverResult {
 }
 
 export const offlineResolver: Resolver = async (utterance: string) => resolveOffline(utterance);
-
-export const WRITE_VERB_PATTERN = WRITE_VERBS;

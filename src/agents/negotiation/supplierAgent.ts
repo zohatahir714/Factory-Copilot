@@ -27,10 +27,10 @@ export interface SupplierMove {
 /**
  * Decide the supplier's counter.
  *
- * Posture: a supplier does not accept the opening offer and does not open at
- * its floor — either would give away margin that was never conceded. It moves
- * HALF the remaining gap, and is clamped to its floor. An offer already below
- * the floor gets a flat "that is our floor" rather than a counter below it.
+ * Posture: a supplier does not open at its floor — that gives away margin
+ * that was never conceded. When the buyer's offer clears the floor it accepts
+ * explicitly; an offer already below the floor gets a flat "that is our
+ * floor" rather than a number below it.
  */
 export function counter(input: SupplierCounterInput): SupplierMove {
   const { theirFloor, buyerOffer } = input;
@@ -51,25 +51,12 @@ export function counter(input: SupplierCounterInput): SupplierMove {
     };
   }
 
-  // Concede half the gap between the buyer's offer and our floor. Never below
-  // the floor, never above what the buyer already offered.
-  const concession = Math.max(0, Math.floor((buyerOffer - theirFloor) / 2));
-  const price = Math.min(buyerOffer, Math.max(theirFloor, buyerOffer - concession));
-
-  if (price >= buyerOffer) {
-    return {
-      price,
-      reason:
-        `Rs. ${buyerOffer.toLocaleString()} already meets our floor of Rs. ` +
-        `${theirFloor.toLocaleString()}, so we have nothing further to concede.`
-    };
-  }
-
+  // The buyer met our floor: close at their number, and say so plainly.
   return {
-    price,
+    price: buyerOffer,
     reason:
-      `Moving to Rs. ${price.toLocaleString()}. That is halfway between your Rs. ` +
-      `${buyerOffer.toLocaleString()} and our floor of Rs. ${theirFloor.toLocaleString()}.`
+      `Rs. ${buyerOffer.toLocaleString()} meets our floor of Rs. ` +
+      `${theirFloor.toLocaleString()}. We accept.`
   };
 }
 

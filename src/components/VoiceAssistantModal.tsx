@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
-import { calculateFBRTax, formatPKR } from '../utils/fbrTaxEngine';
 import {
   Mic,
   MicOff,
@@ -37,37 +36,10 @@ import {
   CalendarDays
 } from 'lucide-react';
 
-interface LiveInspectionData {
-  queryType:
-    | 'cash'
-    | 'gst'
-    | 'sale_tax'
-    | 'inventory'
-    | 'receivables'
-    | 'payables'
-    | 'profit_loss'
-    | 'parties'
-    | 'day_book'
-    | 'purchase_orders'
-    | 'automate_tax'
-    | 'fbr_readiness_guide';
-  title: string;
-  badge: string;
-  spokenText: string;
-  stats: { label: string; value: string; color?: string }[];
-  details?: string;
-  actionButton?: {
-    label: string;
-    onClick: () => void;
-    icon?: any;
-  };
-}
-
-/** Small Urdu labels for the fast-path typing preview. */
+/** Voice command quick-entry modal. */
 export const VoiceAssistantModal: React.FC = () => {
   const {
     activeModal,
-    openModal,
     closeModal,
     isRecording,
     isTranscribing,
@@ -81,24 +53,10 @@ export const VoiceAssistantModal: React.FC = () => {
     darkMode,
     audioVoiceEnabled,
     toggleAudioVoice,
-    speakText,
     addToast,
     micErrorNotice,
     clearMicErrorNotice,
-    requestMicrophonePermission,
-    cashbook,
-    salesOrders,
-    products,
-    customers,
-    suppliers,
-    purchaseOrders,
-    openPrintDocument,
-    recordSaleDirect,
-    createPurchaseOrderDirect,
-    recordExpenseDirect,
-    createSupplierDirect,
-    createCustomerDirect,
-    createProductDirect
+    requestMicrophonePermission
   } = useApp();
 
   const [inputVal, setInputVal] = useState('');
@@ -119,10 +77,9 @@ export const VoiceAssistantModal: React.FC = () => {
   if (activeModal !== 'voice') return null;
 
   /**
-   * Execute voice action through the Voice Mind pipeline (spec §3):
-   * fast-path → Groq mind → deterministic executor. Writes/prints/navigation
-   * land here in Stage 2; Stage 1 handles queries, clarifications, and the
-   * Copilot fallback.
+   * Hand a voice command to the copilot. This modal no longer runs its own
+   * interpreter; every command goes through the same path as the copilot
+   * screen (`sendMessage` -> supervisor).
    */
   const handleExecuteVoiceAction = async (rawText?: string) => {
     const query = (rawText || inputVal).trim();
@@ -136,9 +93,6 @@ export const VoiceAssistantModal: React.FC = () => {
     if (isRecording) {
       stopRecording();
     }
-
-    setIsMindThinking(true);
-    setIsMindThinking(false);
 
     // ONE OWNER. Every command from this surface now goes to the same path the
     // copilot screen uses: `sendMessage` -> safeUnderstand (guides and module
@@ -440,7 +394,7 @@ export const VoiceAssistantModal: React.FC = () => {
           {/* One-Tap Voice Command Chips */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              <span>Aligned Voice Commands (One-Tap System Inspection)</span>
+              <span>Aligned Voice Commands (One-Tap Copilot Command)</span>
               <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Auto-Clears Buffer</span>
             </div>
 

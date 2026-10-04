@@ -129,10 +129,7 @@ function inventoryAgent(state: DatabaseState): AgentProposal[] {
 }
 
 function complianceAgent(state: DatabaseState): AgentProposal[] {
-  return detectAnomalies({
-    salesOrders: state.salesOrders ?? [],
-    products: state.products ?? []
-  });
+  return detectAnomalies(state);
 }
 
 let auditSeq = 0;

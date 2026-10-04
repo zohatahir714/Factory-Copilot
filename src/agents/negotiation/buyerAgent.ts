@@ -70,11 +70,10 @@ export function consider(input: BuyerConsiderInput): BuyerMove {
 /**
  * The buyer's opening ask.
  *
- * A buyer does not open at its own ceiling — that concedes the whole
- * negotiation before it starts. The opening is therefore placed partway
- * between what it offered last time and what it will pay, and is clamped to
- * the ceiling so this function, like every other here, cannot emit an
- * unpayable number.
+ * Returns the caller-supplied `asking` verbatim, after checking it against the
+ * ceiling. It does not compute a midpoint and does not clamp: an ask above the
+ * ceiling is refused with a reason, so a contradictory brief is surfaced to
+ * the caller instead of being silently rewritten.
  */
 export function open(input: { theirCeiling: number; asking: number }): BuyerMove {
   const { theirCeiling, asking } = input;
