@@ -3,7 +3,7 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "PakERP Cloud Suite — Deployment Topology",
-    "output": "docs/pakerp-deployment-topology.html",
+    "output": "docs/architecture/pakerp-deployment-topology.html",
     "visual_preset": "blueprint",
     "quality_profile": "showcase",
     "views": [

@@ -13,7 +13,7 @@
 React 19 · Vite 6 · TypeScript 5.8 · Tailwind 4 · Supabase PostgreSQL · Groq (server-side) · Vercel
 
 **Live demo:** https://factory-copilot-r6xy.vercel.app
-**Submission PRD for judges:** [HACKATHON_PRD.md](./HACKATHON_PRD.md)
+**Submission PRD for judges:** [docs/SUBMISSION_PRD.md](./docs/SUBMISSION_PRD.md)
 
 </div>
 

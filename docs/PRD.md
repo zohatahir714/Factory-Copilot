@@ -175,7 +175,7 @@ deterministic agent ◀── transcript routed to supervisor ◀──┘
 `organizations`, `profiles`, `chart_of_accounts`, `products`, `suppliers`,
 `customers`, `purchase_orders`, `sales_orders`, `cashbook_entries`,
 `inventory_movements`, `app_settings` — plus the statutory RAG chunk store.
-Schema bootstrap: `supabase_schema.sql`.
+Schema bootstrap: `supabase/schema.sql`.
 
 **Persistence strategy:** local-first writes for offline resilience, cloud
 sync to Supabase when connected — the app remains operational through

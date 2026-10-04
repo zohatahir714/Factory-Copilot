@@ -3,7 +3,7 @@
   "diagram_type": "dataflow",
   "meta": {
     "title": "PakERP Cloud Suite — Groq AI Pipeline",
-    "output": "docs/pakerp-ai-pipeline-map.html",
+    "output": "docs/architecture/pakerp-ai-pipeline-map.html",
     "viewBox": [1080, 560],
     "quality_profile": "showcase",
     "views": [

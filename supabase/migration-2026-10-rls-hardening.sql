@@ -2,7 +2,7 @@
 -- Phase 0 — Row Level Security hardening
 -- ============================================================================
 -- WHY THIS EXISTS
---   supabase_schema.sql created ten business tables with policies of the form
+--   supabase/schema.sql created ten business tables with policies of the form
 --     CREATE POLICY "..._all_products" ON products FOR ALL TO authenticated
 --       USING (true);
 --   `USING (true)` means "any signed-in user, any row". Every tenant could read

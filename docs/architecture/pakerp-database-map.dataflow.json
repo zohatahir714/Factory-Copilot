@@ -3,7 +3,7 @@
   "diagram_type": "dataflow",
   "meta": {
     "title": "PakERP Cloud Suite — Database Data Flow",
-    "output": "docs/pakerp-database-map.html",
+    "output": "docs/architecture/pakerp-database-map.html",
     "viewBox": [1080, 560],
     "quality_profile": "showcase",
     "views": [
