@@ -60,7 +60,8 @@ function clarificationReply(
   kind: 'purchase' | 'sale' | 'party',
   missing: string[],
   state: DatabaseState,
-  partyKind?: 'supplier' | 'customer'
+  partyKind?: 'supplier' | 'customer',
+  offeredName?: string
 ): string {
   const wants = (key: string) => missing.includes(key);
   if (kind === 'party') {
@@ -76,7 +77,16 @@ function clarificationReply(
   }
   if (kind === 'sale' && wants('customer')) {
     const names = state.customers.map(c => c.name).join(', ') || 'none added yet';
-    lines.push(`Customer? ${names}`);
+    // The user named a mill we do not have. Saying so — and offering to create
+    // it — is the whole point: listing three other mills and ignoring the one
+    // they said made the copilot look deaf, and gave them no way to proceed.
+    // Nothing is created here. The offer is a question, the customer is written
+    // only after they say yes, and then behind the same confirmation card.
+    if (offeredName) {
+      lines.push(`Customer? "${offeredName}" isn't in your customers yet — say "add ${offeredName} as customer" to create them, or pick: ${names}`);
+    } else {
+      lines.push(`Customer? ${names}`);
+    }
   }
   if (wants('product')) {
     lines.push(`Material? ${state.products.length} in your catalogue, or name a new material to add`);
@@ -219,6 +229,127 @@ const PRINTABLE: ReadonlyArray<readonly [string, RegExp]> = [
  * are compliance questions and must stay on the RAG path.
  */
 const SALE_CUE = /(\bsale\b(?!\s*(tax|order|return|price|rate))|\bsell\b|\bbech\b|\binvoice\b|\bdispatch\b|سیل|انوئس|انویس|فروخت)/i;
+
+/**
+ * Words that appear in so many company names that matching one of them proves
+ * nothing.
+ *
+ * The party matcher below falls back to "any word of this name appears in the
+ * utterance". That is what makes "Noor Mills" findable in "50 kg Noor Mills ko
+ * sale" — and it is also how a mill the user has NEVER heard of got silently
+ * matched to "Sialkot Weaving Mills", because both contain the word "mills".
+ * The user named a customer who did not exist and the system answered as though
+ * they had named one that did, which is worse than not matching at all: it
+ * produces a real write against the wrong party.
+ *
+ * So the fallback refuses to match on an industry word alone. "Weaving" is fine;
+ * "mills" is not.
+ */
+const GENERIC_PARTY_WORDS: ReadonlySet<string> = new Set([
+  'mills', 'mill', 'traders', 'trader', 'textiles', 'textile', 'industries',
+  'industry', 'limited', 'company', 'corporation', 'enterprises', 'enterprise',
+  'international', 'services', 'service', 'group', 'holdings', 'sons', 'brothers'
+]);
+
+/**
+ * The customer name the user SPOKE, even when it is not one we have.
+ *
+ * WHY THIS EXISTS
+ *   "50 kg yarn Noor Mills ko sale" is a complete instruction with a customer in
+ *   it. The rule used to discard the unmatched name and ask the user to choose
+ *   from the mills already on file — so a user who had just named a mill was
+ *   answered with a list that did not contain it, and had no way to say "that
+ *   one". Losing the words the user actually typed is the same class of bug as
+ *   inventing them, and the fix for both is the same discipline.
+ *
+ * WHAT IT WILL NOT DO
+ *   It does not guess. If no name-shaped phrase is present it returns
+ *   undefined, and the caller falls back to asking from the real list. A
+ *   returned string is always a verbatim span of the utterance — never a
+ *   completion, never a corrected spelling, never a capitalised guess.
+ *
+ * Only words that cannot be a party name (verbs, materials, question words) are
+ * filtered out, and only from the FRONT and END of the span, so a legitimate
+ * name containing "Mills" or "Traders" survives intact.
+ */
+function saidCustomerName(input: string, lower: string, catalogue: string[] = []): string | undefined {
+  // Matching runs against a lowercased copy but the SPAN is sliced out of the
+  // original, so the name comes back as the user typed it — "Noor Mills", not
+  // "noor mills". Quoting someone's company back to them in the wrong case
+  // reads as though the system did not really hear them.
+  const flat = input.toLowerCase();
+
+  /**
+   * Slice the SURVIVING words out of the original text, preserving the casing
+   * the user typed. Matching happens on a lowercased copy, so the index found
+   * there is reused against `input` — same string, same offsets.
+   */
+  const sliceVerbatim = (m: RegExpMatchArray, words: string[], capturedWords: string[]): string => {
+    const captureAt = (m.index ?? 0) + m[0].indexOf(m[1]);
+    // Walk the capture word by word, recording where each starts, so the range
+    // of the SURVIVING words is known exactly rather than guessed. The offset
+    // matters: words trimmed off the front are still present in `starts`, and
+    // slicing from starts[0] would hand back the material words we just removed.
+    const starts: number[] = [];
+    const rx = /\S+/g;
+    let hit: RegExpExecArray | null;
+    while ((hit = rx.exec(m[1])) !== null) starts.push(hit.index);
+    if (!starts.length || !words.length) return '';
+    const droppedFromLeft = capturedWords.length - words.length;
+    const first = starts[Math.min(droppedFromLeft, starts.length - 1)];
+    const lastWord = words[words.length - 1];
+    const end = starts[starts.length - 1] + lastWord.length;
+    return input.slice(captureAt + first, captureAt + end).trim();
+  };
+
+  // Urdu script: "نور ملز کو" — the party precedes the postposition کو.
+  const urdu = input.match(/([؀-ۿ][؀-ۿ\s]{1,30}?)\s*کو/);
+  // Only guard against an empty or whitespace-only capture. An earlier version
+  // stripped the Arabic characters to check "is any Latin left", which is
+  // always false for real Urdu — so every Urdu name was rejected and the branch
+  // never once fired.
+  if (urdu && urdu[1].trim().length >= 2) return urdu[1].trim();
+
+  // English and Roman Urdu, in any position:
+  //   "sale to Noor Mills"        -> after "to"
+  //   "Noor Mills ko sale"        -> before "ko", anywhere in the sentence
+  //   "50 kg yarn Noor Mills ko sale" -> same, not anchored to the start
+  const patterns = [
+    /\b(?:to|for)\s+([A-Za-z][A-Za-z&.'-]*(?:\s+[A-Za-z&.'-]+){0,3})(?:\s+(?:ki|ka|ko|in|of|add|record|kar|karo|kro|banao|please)\b|[,.!?]|$)/i,
+    /([A-Za-z][A-Za-z&.'-]*(?:\s+[A-Za-z&.'-]+){0,3})\s+ko\b/i,
+    /\bsale\s+([A-Za-z][A-Za-z&.'-]*(?:\s+[A-Za-z&.'-]+){0,3}?)(?:\s+(?:ki|ka|ko|kar|karo|kro|do|add|record|in|of)\b|[,.!?]|$)/i
+  ];
+
+  // Words that can never be part of a party name. Filtering the edges only.
+  const NOT_A_NAME = new Set([
+    'sale', 'sell', 'bech', 'karo', 'kro', 'kar', 'do', 'add', 'record', 'banao',
+    'banayein', 'register', 'create', 'please', 'item', 'product', 'material',
+    'kg', 'kilo', 'kilos', 'bags', 'units', 'meters', 'of', 'this', 'that', 'the',
+    'a', 'an', 'my', 'new', 'for', 'to', 'and', 'in', 'is', 'order', 'invoice',
+    'kg', 'quantity', 'qty'
+  ]);
+
+  for (const rx of patterns) {
+    const m = flat.match(rx);
+    if (!m) continue;
+    const capturedWords = m[1].trim().split(/\s+/);
+    const words = [...capturedWords];
+    while (words.length && NOT_A_NAME.has(words[0])) words.shift();
+    while (words.length && NOT_A_NAME.has(words[words.length - 1])) words.pop();
+    // Drop material words from the leading edge. "50 kg cotton yarn Noor Mills
+    // ko sale" would otherwise offer to create a customer called "cotton yarn
+    // Noor Mills" — the material sits in the same phrase as the party, and the
+    // catalogue already says which words belong to the product.
+    const isMaterial = (w: string) => catalogue.some(n => n.toLowerCase().includes(w));
+    while (words.length && isMaterial(words[0])) words.shift();
+    if (!words.length) continue;
+    // Two words is a real mill name ("Noor Mills"); one short word is usually a
+    // leftover conjunction rather than a company.
+    if (words.length === 1 && words[0].length < 4) continue;
+    return sliceVerbatim(m, words, capturedWords);
+  }
+  return undefined;
+}
 
 /**
  * Parses user input in English or Roman Urdu, extracts domain and entities
@@ -387,13 +518,13 @@ export function analyzeUserIntent(input: string, state?: DatabaseState): AgentHa
   const matchedSupplier = availableSuppliers.find(s => {
     const sName = s.name.toLowerCase();
     return lower.includes(sName) ||
-      (sName.split(' ').some(word => word.length > 4 && lower.includes(word)));
+      (sName.split(' ').some(word => word.length > 4 && !GENERIC_PARTY_WORDS.has(word) && lower.includes(word)));
   });
 
   const matchedCustomer = availableCustomers.find(c => {
     const cName = c.name.toLowerCase();
     return lower.includes(cName) ||
-      (cName.split(' ').some(word => word.length > 4 && lower.includes(word)));
+      (cName.split(' ').some(word => word.length > 4 && !GENERIC_PARTY_WORDS.has(word) && lower.includes(word)));
   });
 
   // "Pending" is the only word separating a READ of the purchase-order list from
@@ -762,7 +893,7 @@ export function analyzeUserIntent(input: string, state?: DatabaseState): AgentHa
     // Noor Mills of this item" fell through to the catalogue rule. Every other
     // clause in this file is order-dependent for the same reason. SALE_CUE plus
     // any ordinary imperative verb is a sale in whatever order it was spoken.
-    (SALE_CUE.test(lower) && /\b(add|record|kar|karo|kro|kardo|do|banao|banayein|likho|chalo|register|create)\b/.test(lower)) ||
+    (SALE_CUE.test(lower) && /\b(add|record|kar|karo|kro|kardo|do|banao|banayein|likho|chalo|register|create|ko|to)\b/.test(lower)) ||
     // "سیل انوئس (18% GST)" — the dashboard demo chip. Without this it fell
     // through to rule 9 on the word "GST" and returned withholding rules for a
     // question about raising a sales invoice.
@@ -778,11 +909,22 @@ export function analyzeUserIntent(input: string, state?: DatabaseState): AgentHa
     // be issued to whichever client happens to sit at index 0.
     const quantity = qtyMatch ? parseInt(qtyMatch[1], 10) : undefined;
 
+    // A NAME THE LEDGER DOES NOT HAVE IS STILL A NAME THE USER SAID.
+    //
+    // "sale to Noor Mills" used to behave exactly like "sale" with no customer
+    // at all: the unmatched phrase was thrown away and the user was offered the
+    // three mills already on file, as though they had not just named one. The
+    // name is kept here so the reply can name it back and offer to create it,
+    // rather than asking them to pick from a list that did not contain their
+    // own words.
+    const saidCustomer = saidCustomerName(input, lower, availableProducts.map(p => p.name));
+
     return {
       intent: 'record_sale',
       domain: 'accounting',
       entities: {
         customer: matchedCustomer?.name,
+        ...(saidCustomer && !matchedCustomer ? { newCustomer: saidCustomer } : {}),
         product: matchedProduct?.name,
         quantity,
         missing: [
@@ -1569,7 +1711,8 @@ async function runSupervisorTurn(
           kind as 'purchase' | 'sale' | 'party',
           missing,
           state,
-          contract.intent === 'add_customer' ? 'customer' : 'supplier'
+          contract.intent === 'add_customer' ? 'customer' : 'supplier',
+          typeof contract.entities.newCustomer === 'string' ? contract.entities.newCustomer : undefined
         ),
         timestamp: now,
         inputMethod,

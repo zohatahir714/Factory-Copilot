@@ -932,3 +932,95 @@ describe('every module can be opened by name', () => {
     });
   }
 });
+
+/**
+ * SELLING TO A CUSTOMER WHO DOES NOT EXIST YET.
+ *
+ * WHY THIS SUITE
+ *   "50 kg yarn Noor Mills ko sale" is a complete instruction that names a
+ *   customer. The rule used to throw the unmatched name away and ask the user to
+ *   choose from the mills already on file — so someone who had just named a mill
+ *   was answered with a list that did not contain it, and had no way to say
+ *   "that one". Discarding the words the user typed is the same failure as
+ *   inventing them, and both are what this product is built not to do.
+ *
+ *   Building it surfaced a second, worse defect. The party matcher falls back to
+ *   "any word of this name appears in the utterance", and "Noor Mills" matched
+ *   "Sialkot Weaving Mills" on the shared word "mills" — so a customer who does
+ *   not exist was reported as one who does, and the sale was set up against the
+ *   WRONG party with a real invoice total attached. That is the bug these tests
+ *   exist to prevent: a generic industry word is not an identity.
+ */
+describe('a customer who is not on file is named back, not dropped', () => {
+  const SALE_TO_UNKNOWN: [string, string][] = [
+    ['sale to Noor Mills', 'Noor Mills'],
+    ['add sale to Noor Mills of this item', 'Noor Mills'],
+    ['50 kg cotton yarn Noor Mills ko sale', 'Noor Mills'],
+    ['is item ki sale Noor Mills ko kar do', 'Noor Mills'],
+    ['نور ملز کو سیل کریں', 'نور ملز']
+  ];
+
+  for (const [phrase, name] of SALE_TO_UNKNOWN) {
+    it(`offers to create "${name}": "${phrase}"`, async () => {
+      const r = await executeSupervisorTurn(phrase, demoState());
+      const c = r.message.content;
+      assert.ok(
+        c.includes(name),
+        `"${phrase}" dropped the name "${name}": ${c.slice(0, 160)}`
+      );
+      assert.match(
+        c, /isn't in your customers yet/,
+        `"${phrase}" did not say the customer is unknown: ${c.slice(0, 160)}`
+      );
+    });
+  }
+
+  it('offers creation but writes nothing until the user asks', async () => {
+    const r = await executeSupervisorTurn('sale to Noor Mills', demoState());
+    assert.ok(
+      !r.pendingConfirmation,
+      'offering to create a customer must not open a confirmation card on its own'
+    );
+    assert.doesNotMatch(
+      r.message.content, /Customer added|Supplier added/,
+      'the customer was created without being asked for'
+    );
+  });
+
+  it('keeps the casing the user typed', async () => {
+    // Quoting a company back in lower case reads as though the system did not
+    // really hear it.
+    const r = await executeSupervisorTurn('sale to Noor Mills', demoState());
+    assert.ok(r.message.content.includes('Noor Mills'), 'name was lower-cased');
+    assert.ok(!r.message.content.includes('"noor mills"'), 'name was lower-cased');
+  });
+});
+
+describe('a generic industry word is not an identity', () => {
+  it('does not match a mill on the shared word "mills"', () => {
+    // The regression that mattered: this used to match "Sialkot Weaving Mills"
+    // and silently aim a real invoice at the wrong party.
+    const c = analyzeUserIntent('sale to Noor Mills', demoState());
+    assert.equal(c.intent, 'record_sale');
+    assert.equal(
+      c.entities.customer, undefined,
+      `an unknown customer was matched to "${String(c.entities.customer)}"`
+    );
+  });
+
+  it('still matches a real customer by its distinctive word', () => {
+    // The fix must not over-correct into "nothing matches any more".
+    const c = analyzeUserIntent('sell to Rahim Traders', demoState());
+    assert.equal(c.intent, 'record_sale');
+    assert.equal(c.entities.customer, 'Rahim Traders');
+  });
+
+  it('keeps material words out of the offered name', async () => {
+    // "cotton yarn Noor Mills" is not a company.
+    const r = await executeSupervisorTurn('50 kg cotton yarn Noor Mills ko sale', demoState());
+    assert.ok(
+      !r.message.content.includes('"cotton yarn Noor Mills"'),
+      `material bled into the customer name: ${r.message.content.slice(0, 160)}`
+    );
+  });
+});
