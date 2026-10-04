@@ -11,6 +11,7 @@ supabase/.temp/
 # These appeared mid-project and would otherwise be swept in by `git add -A`.
 .agents/
 .claude/
+.brag-ts
 skills-lock.json
 .freebuff/
 *.zip
